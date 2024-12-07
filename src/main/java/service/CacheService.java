@@ -34,7 +34,7 @@ public class CacheService {
 
 		return data;
 	}
-	// invalidation
+	// cache invalidation
 	public void invalidateData(String entityType) {
 		logger.info("Invalidating cache for entityType: {} ", entityType);
 		listener.onEvent(new CacheEvent(entityType));
