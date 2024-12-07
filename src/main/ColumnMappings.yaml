@@ -1,0 +1,146 @@
+classes:
+  dblayer.model.Branch:
+    tableName: "branch"
+    autoIncrementField: "id"
+    fields:
+      id:
+        columnName: "id"
+      ifscCode:
+        columnName: "ifsc_code"
+      contactNumber:
+        columnName: "contact_number"
+      name:
+        columnName: "name"
+      address:
+        columnName: "address"
+      createdAt:
+        columnName: "created_at"
+      modifiedAt:
+        columnName: "modified_at"
+      performedBy:
+        columnName: "performed_by"
+
+  dblayer.model.User:
+    tableName: "user"
+    autoIncrementField: "id"
+    referedField: "id"
+    fields:
+      id:
+        columnName: "id"
+      fullname:
+        columnName: "fullname"
+      email:
+        columnName: "email"
+      phone:
+        columnName: "phone"
+      role:
+        columnName: "role"
+      username:
+        columnName: "username"
+      password:
+        columnName: "password"
+      status:
+        columnName: "status"
+      createdAt:
+        columnName: "created_at"
+      modifiedAt:
+        columnName: "modified_at"
+      performedBy:
+        columnName: "performed_by"
+
+  dblayer.model.Customer:
+    tableName: "customer"
+    referenceField: "userId"
+    fields:
+      userId:
+        columnName: "user_id"
+      panNumber:
+        columnName: "pan_number"
+      aadharNumber:
+        columnName: "aadhar_number"
+
+  dblayer.model.CustomerDetail:
+    tableName: "customerDetail"
+    referenceField: "customerId"
+    fields:
+      customerId:
+        columnName: "user_id"
+      dob:
+        columnName: "dob"
+      fatherName:
+        columnName: "father_name"
+      motherName:
+        columnName: "mother_name"
+      address:
+        columnName: "address"
+      maritalStatus:
+        columnName: "marital_status"
+
+  dblayer.model.Account:
+    tableName: "account"
+    fields:
+      accountId:
+        columnName: "account_id"
+      accountNumber:
+        columnName: "account_number"
+      branchId:
+        columnName: "branch_id"
+      userId:
+        columnName: "user_id"
+      accountType:
+        columnName: "account_type"
+      status:
+        columnName: "status"
+      balance:
+        columnName: "balance"
+      minBalance:
+        columnName: "min_balance"
+      isPrimary:
+        columnName: "is_primary"
+      createdAt:
+        columnName: "created_at"
+      modifiedAt:
+        columnName: "modified_at"
+      performedBy:
+        columnName: "performed_by"
+
+  dblayer.model.Staff:
+    tableName: "staff"
+    referenceField: "userId"
+    fields:
+      userId:
+        columnName: "user_id"
+      branchId:
+        columnName: "branch_id"
+
+  dblayer.model.Transaction:
+    tableName: "transaction"
+    fields:
+      id:
+        columnName: "id"
+      customerId:
+        columnName: "customer_id"
+      accountNumber:
+        columnName: "account_number"
+      transactionAccountNumber:
+        columnName: "transaction_account_number"
+      transactionType:
+        columnName: "transaction_type"
+      status:
+        columnName: "status"
+      remarks:
+        columnName: "remarks"
+      amount:
+        columnName: "amount"
+      closingBalance:
+        columnName: "closing_balance"
+      bankName:
+        columnName: "bank_name"
+      ifsc:
+        columnName: "ifsc"
+      transactionIfsc:
+        columnName: "transaction_ifsc"
+      transactionTime:
+        columnName: "transaction_time"
+      performedBy:
+        columnName: "performed_by"

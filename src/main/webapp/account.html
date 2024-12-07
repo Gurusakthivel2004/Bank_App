@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Horizon Payment</title>
+<link
+	href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+	rel="stylesheet">
+<style>
+body {
+	background-color: #2a2a3b;
+	color: #f7f7f7;
+	font-family: 'Roboto', sans-serif;
+}
+
+.full-container {
+	display: flex;
+	height: 100vh;
+	margin: auto;
+}
+
+.left-section {
+	flex: 1;
+	max-width: 85px;
+	text-align: center;
+	border-right: 1px solid #2a2a3b;
+	background-color: #212121;
+}
+
+.dropdown-item:hover {
+	background-color: #3b1457;
+	color: #ffffff;
+}
+
+.dropdown-item.active {
+	background-color: #3b1457 !important;
+	color: white !important;
+}
+
+.left-section a {
+	font-size: 13px;
+	font-weight: 500;
+	color: #ffffff;
+	text-decoration: none;
+	margin-top: 20px;
+}
+
+.right-section {
+	flex: 3;
+	padding: 30px;
+	background-color: #f1f3f5;
+	overflow-y: auto;
+}
+
+.account-details {
+	background-color: #ffffff;
+	border-radius: 12px;
+	box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.1);
+	padding: 30px;
+	margin: auto;
+	max-width: 60%;
+	transition: transform 0.2s ease-in-out;
+}
+
+.account-details h2 {
+	font-family: 'Roboto', sans-serif;
+	color: green;
+	font-weight: 700;
+	letter-spacing: -0.8px;
+}
+
+.tree-item {
+	cursor: pointer;
+	padding: 30px 5px;
+	padding-bottom: 6px;
+	border-bottom: 1px solid #2b0444;
+	color: #2b0444;
+	font-weight: 600;
+	box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.1);
+	font-size: x-large;
+	font-family: sans-serif;
+}
+
+.tree-item:hover {
+	background-color: #3b1457;
+	color: white;
+}
+
+.tree-subitem {
+	padding-left: 15px;
+	display: none;
+	color: #e0e0e0;
+}
+
+nav {
+	background-color: #ffffff;
+	box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.1);
+	padding: 10px 20px;
+}
+
+nav a {
+	text-decoration: none;
+	margin-right: 20px;
+	font-family: sans-serif;
+	font-size: large;
+	color: #2b0444;
+}
+
+nav a.logout {
+	color: #d9534f;
+}
+
+.mobile-dropdown .dropdown-menu {
+	width: 100%;
+	margin: auto;
+	text-align: center;
+	border-radius: 8px;
+	background-color: #ffffff;
+	box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.tree-item.expanded .tree-subitem {
+	display: block;
+}
+
+.tab-content {
+	padding-top: 20px;
+}
+
+.menu-toggle {
+	background: none;
+	border: none;
+	font-size: 24px;
+	color: #2a2a3b;
+}
+
+.detail-item {
+	margin-bottom: 20px;
+	font-family: 'Roboto', sans-serif;
+	color: #2a2a3b;
+	font-size: larger;
+}
+
+.detail-label {
+	font-weight: 500;
+	color: #3d3d58;
+}
+
+.inputDiv input {
+	font-weight: 700;
+}
+
+@media ( max-width : 768px) {
+	.left-section {
+		display: none;
+	}
+	.bankname {
+		display: none;
+	}
+	.profile-dropdown {
+		display: none;
+	}
+}
+
+button {
+       transition: transform 0.3s ease, background-color 0.3s ease; 
+   }
+
+   button:hover {
+       cursor: pointer;
+       transform: scale(1.15); 
+   }
+   .saveButton:hover {
+       background-color: #e7f3fe;
+   }
+
+   .cancelButton:hover {
+       background-color: #f8d7da; 
+   }
+
+   .editOneButton:hover {
+       background-color: #d1ecf1; 
+   }
+
+@media ( min-width : 768px) {
+	.mobile-dropdown {
+		display: none;
+	}
+}
+.saveButton:hover {
+	background-color: black;
+	border-radius: 100%;
+}
+</style>
+</head>
+<body>
+	<div>
+		<nav style="background-color: white; color: #2b0444;"
+			class="d-flex justify-content-between align-items-center">
+			<div class="d-flex align-items-center">
+				<a class="m-0 p-0" href="dashboard.html"><img class="w-5 h-5"
+					width="100px" height="100px" src="./images/logo2.png" /></a>
+				<h1
+					style="padding-right: 50px; text-decoration: underline; font-family: sans-serif; letter-spacing: -0.5px; font-weight: 990; font-size: xxx-large; color: #2b0444;">Horizon</h1>
+			</div>
+			<div class="d-flex justify-content-between">
+				<div class="profile-dropdown">
+
+					<button class="btn"
+						style="background-color: #2b0444; padding: 10px; border-radius: 15px;"
+						type="button" id="profileDropdown" data-bs-toggle="dropdown"
+						aria-expanded="false">
+						<img src="./images/profile.svg" width="30px" height="30px" />
+					</button>
+					<ul class="dropdown-menu shadow text-center"
+						aria-labelledby="profileDropdown">
+						<li><a class="dropdown-item" href="profile.html">View Profile</a></li>
+						<li><a class="dropdown-item" href="profi">Edit Profile</a></li>
+						<li><a class="dropdown-item" href="#">Settings</a></li>
+						<li><hr class="dropdown-divider"></li>
+						<li><a class="dropdown-item# text-danger m-0"
+							href="index.html">Logout</a></li>
+					</ul>
+				</div>
+
+				<div class="mobile-dropdown">
+					<button class="menu-toggle" type="button" id="menuDropdown"
+						data-bs-toggle="dropdown" aria-expanded="false">&#9776;</button>
+					<ul id="mobile-dropdown" class="dropdown-menu shadow"
+						aria-labelledby="profileDropdown">
+						<li><a class="dropdown-item" href="#">My Account</a></li>
+						<li><a class="dropdown-item" href="transactions.html">Transactions</a></li>
+						<li><a class="dropdown-item" href="payment.html">Payments</a></li>
+						<li><a class="dropdown-item" href="#">Branch</a></li>
+					</ul>
+				</div>
+			</div>
+		</nav>
+		<div class="full-container">
+			<div class="left-section">
+				<div class="tree-item">
+					<a href="accounts.html"><img width="30px" height="30px"
+						src="./images/accounts.svg" /></a> <a class="text-grey" href="accounts.html">Accounts</a>
+				</div>
+				<div class="tree-item">
+					<a href="#"><img width="30px" height="30px"
+						src="./images/branch.svg" /></a> <a href="#">Branch</a>
+				</div>
+				<div class="tree-item">
+					<a href="transactions.html"><img width="30px" height="30px"
+						src="./images/transactions.svg" /></a> <a href="transactions.html">Transactions</a>
+				</div>
+				<div class="tree-item">
+					<a href="payment.html"><img width="30px" height="30px"
+						src="./images/payment.svg" /></a> <a href="payment.html">Payment</a>
+				</div>
+			</div>
+			<div class="right-section">
+				<div class="account-details w-100 my-5 py-5">
+					<div class="d-flex justify-content-between mb-5 py-4 w-100">
+						<h2 class="ps-4 mx-auto text-grey" style="color: grey;">Account Overview</h2>
+					</div>
+					<div class="detail-item d-flex  w-100 py-3 px-3 mx-5">
+						<span class="detail-label ps-4"
+							style="width: 46%; margin-left: 13%;">Account Number:</span>
+						<div class="inputDiv w-40">
+							<input class="accNumberInput rounded p-1 px-2 w-30 bg-white"
+								style="border: 1px solid white; color: #2b0444" disabled
+								value="xxxxxxx897641" type="text" placeHolder="xxxxxxi897641" />
+						</div>
+					</div>
+
+					<div class="detail-item d-flex  w-100 py-3 px-3 mx-5">
+						<span class="detail-label ps-4"
+							style="width: 46%; margin-left: 13%;">Account holder:</span>
+						<div class="inputDiv w-40">
+							<input class="accNumberInput rounded p-1 px-2 w-30 bg-white"
+								style="border: 1px solid white; color: blue"
+								value="Gurusakthivel V" type="text" disabled
+								placeHolder="Gurusakthivel V" />
+						</div>
+					</div>
+
+					<div class="detail-item d-flex  w-100 py-3 px-3 mx-5">
+						<span class="detail-label ps-4"
+							style="width: 46%; margin-left: 13%;">Branch Name:</span>
+						<div class="inputDiv w-40">
+							<input class="accNumberInput rounded p-1 px-2 w-30 bg-white"
+								style="border: 1px solid white; color: #2b0444"
+								value="Horizon Karaikudi" type="text"
+								disabled
+								placeHolder="Horizon Karaikudi" />
+						</div>
+					</div>
+
+					<div class="detail-item d-flex w-100 py-3 px-3 mx-5">
+					    <span class="detail-label ps-4" style="width: 46%; margin-left: 13%;">Account Status:</span>
+					    <p class="detail-value rounded p-1 px-2 mb-0"
+					       style="border: 1px solid white; color: #2b0444;font-weight: 700;"
+					       id="accountDropdownText" data-bs-toggle="dropdown"
+					       aria-expanded="false">Active</p>
+					    <div class="inputDiv" style="width: 20%; display: none">
+					        <div class="accounts-dropdown" style="margin-left: auto;">
+					            <p class="accNumberInput rounded p-1 px-2 mb-0"
+					               style="border: 1px solid white; color: #2b0444;font-weight: 700;"
+					               id="accountDropdown" data-bs-toggle="dropdown"
+					               aria-expanded="false">Active</p>
+					            <ul class="dropdown-menu shadow text-center"
+					                aria-labelledby="accountDropdown">
+					                <li><a class="dropdown-item active" href="#">Active</a></li>
+					                <li><a class="dropdown-item" href="#">Inactive</a></li>
+					                <li><a class="dropdown-item" href="#">Suspended</a></li>
+					            </ul>
+					        </div>
+					    </div>
+					    <button class="saveButton border-0 bg-white ms-3" onclick="toggleSave(this)" style="display: none;">
+						        <img class="me-0" src="./images/check.svg" width="25px" height="25px" />
+						    </button>
+					    <button class="cancelButton border-0 bg-white" onclick="toggleCancel(this)" style="display: none;">
+					        <img src="./images/cancel.svg" width="25px" height="25px" />
+					    </button>
+					    <button class="editOneButton border-0 bg-white ms-5" onclick="toggleEditOne(this)">
+					        <img class="me-3" src="./images/editOne.svg" width="25px" height="25px" />
+					    </button>
+					</div>
+
+
+					<div class="detail-item d-flex  w-100 py-3 px-3 mx-5">
+						<span class="detail-label ps-4"
+							style="width: 46%; margin-left: 13%;">Current Balance:</span>
+						<div class="inputDiv w-40">
+							<input class="accNumberInput rounded p-1 px-2 w-30 bg-white text-green"
+								style="color: green; border: 1px solid white;" disabled
+								value="$14,890.00" type="text"/>
+						</div>
+					</div>
+
+					<div class="detail-item d-flex w-100 py-3 px-3 mx-5">
+					    <span class="detail-label ps-4" style="width: 46%; margin-left: 13%;">Account Type:</span>
+					    <p class="detail-value rounded p-1 px-2 mb-0"
+					       style="border: 1px solid white; color: #2b0444;font-weight: 700;"
+					       id="accountDropdownText" data-bs-toggle="dropdown"
+					       aria-expanded="false">Savings</p>
+					    <div class="inputDiv" style="width: 20%; display: none">
+					        <div class="accounts-dropdown" style="margin-left: auto;">
+					            <p class="accNumberInput rounded p-1 px-2 mb-0"
+					               style="border: 1px solid white; color: #2b0444;font-weight: 700;"
+					               id="accountDropdown" data-bs-toggle="dropdown"
+					               aria-expanded="false">Savings</p>
+					            <ul class="dropdown-menu shadow text-center"
+					                aria-labelledby="accountDropdown">
+					                <li><a class="dropdown-item active" href="#">Savings</a></li>
+					                <li><a class="dropdown-item" href="#">Curent</a></li>
+					                <li><a class="dropdown-item" href="#">Suspended</a></li>
+					            </ul>
+					        </div>
+					    </div>
+					    <button class="saveButton border-0 bg-white ms-3" onclick="toggleSave(this)" style="display: none;">
+					        <img class="me-0" src="./images/check.svg" width="25px" height="25px" />
+					    </button>
+					    <button class="cancelButton border-0 bg-white" onclick="toggleCancel(this)" style="display: none;">
+					        <img src="./images/cancel.svg" width="25px" height="25px" />
+					    </button>
+					    <button class="editOneButton border-0 bg-white ms-5" onclick="toggleEditOne(this)">
+					        <img class="me-3" src="./images/editOne.svg" width="25px" height="25px" />
+					    </button>
+					</div>
+					
+					
+				</div>
+			</div>
+		</div>
+	</div>
+	<script
+		src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+	<script>
+    let originalValue = '';
+
+    function toggleEditOne(button) {
+        const parentDiv = button.closest('.detail-item');
+        const inputField = parentDiv.querySelector('.accNumberInput');
+        const editButton = parentDiv.querySelector(".editOneButton");
+        const saveButton = parentDiv.querySelector(".saveButton");
+        const cancelButton = parentDiv.querySelector(".cancelButton");
+        const inputDiv = parentDiv.querySelector(".inputDiv");
+        const detailValue = parentDiv.querySelector(".detail-value");
+
+        originalValue = inputField.innerHTML; 
+
+        editButton.style.display = "none"; 
+        saveButton.style.display = "initial"; 
+        cancelButton.style.display = "initial"; 
+        inputDiv.style.display = "initial"; 
+        detailValue.style.display = "none"; 
+
+        inputField.disabled = false; 
+        inputField.style.border = "1px solid #2b0444"; 
+        inputField.style.cursor = "pointer"; 
+    }
+
+    function toggleSave(button) {
+        const parentDiv = button.closest('.detail-item');
+        const editButton = parentDiv.querySelector(".editOneButton");
+        const cancelButton = parentDiv.querySelector(".cancelButton");
+        const inputField = parentDiv.querySelector(".accNumberInput");
+        const detailValue = parentDiv.querySelector(".detail-value");
+        const inputDiv = parentDiv.querySelector(".inputDiv");
+
+        editButton.style.display = "initial";
+        button.style.display = "none";
+        cancelButton.style.display = "none"; 
+        inputField.style.border = "1px solid white";
+        detailValue.innerHTML = inputField.innerHTML; 
+        detailValue.style.display = "block"
+        inputDiv.style.display = "none";
+    }
+
+    function toggleCancel(button) {
+        const parentDiv = button.closest('.detail-item');
+        const editButton = parentDiv.querySelector(".editOneButton");
+        const saveButton = parentDiv.querySelector(".saveButton");
+        const inputField = parentDiv.querySelector('.accNumberInput');
+        const detailValue = parentDiv.querySelector(".detail-value");
+        const inputDiv = parentDiv.querySelector(".inputDiv");
+
+        editButton.style.display = "initial"; 
+        saveButton.style.display = "none"; 
+        button.style.display = "none"; 
+        inputField.style.border = "1px solid white"; 
+        inputField.disabled = true; 
+        inputDiv.style.display = "none";
+
+        // Reset to original value
+        inputField.innerHTML = originalValue; 
+        detailValue.innerHTML = originalValue; 
+        detailValue.style.display = "block"; 
+    }
+
+    // Dropdown item selection
+    document.querySelectorAll('.dropdown-item').forEach(item => {
+        item.addEventListener('click', function (event) {
+            const parentDiv = this.closest('.detail-item'); 
+            const selectedText = event.target.innerHTML;
+            const dropdownTextElement = parentDiv.querySelector('.accNumberInput');
+
+            dropdownTextElement.innerHTML = selectedText;
+            parentDiv.querySelectorAll('.dropdown-item').forEach(item => item.classList.remove('active'));
+            this.classList.add('active');
+        });
+    });
+</script>
+
+
+</body>
+</html>

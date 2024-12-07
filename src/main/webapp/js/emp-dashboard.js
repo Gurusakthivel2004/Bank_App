@@ -1,0 +1,225 @@
+// dashboard api fetch
+document.addEventListener("DOMContentLoaded", async _ => {
+	try {
+		const token = localStorage.getItem('token');
+		const response = await fetch('http://localhost:8080/Bank_Application/api/UserDashboard', {
+			method: 'GET',
+			headers: {
+				'Content-Type': 'application/json',
+				'Authorization': `Bearer ${token}`
+			},
+		});
+		const result = await response.json();
+		const userDetails = result.staff;
+		console.log(result)
+		try {
+			setValues(userDetails);
+			let modifiedAt = userDetails['modifiedAt'];
+			if (modifiedAt == null) {
+				modifiedAt = userDetails['createdAt'];
+			}
+			document.getElementById('lastUpdated').innerHTML = "Last Updated: " + getDate(modifiedAt, false);
+			// setting accounts dropdown
+			const accountsDropdown = document.querySelector('.accountsSelect');
+			let overAllBalance = 0, currentAccountIndex = 0, account = result.account[currentAccountIndex];
+
+			setValues(result.account[currentAccountIndex]);
+			result.account.forEach((account, index) => {
+				overAllBalance += account.balance;
+				const option = document.createElement('option');
+				option.value = index;
+				option.textContent = 'Account : ' + account.accountNumber;
+				accountsDropdown.appendChild(option);
+			});
+			// dropdown change event listener
+			accountsDropdown.addEventListener("change", () => {
+				const selectedValue = accountsDropdown.value;
+				currentAccountIndex = selectedValue;
+				account = result.account[currentAccountIndex]
+				setValues(result.account[currentAccountIndex]);
+				getTransactionsByAccountNumber(result, account.accountNumber)
+				setBranchDetails(result.branch, account.branchId);
+			});
+			setBranchDetails(result.branch, account.branchId);
+			getTransactionsByAccountNumber(result, account.accountNumber);
+			setFinanceDetails(result);
+		} catch (dropdownError) {
+			console.error('Error populating accounts dropdown:', dropdownError);
+		}
+	} catch (error) {
+		console.error('Error during fetch or processing:', error);
+
+	}
+});
+
+const setValues = object => {
+	if (object != null) {
+		const keys = Object.keys(object);
+		for (let i = 0; i < keys.length; i++) {
+			const key = keys[i];
+			const htmlclass = document.getElementsByClassName(key);
+			for (let j = 0; j < htmlclass.length; j++) {
+				if (key === 'balance') {
+					htmlclass[j].innerHTML = object[key].toLocaleString()
+				} else {
+					htmlclass[j].innerHTML = object[key];
+				}
+			}
+		}
+	}
+};
+
+const getDate = (millis, time) => {
+	const date = new Date(millis);
+	const day = String(date.getDate()).padStart(2, '0');
+	const month = String(date.getMonth() + 1).padStart(2, '0');
+	const year = date.getFullYear();
+	if (!time) {
+		return `${day}/${month}/${year}`;
+	}
+	const hours = String(date.getHours()).padStart(2, '0');
+	const minutes = String(date.getMinutes()).padStart(2, '0');
+	return `${day}/${month}/${year}, ${hours}:${minutes}`;
+}
+
+const setBranchDetails = (branches, branchId) => {
+	for (let k = 0; k < branches.length; k++) {
+		if (branches[k].id == branchId) {
+			const keys = Object.keys(branches[k]);
+			for (let i = 0; i < keys.length; i++) {
+				const key = keys[i];
+				const branchField = document.getElementById('branch' + key);
+				if (branchField != null) {
+					branchField.innerHTML = branches[k][key];
+				}
+			}
+			break;
+		}
+	}
+}
+
+const setFinanceDetails = result => {
+	const months = document.getElementsByClassName('month');
+	setAmount(0, months, result);
+	for (let i = 0; i < months.length; i++) {
+		months[i].addEventListener('click', () => {
+			setAmount(i, months, result);
+		})
+	}
+}
+
+const setAmount = (i, months, result) => {
+	const month = parseInt(months[i].getAttribute('data-value')) + 1;
+	console.log(result[month + '']['Debit']);
+	const keys = Object.keys(result[month + '']);
+	setDefault();
+	for (let j = 0; j < keys.length; j++) {
+		const htmlclass = document.getElementById(keys[j]);
+		if (htmlclass != null) {
+			htmlclass.textContent = '₹ ' + result[month + ''][keys[j]];
+		}
+		const deposit = parseInt(result[month + '']['Deposit']);
+		const withdraw = parseInt(result[month + '']['Withdraw']);
+		let net = (deposit > 0 ? deposit : 0) - (withdraw > 0 ? withdraw : 0), sign = '+ ';
+		if (net < 0) {
+			sign = ' - ';
+		}
+		document.getElementById('NetBalance').textContent = sign + ' ₹ ' + Math.abs(net);
+	}
+}
+
+const setDefault = _ => {
+	document.getElementById('Debit').textContent = ' ₹ ' + '0.00';
+	document.getElementById('Withdraw').textContent = ' ₹ ' + '0.00';
+	document.getElementById('Deposit').textContent = '₹ ' + '0.00';
+	document.getElementById('NetBalance').textContent = ' ₹ ' + '0.00';
+}
+
+function getTransactionsByAccountNumber(data, accountNumber) {
+	const transactions = data.transactions.filter(transaction => transaction.accountNumber === accountNumber);
+	transactions.length = 5;
+	addTransactionItems(transactions);
+}
+
+const milliseconds = Date.now();
+const menuButton = document.getElementById("menuDropdown");
+const dropdownMenu = document.getElementById("month-dropdown");
+
+const monthNames = ["January", "February", "March", "April", "May",
+	"June", "July", "August", "September", "October", "November",
+	"December"];
+
+const currentDate = new Date();
+const currentMonthIndex = currentDate.getMonth();
+menuButton.innerHTML = monthNames[currentMonthIndex] + " &#11167;";
+
+for (let i = 0; i < 3; i++) {
+	let monthIndex = (currentMonthIndex - i + 12) % 12;
+	const listItem = document.createElement("li");
+	const listItemLink = document.createElement("a");
+	listItemLink.classList.add("dropdown-item");
+	listItemLink.classList.add("month");
+	listItemLink.textContent = monthNames[monthIndex];
+	listItemLink.setAttribute("data-value", monthIndex);
+
+	listItemLink.addEventListener("click", function() {
+		menuButton.innerHTML = this.textContent
+			+ " &#11167;";
+		console.log('clicked here');
+	});
+	listItem.appendChild(listItemLink);
+	dropdownMenu.appendChild(listItem);
+}
+
+function toggleActive(element) {
+	const currentActive = document
+		.querySelector('.account-item.active');
+	if (currentActive) {
+		currentActive.classList.remove('active');
+		currentActive.style.backgroundColor = 'white';
+	}
+	element.classList.toggle('active');
+	element.style.backgroundColor = element.classList
+		.contains('active') ? '#d1e7dd' : 'white';
+}
+
+function toggleItem(element) {
+	const subitems = element.nextElementSibling;
+	while (subitems && subitems.classList.contains('tree-subitem')) {
+		subitems.style.display = subitems.style.display === 'block' ? 'none'
+			: 'block';
+		subitems = subitems.nextElementSibling;
+	}
+}
+
+function addTransactionItems(transactions) {
+	const transactionHistory = document.querySelector('.transaction-details');
+	transactionHistory.innerHTML = '';
+	if (transactions.length === 0) {
+		const message = document.createElement('p');
+		message.innerHtml = ''
+	}
+	transactions.forEach(tx => {
+		const transactionItem = document.createElement('div');
+		transactionItem.className = 'transaction-item d-flex align-items-center';
+		transactionItem.style.backgroundColor = '#f9f9f9';
+		transactionItem.style.padding = '10px';
+		transactionItem.style.borderRadius = '8px';
+		transactionItem.style.borderBottom = '1px solid #ddd;';
+		transactionItem.innerHTML = `
+			<p class="tid"
+				style="width: 10%; font-weight: bold; color: #2b0444;">${tx.id}</p>
+			<p class="tfrom" style="width: 20%; color: #2b0444;">${tx.transactionAccountNumber}</p>
+			<p class="tamount"
+				style="width: 15%; font-weight: bold; color: #4677bd;">₹ ${tx.amount.toLocaleString()}</p>
+			<p class="ttimestamp"
+				style="width: 20%; font-weight: bold; color: #6c757d;">${getDate(tx.transactionTime, true)}</p>
+			<p class="tstatus"
+				style="width: 15%; font-weight: bold; color: #2b0444;">${tx.status}</p>
+			<p class="ttype" style="width: 10%; color: ${tx.transactionType == 'Debit' ? 'red' : 'green'};">${tx.transactionType}</p>
+			<p class="tremarks" style="width: 20%; color: #2b0444;">${tx.remarks}</p>			
+        `;
+
+		transactionHistory.appendChild(transactionItem);
+	});
+}
