@@ -22,8 +22,8 @@ public class LoginController {
 	public void handlePost(HttpServletRequest request, HttpServletResponse response) throws IOException {
 		response.setContentType("application/json");
 		JsonObject responseJson = new JsonObject();
-
-		try (BufferedReader reader = request.getReader(); PrintWriter out = response.getWriter()) {
+		PrintWriter out = response.getWriter();
+		try (BufferedReader reader = request.getReader()) {
 			// Parse the request body
 			JsonObject jsonObject = JsonParser.parseReader(reader).getAsJsonObject();
 			String username = jsonObject.get("username").getAsString();
@@ -32,7 +32,7 @@ public class LoginController {
 			// Authenticate user
 			UserService userService = new UserService();
 			Map<String, Object> userDetails = userService.userLogin(username, password);
-			
+
 			// Prepare JWT claims dynamically
 			Map<String, Object> jwtClaims = new HashMap<>();
 			jwtClaims.put("id", userDetails.get("id"));
@@ -40,7 +40,7 @@ public class LoginController {
 			if (userDetails.containsKey("branchId")) {
 				jwtClaims.put("branchId", userDetails.get("branchId"));
 			}
-			
+
 			String jwtToken = JwtUtil.generateToken(jwtClaims);
 
 			Map<String, Object> responseData = new HashMap<>();
@@ -50,16 +50,13 @@ public class LoginController {
 
 			// Convert map to JSON
 			responseJson = new Gson().toJsonTree(responseData).getAsJsonObject();
-
 			response.setStatus(HttpServletResponse.SC_OK);
-			out.print(responseJson.toString());
 		} catch (CustomException e) {
-			// Handle exceptions
-			responseJson.addProperty("message", e.getMessage());
 			response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-			try (PrintWriter out = response.getWriter()) {
-				out.print(responseJson.toString());
-			}
+			responseJson.addProperty("message", e.getMessage());
+		} finally {
+			out.print(responseJson.toString());
+			out.close();
 		}
 	}
 

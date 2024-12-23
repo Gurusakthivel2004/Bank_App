@@ -10,7 +10,6 @@ async function login(event) {
 	};
 
 	try {
-		console.log(loginData)
 		const response = await fetch('http://localhost:8080/Bank_Application/api/Login', {
 			method: 'POST',
 			headers: {
@@ -20,9 +19,7 @@ async function login(event) {
 		});
 
 		const result = await response.json();
-		console.log(result);
-
-		if (response.ok) {
+		if (result.message == "success") {
 			localStorage.setItem('token', result.token); 
 			localStorage.setItem('fullname', result.fullname);
 			localStorage.setItem('email', result.email);
@@ -40,7 +37,7 @@ async function login(event) {
 				}
 			}
 		} else {
-			document.getElementById('errormessage').textContent = result.error || 'Login failed.';
+			document.getElementById('errormessage').textContent = result.message || 'Login failed.';
 		}
 	} catch (error) {
 		console.error('Error during login:', error);

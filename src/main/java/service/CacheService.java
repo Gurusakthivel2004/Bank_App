@@ -1,89 +1,120 @@
 package service;
 
-import java.lang.reflect.Method;
-import java.util.Arrays;
-import cache.CacheEvent;
-import cache.CacheInvalidationListener;
-import cache.CacheLayer;
+import java.io.IOException;
+import java.util.Map;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import redis.clients.jedis.Jedis;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import util.CustomException;
-import util.Helper;
+import util.RedisCache;
 
 public class CacheService {
 
-	private final Logger logger = LogManager.getLogger(CacheService.class);
-	private final CacheLayer cache = new CacheLayer();
-	private final CacheInvalidationListener listener = new CacheInvalidationListener(cache);
+	private static final Logger logger = LogManager.getLogger(CacheService.class);
+	private final ObjectMapper objectMapper = new ObjectMapper();
 
-	public Object fetchData(Object daoInstance, String methodName, Object... parameters) throws CustomException {
-		String cacheKey = Helper.generateKey(daoInstance.getClass().getSimpleName(), methodName, parameters);
-		logger.info("Attempting to fetch data for cacheKey: {}", cacheKey);
-
-		Object cachedData = cache.get(cacheKey);
-		if (cachedData != null) {
-			logger.info("Cache hit for key: {}", cacheKey);
-			return cachedData;
+	/**
+	 * Save a key-value pair to Redis.
+	 *
+	 * @param key   the Redis key
+	 * @param value the value to store
+	 */
+	public <T> void save(String key, T value) {
+		if (key == null || value == null) {
+			logger.error("Key or value cannot be null.");
+			return;
 		}
-
-		logger.info("Cache miss for key: {}. Fetching from DB...", cacheKey);
-		Object data = fetchFromDB(daoInstance, methodName, parameters);
-
-		cache.put(cacheKey, data);
-		logger.info("Data stored in cache for key: {}", cacheKey);
-
-		return data;
-	}
-	// cache invalidation
-	public void invalidateData(String entityType) {
-		logger.info("Invalidating cache for entityType: {} ", entityType);
-		listener.onEvent(new CacheEvent(entityType));
-		logger.info("Cache invalidation event processed for entityType: {}", entityType);
-	}
-
-	@SuppressWarnings("unchecked")
-	public <T> T fetchFromDB(Object daoInstance, String methodName, Object... parameters) throws CustomException {
-		try {
-			Class<?> daoClass = daoInstance.getClass();
-			Method method = findMethod(daoClass, methodName, parameters);
-			if (method == null) {
-				logger.error("Method {} not found in class {} with parameters {}", methodName, daoClass.getName(),
-						parameters);
-				throw new CustomException("Error occurred while fetching data.");
-			}
-			logger.info("Method {} found in class {} with parameters {}", methodName, daoClass.getName(),
-					parameters);
-			logger.info("Invoking method {} on DAO instance {}", methodName, daoClass.getName());
-			return (T) method.invoke(daoInstance, parameters);
+		try (Jedis jedis = RedisCache.getConnection()) {
+			String jsonValue = objectMapper.writeValueAsString(value);
+			jedis.set(key, jsonValue);
+			logger.info("Successfully saved key '{}' in Redis.", key);
+		} catch (JsonProcessingException e) {
+			logger.error("Failed to serialize value for key '{}': {}", key, e.getMessage());
 		} catch (Exception e) {
-			logger.error("Error during dynamic DAO method invocation", e);
-			throw new CustomException("Error occurred while fetching data.");
+			logger.error("Failed to save key '{}' in Redis: {}", key, e.getMessage());
 		}
 	}
-
-	private Method findMethod(Class<?> clazz, String methodName, Object[] parameters) {
-		for (Method method : clazz.getDeclaredMethods()) {
-			System.out.println(method.getName() + " " + methodName);
-			if (method.getName().equals(methodName) && matchParameterTypes(method.getParameterTypes(), parameters)) {
-				return method;
+	
+	/**
+	 * Retrieves a Map from Redis where the key is of type K and the value is of type V.
+	 * The method deserializes the JSON stored in Redis into a Map<K, V>. 
+	 * 
+	 * @param key       the Redis key for the Map
+	 * @param keyClass  the class type of the key in the Map
+	 * @param valueClass the class type of the value in the Map
+	 * @return the deserialized Map<K, V> from Redis, or null if the key does not exist or deserialization fails
+	 */
+	public <K, V> Map<K, V> get(String key, Class<K> keyClass, Class<V> valueClass) {
+		if (key == null || keyClass == null || valueClass == null) {
+			logger.error("Key or class types cannot be null.");
+			return null;
+		}
+		try (Jedis jedis = RedisCache.getConnection()) {
+			if (!jedis.exists(key)) {
+				logger.warn("Key '{}' does not exist in Redis.", key);
+				return null;
 			}
+
+			String jsonValue = jedis.get(key);
+			TypeReference<Map<K, V>> typeRef = new TypeReference<Map<K, V>>() {
+			};
+			Map<K, V> mapValue = objectMapper.readValue(jsonValue, typeRef);
+
+			logger.info("Successfully retrieved key '{}' from Redis.", key);
+			return mapValue;
+		} catch (IOException e) {
+			logger.error("Failed to deserialize value for key '{}': {}", key, e.getMessage());
+		} catch (Exception e) {
+			logger.error("Failed to retrieve key '{}' from Redis: {}", key, e.getMessage());
 		}
 		return null;
 	}
 
-	private boolean matchParameterTypes(Class<?>[] paramTypes, Object[] parameters) {
-		if (paramTypes.length != parameters.length) {
-			return false;
+	/**
+	 * Update the value of an existing key in Redis.
+	 *
+	 * @param key   the Redis key
+	 * @param value the new value to store
+	 */
+	public <T> void update(String key, T value) {
+		if (key == null || value == null) {
+			logger.error("Key or value cannot be null.");
+			return;
 		}
-		logger.info("Parameters: {}", Arrays.toString(parameters));
-		logger.info("Parameter Types: {}",
-				Arrays.stream(paramTypes).map(param -> param.getClass().getName()).toArray());
-
-		for (int i = 0; i < paramTypes.length; i++) {
-			if (parameters[i] != null && !paramTypes[i].isAssignableFrom(parameters[i].getClass())) {
-				return false;
+		try (Jedis jedis = RedisCache.getConnection()) {
+			if (!jedis.exists(key)) {
+				logger.warn("Key '{}' does not exist in Redis. Inserting new value.", key);
 			}
+			String jsonValue = objectMapper.writeValueAsString(value);
+			jedis.set(key, jsonValue); // This will overwrite the existing value
+			logger.info("Successfully updated key '{}' in Redis.", key);
+		} catch (JsonProcessingException e) {
+			logger.error("Failed to serialize value for key '{}': {}", key, e.getMessage());
+		} catch (Exception e) {
+			logger.error("Failed to update key '{}' in Redis: {}", key, e.getMessage());
 		}
-		return true;
+	}
+
+	/**
+	 * Delete a key from Redis.
+	 *
+	 * @param key the Redis key
+	 */
+	public void delete(String key) {
+		if (key == null) {
+			logger.error("Key cannot be null.");
+			return;
+		}
+		try (Jedis jedis = RedisCache.getConnection()) {
+			if (jedis.del(key) > 0) {
+				logger.info("Successfully deleted key '{}' from Redis.", key);
+			} else {
+				logger.warn("Key '{}' does not exist in Redis.", key);
+			}
+		} catch (Exception e) {
+			logger.error("Failed to delete key '{}' from Redis: {}", key, e.getMessage());
+		}
 	}
 }

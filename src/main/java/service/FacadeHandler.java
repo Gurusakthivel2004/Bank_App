@@ -41,12 +41,13 @@ public class FacadeHandler {
 			logger.debug("Fetching account details for user ID: {}", id);
 			List<Account> accounts = accountService.getAccountDetails(id, 0l, 0l, 0l);
 			map.put("account", accounts);
-
+			logger.info(accounts);
 			// Fetch transaction details
 			List<Transaction> transactions = new ArrayList<>();
-			for (Account account : accounts) {
+			for (int i = 0; i < accounts.size(); i++) {
+				Account account = accounts.get(i);
 				List<Transaction> accountTransactions = transactionService.getTransactionDetails(id,
-						account.getAccountNumber(), 5L, 0l, 0l);
+						account.getAccountNumber(), 5L, 0L, 0L);
 				transactions.addAll(accountTransactions);
 			}
 

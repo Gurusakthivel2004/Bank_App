@@ -122,7 +122,6 @@ const setFinanceDetails = result => {
 
 const setAmount = (i, months, result) => {
 	const month = parseInt(months[i].getAttribute('data-value')) + 1;
-	console.log(result[month + '']['Debit']);
 	const keys = Object.keys(result[month + '']);
 	setDefault();
 	for (let j = 0; j < keys.length; j++) {

@@ -44,13 +44,13 @@ public class TransactionDAO {
 		logger.info("Criteria for transactions: " + criteria);
 		return SQLHelper.get(criteria);
 	}
-
+	
+	// returns the list of transactions in the branch
 	public List<Transaction> checkTransactionBranchId(List<Account> accounts, Long from, Long to, Long limit)
 			throws CustomException {
 		logger.info("Checking transactions by branch ID...");
 		List<Transaction> transactions = new ArrayList<>();
 		Long branchId = (Long) Helper.getThreadLocalValue().get("branchId");
-		System.out.println("branch id is " + branchId);
 		for (Account account : accounts) {
 			if (account.getBranchId() == branchId) {
 				try {

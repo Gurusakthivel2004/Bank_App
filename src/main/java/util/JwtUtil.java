@@ -8,7 +8,7 @@ import java.util.Date;
 import java.util.Map;
 
 public class JwtUtil {
-    private static final String SECRET = "your-secret-key";
+    private static final String SECRET = "leomessi_30";
     private static final Algorithm ALGORITHM = Algorithm.HMAC256(SECRET);
     private static final long EXPIRATION_TIME = 3600_000; // 1 hour in milliseconds
 

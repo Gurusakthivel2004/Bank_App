@@ -1,8 +1,5 @@
 let newfilterTo = false;
 let role = localStorage.getItem("role");
-if (role == null) {
-	window.history.back();
-}
 // Filter values
 let filterId = -1;
 let filterAccount = '';
@@ -64,7 +61,6 @@ async function fetchTransactions() {
 		updatePagination();
 	} catch (error) {
 		console.error('Error during fetch or processing:', error);
-		window.history.back();
 	}
 }
 

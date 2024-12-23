@@ -28,9 +28,6 @@ public class TransactionController {
 		Long limit = Helper.parseDateToMillisOrDefault(request.getParameter("limit"), 0L);
 		
 		try {
-			if (id == -1) {
-				id = (Long) Helper.getThreadLocalValue().get("id");
-			}
 			Object transactions = transactionService.getTransactionDetails(id, accountNumber, limit, from, to);
 			String jsonResponse = new ObjectMapper().writeValueAsString(transactions);
 			out.write(jsonResponse);

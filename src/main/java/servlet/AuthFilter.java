@@ -54,7 +54,6 @@ public class AuthFilter extends HttpFilter implements Filter {
 				claimsMap.put("id", userId);
 				claimsMap.put("role", role);
 				claimsMap.put("branchId", branchId);
-				System.out.println(claimsMap);
 				Helper.setThreadLocalValue(claimsMap);
 
 			} catch (JWTVerificationException e) {

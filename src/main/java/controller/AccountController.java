@@ -33,6 +33,7 @@ public class AccountController {
 				accountMap.put("customerId", (Long) Helper.getThreadLocalValue().get("id"));
 				customerId = (Long) Helper.getThreadLocalValue().get("id");
 			}
+			branchId = branchId == -1 ? (Long) Helper.getThreadLocalValue().get("branchId") : branchId;
 			Object accounts = accountService.getAccountDetails(customerId, accountNumber, branchId, accountCreated);
 			ObjectMapper mapper = new ObjectMapper();
 			String jsonResponse = mapper.writeValueAsString(accounts);

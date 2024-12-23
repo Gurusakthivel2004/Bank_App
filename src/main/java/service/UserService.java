@@ -5,8 +5,13 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.PrimitiveIterator.OfDouble;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+
+import com.fasterxml.jackson.annotation.JsonTypeInfo.Id;
+
 import dblayer.dao.UserDAO;
 import dblayer.model.ColumnCriteria;
 import dblayer.model.Staff;
@@ -91,7 +96,7 @@ public class UserService {
 
     /**
      * Retrieves user details based on the role.
-     *
+     * @param userId id of the user.
      * @return user details as an Object.
      * @throws CustomException if retrieval fails.
      */
@@ -193,8 +198,8 @@ public class UserService {
         logger.info("Validating password for user: {}", value);
         try {
             logger.debug("Fetching user for column: {} and value: {}", column, value);
+            System.out.println(column + " " + value + " " + password);
             User user = userDAO.getUser(column, value);
-
             logger.debug("Checking password match.");
             if (!Helper.checkPassword(password, user.getPassword())) {
                 logger.warn("Password mismatch for user: {}", value);

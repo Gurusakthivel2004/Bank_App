@@ -2,8 +2,6 @@ package service;
 
 import java.util.Map;
 import java.util.List;
-import java.lang.reflect.Field;
-import java.math.BigDecimal;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import dblayer.dao.AccountDAO;
@@ -19,7 +17,6 @@ public class TransactionService {
 
 	private final Logger logger = LogManager.getLogger(TransactionService.class);
 	private TransactionDAO transactionDAO = new TransactionDAO();
-	private CacheService cacheService = new CacheService();
 
 	/**
 	 * Retrieves a list of transactions based on the provided criteria.
@@ -32,23 +29,30 @@ public class TransactionService {
 	 * @return A list of matching transactions.
 	 * @throws CustomException If an error occurs while retrieving transactions.
 	 */
-	@SuppressWarnings("unchecked")
 	public List<Transaction> getTransactionDetails(Long id, Long accountNumber, Long limitValue, Long from, Long to)
 			throws CustomException {
 		try {
+			AccountDAO accountDAO = new AccountDAO();
+			Account primaryAccount = null;
+			if (id == -1) {
+				id = (Long) Helper.getThreadLocalValue().get("id");
+				if (accountNumber == 0) {
+					List<Account> accounts = accountDAO.getAccounts(id, 0l, 0l, 0l, 0l);
+					primaryAccount = accounts.stream().filter(Account::getIsPrimary).findAny().orElse(null);
+					if (primaryAccount == null) {
+						logger.error("Primary account can't be null");
+						throw new CustomException("No primary account found.");
+					}
+				}
+			}
 			String role = Helper.getThreadLocalValue().get("role").toString();
-			if ("Employee".equals(role)) {
-				AccountDAO accountDAO = new AccountDAO();
-
-				List<Account> accounts = (List<Account>) cacheService.fetchData(accountDAO, "getAccounts", id,
-						accountNumber, 0L, 0L, 0L);
-				List<Transaction> branchTransactions = (List<Transaction>) cacheService.fetchData(transactionDAO,
-						"checkTransactionBranchId", accounts, from, to, 8L);
+			if (role.equals("Employee")) {
+				List<Account> accounts = accountDAO.getAccounts(id, accountNumber, 0L, 0L, 0L);
+				List<Transaction> branchTransactions = transactionDAO.checkTransactionBranchId(accounts, from, to, 8L);
 				return branchTransactions;
 			}
-
-			List<Transaction> transactions = (List<Transaction>) cacheService.fetchData(transactionDAO,
-					"getTransactions", id, accountNumber, 8L, from, to);
+			long primaryAccountNumber = primaryAccount != null ? primaryAccount.getAccountNumber() : accountNumber;
+			List<Transaction> transactions = transactionDAO.getTransactions(id, primaryAccountNumber, 8L, from, to);
 
 			logger.debug("Retrieved {} transaction(s) for the given criteria", transactions.size());
 			return transactions;
@@ -76,15 +80,13 @@ public class TransactionService {
 			logger.debug("Employee role detected. Verifying branch ID for accounts...");
 
 			// Use cache for account details
-			accounts = cacheService
-					.fetchFromDB(accountDAO, "getAccountDetails", 0l, transactionAccountNumber, 0l, 0l);
+			accounts = accountDAO.getAccountDetails(0l, transactionAccountNumber, 0l, 0l);
 			Account account = accounts.get(0);
 			if (account.getBranchId() != branchId) {
 				logger.warn("Branch ID mismatch for account number: {}", accountNumber);
 				throw new CustomException("Invalid account");
 			}
-			accounts = cacheService
-					.fetchFromDB(accountDAO, "getAccountDetails", 0l, transactionAccountNumber, 0l, 0l);
+			accounts = accountDAO.getAccountDetails(0l, transactionAccountNumber, 0l, 0l);
 			Account transactionAccount = accounts.get(0);
 			if (transactionAccount.getBranchId() != branchId) {
 				logger.warn("Branch ID mismatch for transaction account number: {}", transactionAccountNumber);
@@ -94,8 +96,7 @@ public class TransactionService {
 
 		BranchDAO branchDAO = new BranchDAO();
 		Long branchId = Long.parseLong((String) transactionMap.get("branchId"));
-		System.out.println(branchId);
-		List<Branch> branches = cacheService.fetchFromDB(branchDAO, "getBranch", branchId);
+		List<Branch> branches = branchDAO.getBranch(branchId);
 		String ifsc = branches.get(0).getIfscCode();
 		transactionMap.put("ifsc", ifsc);
 		transactionMap.remove("branchId");
@@ -104,11 +105,9 @@ public class TransactionService {
 			logger.debug("Bank name is Horizon. Retrieving transaction IFSC...");
 			try {
 				long transactionAccountNumber = Long.parseLong((String) transactionMap.get("transactionAccountNumber"));
-				accounts = cacheService
-						.fetchFromDB(accountDAO, "getAccountDetails", 0l, transactionAccountNumber, 0l, 0l);
+				accounts = accountDAO.getAccountDetails(0l, transactionAccountNumber, 0l, 0l);
 				Account transactionAccount = accounts.get(0);
-				branches = cacheService
-						.fetchFromDB(branchDAO, "getBranch", transactionAccount.getBranchId());
+				branches = branchDAO.getBranch(transactionAccount.getBranchId());
 				String transactionIfsc = branches.get(0).getIfscCode();
 				transactionMap.put("transactionIfsc", transactionIfsc);
 			} catch (IndexOutOfBoundsException e) {
@@ -123,8 +122,6 @@ public class TransactionService {
 		logger.info("Transaction object validation passed. Proceeding with transaction creation...");
 		// Make the transaction and invalidate cache
 		transactionDAO.makeTransaction(transaction, transaction.getBankName().equals("Horizon"));
-		cacheService.invalidateData(transactionDAO.getClass().getSimpleName()); // Invalidate cache for updated account data
-
 		logger.info("Transaction successfully created for account number: {}", transaction.getAccountNumber());
 	}
 

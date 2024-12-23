@@ -40,14 +40,14 @@ public class UserDAO {
         Criteria userCriteria = buildCriteria(User.class, Arrays.asList(selectColumn), Arrays.asList("="), Arrays.asList(selectValue));
         userCriteria.setSelectColumn(Arrays.asList("*"));
 
-        List<User> user = SQLHelper.get(userCriteria);
-        if (user.isEmpty()) {
+        List<User> users = SQLHelper.get(userCriteria);
+        if (users == null) {
             logger.error("User does not exist for column: {}, value: {}", selectColumn, selectValue);
             throw new CustomException("User does not exist.");
         }
 
         logger.info("User fetched successfully.");
-        return user.get(0);
+        return users.get(0);
     }
 
     public void createCustomer(CustomerDetail customer) throws CustomException {

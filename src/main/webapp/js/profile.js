@@ -1,6 +1,14 @@
+const userRole = localStorage.getItem("role");
+if(userRole == "Customer") {
+	const createButton = document.getElementById("create-user-item");
+	if(createButton != null) {
+		createButton.style.display = "none";	
+	}
+}
+
 const logout = async _ => {
 	try {
-		const token = localStorage.getItem('token')
+		const token = localStorage.getItem('token');
 		const response = await fetch('http://localhost:8080/Bank_Application/api/Logout', {
 			method: 'DELETE',
 			headers: {
@@ -28,14 +36,6 @@ document.querySelectorAll('.createOption').forEach(item => {
 		localStorage.setItem("createUserRole", item.innerHTML);
 		window.location.href = "create-user.html";
 	})
-})
-
-// dashboard api fetch
-document.addEventListener("DOMContentLoaded", async _ => {
-	const role = localStorage.getItem("role");
-	if (role == 'Customer') {
-		document.getElementById('createButton').style.display = 'none'
-	}
 })
 
 const toggleSubmenu = () => {
@@ -81,11 +81,14 @@ const submitPasswordChange = async _ => {
 		currentPassword: currentPassword,
 		newPassword: newPassword
 	};
+	console.log(passwordData)
 	try {
-		const response = await fetch('http://localhost:8080/Bank_Application//api/Profile', {
+		const token = localStorage.getItem('token')
+		const response = await fetch('http://localhost:8080/Bank_Application/api/Profile', {
 			method: 'PUT',
 			headers: {
-				'Content-Type': 'application/json'
+				'Content-Type': 'application/json',
+				'Authorization': `Bearer ${token}`
 			},
 			body: JSON.stringify(passwordData)
 		});

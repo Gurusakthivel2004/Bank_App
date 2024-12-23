@@ -1,4 +1,4 @@
-let filterCustomer = '-1';
+let filterCustomer = '';
 let filterAccount = '';
 let filterBranch = '';
 let lastAccount = '';
@@ -7,7 +7,7 @@ let cachedAccounts = [];
 let currentPageIndex = 0;
 let lastPage = 1000000;
 let isrecursed = false;
-
+const role = localStorage.getItem("role");
 
 async function fetchAccounts() {
 	try {
@@ -18,6 +18,7 @@ async function fetchAccounts() {
 			if (filterBranch) url += `&branchId=${filterBranch}`;
 			if (lastAccount) url += `&lastAccount=${lastAccount}`;
 			const token = localStorage.getItem("token");
+			console.log(url);
 			const response = await fetch(url, {
 				method: 'GET',
 				headers: {
@@ -107,10 +108,12 @@ function prevPage() {
 function applyFilters() {
 	const customerIdInput = document.getElementById("customerIdsearchInput").value.trim();
 	const accountInput = document.getElementById("accountsearchInput").value.trim();
-	const branchIdInput = document.getElementById("branchIdsearchInput").value.trim();
+	if(role == "Manager") {
+		const branchIdInput = document.getElementById("branchIdsearchInput").value.trim();
+		filterBranch = branchIdInput;
+	}
 	lastAccount = ''
 	filterAccount = accountInput;
-	filterBranch = branchIdInput;
 	cachedAccounts = [];
 	currentPageIndex = 0;
 	filterCustomer = customerIdInput;
@@ -133,6 +136,9 @@ document.addEventListener("DOMContentLoaded", () => {
 	if (role === "Customer") {
 		alert("You do not have permission to access this page.");
 		window.history.back();
+	} else if(role == "Employee") {
+		document.getElementById('branchidfilter').style.display = 'none';
+		filterBranch = '-1';
 	}
 	fetchAccounts();
 	document.getElementById("customerIdsearchInput").addEventListener("input", applyFilters);

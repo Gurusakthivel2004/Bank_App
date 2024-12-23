@@ -55,23 +55,17 @@
 						class="detail-value status text-green" style="color: green">Active</span>
 				</div>
 				<hr>
-				<ul class="dropdown-items">
-					<li><a class="editButton" href="profile.html">Edit Profile</a></li>
-					<li><a id="createButton" class="editButton" href="#"
-						onclick="toggleSubmenu()">Create User</a>
-						<ul class="pb-3" role="button" id="userOptions"
-							style="display: none; color: #f0f1f1; font-size: 15px">
-							<li><a class="createOption py-2" style="background: #f0f1f1"
-								href="#">Customer</a></li>
-							<li><a class="createOption py-2 my-2"
-								style="background: #f0f1f1" href="#">Employee</a></li>
-							<li><a class="createOption py-2" style="background: #f0f1f1"
-								href="#">Manager</a></li>
-						</ul></li>
-					<li><a class="editButton" href="#"
-						onclick="toggleModal('passwordChangeModal')">Change Password</a></li>
-					<li><a class="logoutButton" role="button" onclick="logout()"
-						class="text-danger">Logout</a></li>
+				<ul class="dropdown-items d-flex col justify-content-center"
+					role="button">
+					<li><a class="py-2 px-4" href="profile.html"><img
+							src="./images/user-edit.svg" width="30px" height="30px" alt="" /></a></li>
+					<li><a class="py-2 px-4"
+						onclick="toggleModal('passwordChangeModal')"><img
+							src="./images/settings.svg" width="30px" height="30px" alt="" /></a></li>
+					<li id="create-user-item"><a class="py-2 px-4" href="create-user.html"><img
+							src="./images/create-user.svg" width="30px" height="30px" alt="" /></a></li>
+					<li><a class="py-2 px-4" onclick="logout()"><img
+							src="./images/logout.svg" width="30px" height="30px" alt="" /></a></li>
 				</ul>
 			</div>
 		</div>
