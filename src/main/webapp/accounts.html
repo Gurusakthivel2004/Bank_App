@@ -70,6 +70,92 @@
 			</div>
 		</div>
 
+		<div id="accountDetailsModal" class="modal-overlay"
+			style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.7); z-index: 1000; justify-content: center; align-items: center;">
+			<div id="successPopup"
+				style="display: none; position: fixed; top: 120px; right: 20px; padding: 15px; background-color: #4CAF50; color: white; border-radius: 5px; font-size: 16px; z-index: 1000;">
+				</div>
+			<div class="modal-content account-details"
+				style="background-color: #ffffff; border-radius: 10px; width: 80%; max-width: 500px; padding: 20px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);">
+				<button class="close-btn"
+					onclick="toggleModal('accountDetailsModal')"
+					style="background: transparent; font-size: 30px; color: #e74c3c; cursor: pointer; position: absolute; top: 15px; right: 15px;">&times;</button>
+				<h2 class="w-100 py-4 mb-4 text-center"
+					style="color: #2980b9; font-size: 24px; font-family: 'Arial', sans-serif; font-weight: 600;">Account
+					Details</h2>
+				<!-- Branch details -->
+				<div class="d-flex row" style="flex-direction: column;">
+
+					<div class="detail-item d-flex w-100 py-3 px-2 mx-2"
+						style="border-bottom: 1px solid #ccc;">
+						<span class="detail-label"
+							style="width: 39%; color: #34495e; margin-left: 17%;">Branch
+							id:</span>
+						<div class="inputDiv d-flex"
+							style="width: 40%; position: relative;">
+							<input class="mb-0 px-2 py-1" id="accountbranchId" disabled
+								oninput="fetchDropdownOptions(this.value)"
+								style="color: #2c3e50; border: 0; border-radius: 10px; width: 75%; font-size: 16px; font-weight: 600; font-family: 'Arial', sans-serif;"
+								autocomplete="off">
+							<div id="dropdown" class="dropdown-menu"
+								style="display: none; position: absolute; top: 100%; left: 0; width: 100%; background: white; border: 1px solid #ddd; border-radius: 5px; z-index: 10;"></div>
+							<img onclick="updateBranch()" id="branchEdit" style="margin-top: 5px; margin-left: auto; cursor: pointer; display: none;"
+								src="./images/editOne.svg" width="20px" height="20px" alt="brancheditbutton" />
+							<img id="branchSave" onclick="saveBranch()"
+								style="margin-top: 5px; display: none; margin-left: auto; cursor: pointer"
+								src="./images/save.svg" width="20px" height="20px" alt="" />
+						</div>
+
+					</div>
+
+					<div class="detail-item d-flex w-100 py-3 px-2 mx-2"
+						style="border-bottom: 1px solid #ccc;">
+						<span class="detail-label"
+							style="width: 39%; color: #34495e; margin-left: 17%;">Account
+							Holder:</span>
+						<div class="inputDiv" style="width: 40%;">
+							<p class="mb-0" id="accountfullname"
+								style="color: #2c3e50; font-size: 16px; font-weight: 600; font-family: 'Arial', sans-serif;"></p>
+						</div>
+					</div>
+
+					<div class="detail-item d-flex w-100 py-3 px-2 mx-2"
+						style="border-bottom: 1px solid #ccc;">
+						<span class="detail-label"
+							style="width: 39%; color: #34495e; margin-left: 17%;">Account
+							Number:</span>
+						<div class="inputDiv" style="width: 40%;">
+							<p class="mb-0" id="accountNumber2"
+								style="color: #2c3e50; font-size: 16px; font-weight: 600; font-family: 'Arial', sans-serif;"></p>
+						</div>
+					</div>
+
+
+
+					<div class="detail-item d-flex w-100 py-3 px-2 mx-2"
+						style="border-bottom: 1px solid #ccc;">
+						<span class="detail-label"
+							style="width: 39%; color: #34495e; margin-left: 17%;">Contact:</span>
+						<div class="inputDiv" style="width: 40%;">
+							<p class="mb-0" id="accountphone"
+								style="color: #4677bd; font-size: 16px; font-weight: 600; font-family: 'Arial', sans-serif;"></p>
+						</div>
+					</div>
+
+					<div class="detail-item d-flex w-100 py-3 px-2 mx-2 border-0">
+						<span class="detail-label"
+							style="width: 39%; color: #34495e; margin-left: 17%;">User
+							status:</span>
+						<div class="inputDiv" style="width: 40%;">
+							<p class="mb-0" id="accountUserStatus"
+								style="font-size: 16px; font-weight: 600; font-family: 'Arial', sans-serif;"></p>
+						</div>
+					</div>
+
+				</div>
+			</div>
+		</div>
+
 		<div id="passwordChangeModal" class="modal-overlay"
 			style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.7); z-index: 1000; justify-content: center; align-items: center;">
 			<div class="modal-content"
@@ -175,23 +261,24 @@
 			</div>
 			<div class="right-section ">
 				<div style="padding: 20px" class="accounts-block d-flex row">
-					<div
+					<div style='font-family: sans-serif;'
 						class="d-flex column mb-3 justify-content-between align-items-baseline">
 						<h3
 							style="font-family: sans-serif; font-weight: 900; color: #2b0444; font-size: larger;">Accounts</h3>
 						<div class="account-filter d-flex flex-wrap">
 							<div id="customeridfilter" style="display: flex;"
 								class="id-dropdown align-items-baseline me-3 mb-3">
-								<label class="fw-bold fs-5 me-2 text-dark">Customer Id:</label>
-								<input style="width: 150px;" class="form-control" type="text"
+								<label class="fw-bold fs-5 me-2 text-dark">User Id:</label> <input
+									style="width: 150px;" class="form-control" type="text"
 									id="customerIdsearchInput" placeholder="Customer Id"
 									aria-expanded="false">
 							</div>
 							<div id="branchidfilter" style="display: flex;"
 								class="id-dropdown align-items-baseline me-3 mb-3">
-								<label class="fw-bold fs-5 me-5 pe-3 text-dark">Branch
-									Id:</label> <input style="width: 150px;" class="form-control"
-									type="text" id="branchIdsearchInput" placeholder="Branch Id"
+								<label style="font-family: sans-serif;"
+									class="fw-bold fs-5 me-5 pe-3 text-dark">Branch Id:</label> <input
+									style="width: 150px;" class="form-control" type="text"
+									id="branchIdsearchInput" placeholder="Branch Id"
 									aria-expanded="false">
 							</div>
 							<div class="id-dropdown d-flex align-items-baseline me-3 mb-3">
@@ -206,12 +293,20 @@
 						<div
 							style="background-color: #2b0444; color: white; font-weight: 900; padding: 10px; border-radius: 10px;"
 							class="account-item mb-3">
-							<p class="userId" style="font-size: larger;">user Id</p>
-							<p class="branchId" style="font-size: larger;">Branch Id</p>
+							<p class="userId" style="font-size: larger;">User Id</p>
 							<p class="accountNumber">Account Number</p>
-							<p class="accbalance" style="font-size: larger; color: white;">Balance</p>
-							<p class="accstatus" style="font-size: larger;">Status</p>
-							<p class="acctype">Type</p>
+							<p class="branchId" style="font-size: larger; margin-left: -20px">Branch
+								Id</p>
+							<p class="accbalance"
+								style="font-size: larger; color: white; margin-left: 25px">Balance</p>
+							<p class="branchId" style="font-size: larger; margin-left: -25px">Branch
+								Name</p>
+							<p class="acctype" style="margin-left: 90px;">Type</p>
+							<p class="branchName"
+								style="font-size: larger; margin-left: -12px;">Status</p>
+
+							<p class="accountcreatedat" style="margin-left: -18px">Account
+								Created</p>
 						</div>
 
 						<!-- Repeatable transaction rows -->

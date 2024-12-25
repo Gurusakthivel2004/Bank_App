@@ -1,8 +1,8 @@
 const userRole = localStorage.getItem("role");
-if(userRole == "Customer") {
+if (userRole == "Customer") {
 	const createButton = document.getElementById("create-user-item");
-	if(createButton != null) {
-		createButton.style.display = "none";	
+	if (createButton != null) {
+		createButton.style.display = "none";
 	}
 }
 
@@ -50,6 +50,16 @@ const toggleModal = modalId => {
 	const modal = document.getElementById(modalId);
 	modal.style.display = modal.style.display === 'none'
 		|| modal.style.display === '' ? 'flex' : 'none';
+	if (modalId == "accountDetailsModal") {
+		document.getElementById('accountbranchId').style.border = "0";
+		document.getElementById('branchSave').style.display = "none";
+		if (role == "Manager") {
+			if(modal.style.display === "flex") {
+				document.getElementById('branchEdit').style.display = "block";
+			}
+		}
+		document.getElementById('accountbranchId').disabled = true;
+	}
 }
 
 const togglePasswordVisibility = (inputId, button) => {

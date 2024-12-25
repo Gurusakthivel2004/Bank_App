@@ -18,12 +18,18 @@ import util.Helper;
 
 public class UserController {
 	UserService userService = new UserService();
+
 	public void handleGet(HttpServletRequest request, HttpServletResponse response) throws IOException {
 		PrintWriter out = response.getWriter();
 		response.setContentType("application/json");
 		try {
-			long userId = (long) Helper.getThreadLocalValue().get("id");
-			Object userDetails = userService.getUserDetails(userId);
+			long userId = Helper.parseLongOrDefault(request.getParameter("userId"),
+					(long) Helper.getThreadLocalValue().get("id"));
+			String role = request.getParameter("role");
+			if(role.isEmpty()) {
+				role = (String) Helper.getThreadLocalValue().get("role");
+			}
+			Object userDetails = userService.getUserDetails(userId, role);
 			ObjectMapper mapper = new ObjectMapper();
 			String jsonResponse = mapper.writeValueAsString(userDetails);
 

@@ -3,12 +3,18 @@ package service;
 import java.util.Map;
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+
+import com.fasterxml.jackson.core.type.TypeReference;
+
 import dblayer.dao.AccountDAO;
 import dblayer.model.Account;
+import dblayer.model.ColumnCriteria;
+import dblayer.model.Criteria;
 import util.CustomException;
 import util.Helper;
 
@@ -29,19 +35,19 @@ public class AccountService {
 	 * @throws CustomException If an error occurs during account retrieval.
 	 */
 
-	@SuppressWarnings({ "unchecked", "unlikely-arg-type" })
 	public List<Account> getAccountDetails(Long customerId, Long accountNumber, Long branchId, Long accountCreated)
 			throws CustomException {
 		logger.info("Fetching account details for customerId: {}, accountNumber: {}, branchId: {}, accountCreated: {}",
 				customerId, accountNumber, branchId, accountCreated);
-		logger.info(Helper.getThreadLocalValue().get("branchId"));
 
 		try {
 			String key = generateCacheKey(customerId, accountNumber, branchId);
-			Map<String, Account> cachedAccounts = cacheService.get(key, String.class, Account.class);
+			Map<Long, List<Account>> cachedAccounts = cacheService.get(key,
+					new TypeReference<Map<Long, List<Account>>>() {
+					});
 			// Return cached accounts if available
-			if (cachedAccounts != null && cachedAccounts.containsKey(accountCreated) ) {
-				return (List<Account>) cachedAccounts;
+			if (cachedAccounts != null && cachedAccounts.containsKey(accountCreated)) {
+				return cachedAccounts.get(accountCreated);
 			}
 			// Fetch accounts from database
 			List<Account> accounts = fetchAccounts(customerId, accountNumber, branchId, accountCreated);
@@ -63,7 +69,6 @@ public class AccountService {
 	}
 
 	private String generateCacheKey(Long customerId, Long accountNumber, Long branchId) {
-		System.out.println(customerId + " " + branchId);
 		if (accountNumber == 0L && branchId == 0L) {
 			return "customerIdAccounts:" + customerId;
 		} else if (customerId == 0L && accountNumber == 0L) {
@@ -72,7 +77,8 @@ public class AccountService {
 		return "";
 	}
 
-	private List<Account> fetchAccounts(Long customerId, Long accountNumber, Long branchId, Long accountCreated) throws CustomException {
+	private List<Account> fetchAccounts(Long customerId, Long accountNumber, Long branchId, Long accountCreated)
+			throws CustomException {
 		if (accountCreated > 0) {
 			return accountDAO.getAccounts(customerId, accountNumber, branchId, accountCreated, 8L);
 		}
@@ -128,6 +134,23 @@ public class AccountService {
 		} catch (Exception e) {
 			logger.error("Unexpected error during account creation: {}", e.getMessage());
 			throw new CustomException("Account creation failed. Please contact support.", e);
+		}
+	}
+
+	public void updateAccount(Long accountNumber, String key, Object value) throws CustomException {
+		logger.info("Attempting to update account details.");
+		try {
+			ColumnCriteria columnCriteria = new ColumnCriteria();
+			columnCriteria.setFields(Arrays.asList(key, "modifiedAt"));
+			columnCriteria.setValues(Arrays.asList(value, System.currentTimeMillis()));
+
+			accountDAO.updateAccount(columnCriteria, "account_number", accountNumber);
+			cacheService.delete("customerIdAccounts");
+			cacheService.delete("branchIdAccounts");
+			logger.info("Account successfully updated with account number: {}", accountNumber);
+		} catch (CustomException e) {
+			logger.error("Error updating account. Error: {}", e.getMessage());
+			throw e;
 		}
 	}
 

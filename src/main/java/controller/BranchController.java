@@ -3,22 +3,26 @@ package controller;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.util.List;
 import java.util.Map;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import dblayer.model.Branch;
 import service.BranchService;
 import util.CustomException;
 import util.Helper;
 
 public class BranchController {
-	
+
+	private final BranchService branchService = new BranchService();
+
 	public void handlePost(HttpServletRequest request, HttpServletResponse response) throws IOException {
 		response.setContentType("application/json");
 		PrintWriter out = response.getWriter();
 		JsonObject responseJson = new JsonObject();
-		BranchService branchService = new BranchService();
 		try (BufferedReader reader = request.getReader()) {
 			JsonObject jsonObject = JsonParser.parseReader(reader).getAsJsonObject();
 			Map<String, Object> branchMap = Helper.mapJsonObject(jsonObject);
@@ -34,5 +38,27 @@ public class BranchController {
 			out.close();
 		}
 	}
-	
+
+	public void handleGet(HttpServletRequest request, HttpServletResponse response) throws IOException {
+		response.setContentType("application/json");
+		PrintWriter out = response.getWriter();
+		Long branchId = Helper.parseLongOrDefault(request.getParameter("branchId"), 0L);
+		
+		try {
+			if(branchId == 0L) {
+				throw new CustomException("Invalid branch id ");
+			}
+			List<Branch> branches = branchService.getBranchDetails(branchId);
+			ObjectMapper mapper = new ObjectMapper();
+			String jsonResponse = mapper.writeValueAsString(branches);
+			out.write(jsonResponse);
+		} catch (CustomException e) {
+			JsonObject responseJson = new JsonObject();
+			responseJson.addProperty("message", e.getMessage());
+			out.write(responseJson.toString());
+		} finally {
+			out.close();
+		}
+	}
+
 }

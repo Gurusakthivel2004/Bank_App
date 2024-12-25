@@ -208,18 +208,21 @@ async function toggleSaveAll() {
 				body: JSON.stringify(updatedFields)
 			});
 			const result = await response.json();
+			const successPop = document.getElementById('successPopup');
 			if (result.message == 'success') {
-				document.getElementById('successPopup').style.display = 'block';
-				setTimeout(() => {
-					document.getElementById('successPopup').style.display = 'none';
-				}, 3000);
+				successPop.textContent = "profile updated successfully!";
+				successPop.style.backgroundColor = '#4CAF50';
+				successPop.style.color = 'white';
+				successPop.style.display = 'block';
 			} else {
-				const successPop = document.getElementById('successPopup');
 				successPop.textContent = result.message;
 				successPop.style.backgroundColor = 'red';
 				successPop.style.color = 'white';
 				successPop.style.display = 'block';
 			}
+			setTimeout(() => {
+				successPop.style.display = 'none';
+			}, 3000);
 		} catch (error) {
 			console.error('Error during fetch or processing:' + error);
 		}

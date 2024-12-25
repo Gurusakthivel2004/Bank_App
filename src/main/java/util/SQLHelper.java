@@ -11,15 +11,12 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
 import dblayer.connect.DBConnection;
 import dblayer.model.ColumnCriteria;
 import dblayer.model.Criteria;
 import dblayer.model.MarkedClass;
-import service.UserService;
 import util.ColumnYamlUtil.ClassMapping;
 import util.ColumnYamlUtil.FieldMapping;
 
@@ -290,8 +287,8 @@ public class SQLHelper {
 		if (condition.getColumn() != null) {
 			QueryBuilder(selectSql, condition, conditionValues);
 		}
-//		System.out.println(selectSql);
-//		System.out.println(conditionValues);
+		System.out.println(selectSql);
+		System.out.println(conditionValues);
 		List<T> list = new ArrayList<>();
 		try (Connection connection = DBConnection.getConnection();
 				PreparedStatement preparedStatement = getPreparedStatement(connection, selectSql.toString(),

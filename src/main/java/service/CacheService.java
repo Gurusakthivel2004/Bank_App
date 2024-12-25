@@ -1,7 +1,13 @@
 package service;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -15,12 +21,6 @@ public class CacheService {
 	private static final Logger logger = LogManager.getLogger(CacheService.class);
 	private final ObjectMapper objectMapper = new ObjectMapper();
 
-	/**
-	 * Save a key-value pair to Redis.
-	 *
-	 * @param key   the Redis key
-	 * @param value the value to store
-	 */
 	public <T> void save(String key, T value) {
 		if (key == null || value == null) {
 			logger.error("Key or value cannot be null.");
@@ -36,19 +36,10 @@ public class CacheService {
 			logger.error("Failed to save key '{}' in Redis: {}", key, e.getMessage());
 		}
 	}
-	
-	/**
-	 * Retrieves a Map from Redis where the key is of type K and the value is of type V.
-	 * The method deserializes the JSON stored in Redis into a Map<K, V>. 
-	 * 
-	 * @param key       the Redis key for the Map
-	 * @param keyClass  the class type of the key in the Map
-	 * @param valueClass the class type of the value in the Map
-	 * @return the deserialized Map<K, V> from Redis, or null if the key does not exist or deserialization fails
-	 */
-	public <K, V> Map<K, V> get(String key, Class<K> keyClass, Class<V> valueClass) {
-		if (key == null || keyClass == null || valueClass == null) {
-			logger.error("Key or class types cannot be null.");
+
+	public <K, V> Map<K, V> get(String key, TypeReference<Map<K, V>> typeRef) {
+		if (key == null || typeRef == null) {
+			logger.error("Key or type reference cannot be null.");
 			return null;
 		}
 		try (Jedis jedis = RedisCache.getConnection()) {
@@ -58,8 +49,6 @@ public class CacheService {
 			}
 
 			String jsonValue = jedis.get(key);
-			TypeReference<Map<K, V>> typeRef = new TypeReference<Map<K, V>>() {
-			};
 			Map<K, V> mapValue = objectMapper.readValue(jsonValue, typeRef);
 
 			logger.info("Successfully retrieved key '{}' from Redis.", key);
@@ -72,12 +61,6 @@ public class CacheService {
 		return null;
 	}
 
-	/**
-	 * Update the value of an existing key in Redis.
-	 *
-	 * @param key   the Redis key
-	 * @param value the new value to store
-	 */
 	public <T> void update(String key, T value) {
 		if (key == null || value == null) {
 			logger.error("Key or value cannot be null.");
@@ -97,24 +80,35 @@ public class CacheService {
 		}
 	}
 
-	/**
-	 * Delete a key from Redis.
-	 *
-	 * @param key the Redis key
-	 */
-	public void delete(String key) {
-		if (key == null) {
+	public void delete(String deleteKey) {
+		if (deleteKey == null) {
 			logger.error("Key cannot be null.");
 			return;
 		}
 		try (Jedis jedis = RedisCache.getConnection()) {
-			if (jedis.del(key) > 0) {
-				logger.info("Successfully deleted key '{}' from Redis.", key);
-			} else {
-				logger.warn("Key '{}' does not exist in Redis.", key);
+			List<String> allKeys = getAllKeys();
+			List<String> matchingKeys = allKeys.stream().filter(key -> key.contains(deleteKey))
+					.collect(Collectors.toList());
+			for (String key : matchingKeys) {
+				if (jedis.del(key) > 0) {
+					logger.info("Successfully deleted key '{}' from Redis.", key);
+				} else {
+					logger.warn("Key '{}' does not exist in Redis.", key);
+				}
 			}
 		} catch (Exception e) {
-			logger.error("Failed to delete key '{}' from Redis: {}", key, e.getMessage());
+			logger.error("Failed to delete key '{}' from Redis: {}", deleteKey, e.getMessage());
 		}
 	}
+
+	public List<String> getAllKeys() {
+		try (Jedis jedis = RedisCache.getConnection()) {
+			Set<String> keys = jedis.keys("*"); 
+			return new ArrayList<>(keys);
+		} catch (Exception e) {
+			logger.error("Failed to retrieve keys from Redis: {}", e.getMessage());
+			return Collections.emptyList();
+		}
+	}
+
 }

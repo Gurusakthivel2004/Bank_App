@@ -1,5 +1,5 @@
 body {
-	background-color: #f0f1f1	;
+	background-color: #f0f1f1;
 }
 
 .full-container {
@@ -89,28 +89,36 @@ body {
 
 .userId {
 	padding-left: 50px;
-	flex: 0 0 300px;
+	flex: 0 0 250px;
 }
 
 .branchId {
-	flex: 0 0 300px;
+	flex: 0 0 150px;
 }
 
 .accountNumber {
-	flex: 0 0 350px;
+	flex: 0 0 300px;
 	font-weight: 900;
 }
 
 .acctype {
-	flex: 0 0 300px;
+	flex: 0 0 200px;
+}
+
+.branchName {
+	flex: 0 0 200px;
 }
 
 .accbalance {
-	flex: 0 0 300px;
+	flex: 0 0 200px;
 }
 
 .accstatus {
-	flex: 0 0 300px;
+	flex: 0 0 200px;
+}
+
+.accountcreatedat {
+	flex: 0 0 200px;
 }
 
 nav {

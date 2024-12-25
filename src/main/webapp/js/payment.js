@@ -55,19 +55,20 @@ const handleSubmit = async (event) => {
 	const result = await response.json();
 	console.log(result);
 	const successPop = document.getElementById('successPopup');
-	document.getElementById('successPopup').style.display = 'block';
-	if (result.message === 'success') {
-		successPop.textContent = 'Payment successful!';
+	if (result.message == 'success') {
+		successPop.textContent = "Payment successful!";
+		successPop.style.backgroundColor = '#4CAF50';
+		successPop.style.color = 'white';
+		successPop.style.display = 'block';
 	} else {
-		console.log('hey');
 		successPop.textContent = result.message;
 		successPop.style.backgroundColor = 'red';
 		successPop.style.color = 'white';
+		successPop.style.display = 'block';
 	}
 	setTimeout(() => {
-		document.getElementById('successPopup').style.display = 'none';
+		successPop.style.display = 'none';
 	}, 3000);
-
 };
 
 const toggleBankDropdown = () => {

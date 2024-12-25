@@ -36,8 +36,6 @@ public class FacadeHandler {
 		logger.info("Fetching dashboard details for user ID: {}", id);
 
 		try {
-
-			// Fetch account details
 			logger.debug("Fetching account details for user ID: {}", id);
 			List<Account> accounts = accountService.getAccountDetails(id, 0l, 0l, 0l);
 			map.put("account", accounts);
@@ -56,13 +54,9 @@ public class FacadeHandler {
 
 			// Fetch user details based on role
 			String role = (String) Helper.getThreadLocalValue().get("role");
-			if ("Customer".equals(role)) {
-				logger.debug("Fetching customer details for user ID: {}", id);
-				map.put("customerDetail", userService.getUserDetails(id));
-			} else {
-				logger.debug("Fetching staff details for user ID: {}", id);
-				map.put("staff", userService.getUserDetails(id));
-			}
+			String key = "Customer".equals(role) ? "customerDetail" : "staff";
+			logger.debug("Fetching {} details for user ID: {}", key, id);
+			map.put(key, userService.getUserDetails(id, role));
 
 			// Fetch branch details for the accounts
 			logger.debug("Fetching branch details for user ID: {}", id);
@@ -76,7 +70,6 @@ public class FacadeHandler {
 			}
 			map.put("branch", branchDetails);
 
-			// Add monthly finance details
 			logger.debug("Adding monthly finance details for user ID: {}", id);
 			addMonthlyFinance(map, id, 3);
 

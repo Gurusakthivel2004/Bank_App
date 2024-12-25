@@ -13,15 +13,13 @@ import javax.servlet.http.HttpServletResponse;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import com.auth0.jwt.exceptions.JWTVerificationException;
-
-import service.TransactionService;
 import util.Helper;
 import util.JwtUtil;
 
 @SuppressWarnings("serial")
 @WebFilter("/api/*")
 public class AuthFilter extends HttpFilter implements Filter {
-	
+
 	private final Logger logger = LogManager.getLogger(AuthFilter.class);
 
 	@Override
@@ -32,8 +30,10 @@ public class AuthFilter extends HttpFilter implements Filter {
 		response.setContentType("application/json");
 		response.setCharacterEncoding("UTF-8");
 
-		// Allow public endpoints
+		logger.info("Request path: {}", path);
+
 		if (path.equals("/Bank_Application/api/Login")) {
+			logger.info("Skipping authentication for login endpoint.");
 			chain.doFilter(request, response);
 			return;
 		}
@@ -42,32 +42,41 @@ public class AuthFilter extends HttpFilter implements Filter {
 
 		if (authorizationHeader != null && authorizationHeader.startsWith("Bearer ")) {
 			String token = authorizationHeader.substring(7);
+			logger.info("Authorization token found. Verifying token...");
 
 			try {
 				Long userId = JwtUtil.extractUserId(token);
 				String role = JwtUtil.extractRole(token);
+				String username = JwtUtil.extractUsername(token);
 				Long branchId = JwtUtil.extractBranchId(token);
-				
-				logger.info("branch id is ,", branchId);
-				
+
 				Map<String, Object> claimsMap = new HashMap<>();
 				claimsMap.put("id", userId);
 				claimsMap.put("role", role);
+				claimsMap.put("username", username);
 				claimsMap.put("branchId", branchId);
+
 				Helper.setThreadLocalValue(claimsMap);
+				logger.info("Token verified successfully. Claims: {}", claimsMap);
 
 			} catch (JWTVerificationException e) {
+				logger.error("Invalid or expired token: {}", e.getMessage());
 				response.getWriter().println("Invalid or expired token");
 				return;
 			}
 		} else {
+			logger.warn("Authorization token not found in request.");
 			response.getWriter().println("Authorization token not found");
 			return;
 		}
+
 		try {
+			// Proceed with the request chain
 			chain.doFilter(request, response);
 		} finally {
+			// Clear thread-local storage after request processing
 			Helper.clearThreadLocal();
+			logger.info("Cleared thread-local values.");
 		}
 	}
 }

@@ -10,8 +10,6 @@ import javax.servlet.http.HttpServletResponse;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-
-import dblayer.model.Staff;
 import service.UserService;
 import util.CustomException;
 import util.JwtService;
@@ -37,6 +35,7 @@ public class LoginController {
 			Map<String, Object> jwtClaims = new HashMap<>();
 			jwtClaims.put("id", userDetails.get("id"));
 			jwtClaims.put("role", userDetails.get("role"));
+			jwtClaims.put("username", userDetails.get("username"));
 			if (userDetails.containsKey("branchId")) {
 				jwtClaims.put("branchId", userDetails.get("branchId"));
 			}

@@ -41,6 +41,7 @@ public class UserDAO {
         userCriteria.setSelectColumn(Arrays.asList("*"));
 
         List<User> users = SQLHelper.get(userCriteria);
+        System.out.println(users);
         if (users == null) {
             logger.error("User does not exist for column: {}, value: {}", selectColumn, selectValue);
             throw new CustomException("User does not exist.");

@@ -40,7 +40,7 @@ public class AccountDAO {
 			criteria.getOperator().add("=");
 			criteria.getValue().add(accountId);
 
-			updateAccount(columnCriteria, criteria);
+			updateAccount(columnCriteria, "account_id", accountId);
 			logger.info("Account created successfully: {}", account);
 		} catch (Exception e) {
 			logger.error("Error creating account: {}", account, e);
@@ -48,9 +48,10 @@ public class AccountDAO {
 		}
 	}
 
-	public List<Account> getAccounts(Long userId, Long accountNumber, Long branchId, Long accountCreated, Long limitValue)
-			throws CustomException {
-		logger.info("Fetching accounts with userId: {}, accountNumber: {}, branchId: {}, accountCreated: {}, limitValue: {}",
+	public List<Account> getAccounts(Long userId, Long accountNumber, Long branchId, Long accountCreated,
+			Long limitValue) throws CustomException {
+		logger.info(
+				"Fetching accounts with userId: {}, accountNumber: {}, branchId: {}, accountCreated: {}, limitValue: {}",
 				userId, accountNumber, branchId, accountCreated, limitValue);
 		try {
 			Criteria criteria = new Criteria();
@@ -89,8 +90,7 @@ public class AccountDAO {
 			long branchId = (Long) Helper.getThreadLocalValue().get("branchId");
 			logger.debug("Branch ID retrieved from ThreadLocal: {}", branchId);
 
-			List<Account> filteredAccounts = accounts.stream()
-					.filter(account -> account.getBranchId() == branchId)
+			List<Account> filteredAccounts = accounts.stream().filter(account -> account.getBranchId() == branchId)
 					.collect(Collectors.toList());
 
 			logger.info("{} accounts matched the branchId: {}", filteredAccounts.size(), branchId);
@@ -101,9 +101,16 @@ public class AccountDAO {
 		}
 	}
 
-	public <T> void updateAccount(ColumnCriteria columnCriteria, Criteria criteria) throws CustomException {
-		logger.info("Updating account with ColumnCriteria: {} and Criteria: {}", columnCriteria, criteria);
+	public <T> void updateAccount(ColumnCriteria columnCriteria, String column, Object value) throws CustomException {
+		logger.info("Updating account with ColumnCriteria: {}", columnCriteria);
 		try {
+			Helper.checkNullValues(columnCriteria);
+			Helper.checkNullValues(value);
+			Helper.checkNullValues(column);
+			Criteria criteria = new Criteria();
+			criteria.setClazz(Account.class);
+			Helper.addCondition(criteria, value != null, column, "=", value);
+			
 			SQLHelper.update(columnCriteria, criteria);
 			logger.info("Account updated successfully.");
 		} catch (Exception e) {
@@ -125,7 +132,7 @@ public class AccountDAO {
 			Helper.addCondition(criteria, accountId > 0, "account_id", "=", accountId);
 
 			logger.debug("Criteria for removing account: {}", criteria);
-			updateAccount(columnCriteria, criteria);
+			updateAccount(columnCriteria, "account_id", accountId);
 
 			logger.info("Account suspended successfully.");
 		} catch (Exception e) {

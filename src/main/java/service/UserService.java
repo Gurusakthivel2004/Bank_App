@@ -5,15 +5,14 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.PrimitiveIterator.OfDouble;
-
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
-import com.fasterxml.jackson.annotation.JsonTypeInfo.Id;
-
+import com.fasterxml.jackson.core.type.TypeReference;
 import dblayer.dao.UserDAO;
 import dblayer.model.ColumnCriteria;
+import dblayer.model.CustomerDetail;
 import dblayer.model.Staff;
 import dblayer.model.User;
 import util.CustomException;
@@ -21,196 +20,244 @@ import util.Helper;
 
 public class UserService {
 
-    private static final Logger logger = LogManager.getLogger(UserService.class);
-    private static UserDAO userDAO = new UserDAO();
+	private static final Logger logger = LogManager.getLogger(UserService.class);
+	private static UserDAO userDAO = new UserDAO();
+	private CacheService cacheService = new CacheService();
 
-    /**
-     * Handles user login.
-     *
-     * @param username the username of the user.
-     * @param password the password of the user.
-     * @return a map containing user details.
-     * @throws CustomException if the username or password is invalid.
-     */
-    public Map<String, Object> userLogin(String username, String password) throws CustomException {
-        logger.info("Attempting login for username: {}", username);
-        try {
-            logger.debug("Fetching user details for validation.");
-            Map<String, Object> userDetails = new HashMap<>();
-            User user = checkPassword("username", username, password);
+	/**
+	 * Handles user login.
+	 *
+	 * @param username the username of the user.
+	 * @param password the password of the user.
+	 * @return a map containing user details.
+	 * @throws CustomException if the username or password is invalid.
+	 */
+	public Map<String, Object> userLogin(String username, String password) throws CustomException {
+		logger.info("Attempting login for username: {}", username);
 
-            logger.debug("Populating user details for the response.");
-            userDetails.put("id", user.getId());
-            userDetails.put("fullname", user.getFullname());
-            userDetails.put("status", user.getStatus());
-            userDetails.put("email", user.getEmail());
-            userDetails.put("phone", user.getPhone());
-            userDetails.put("role", user.getRole());
-            if ("Employee".equals(user.getRole())) {
-                logger.debug("Fetching additional staff details for employee user.");
-                List<Staff> staffDetails = userDAO.getStaff(user.getId());
-                userDetails.put("branchId", staffDetails.get(0).getBranchId());
-            }
-            logger.info("User login successful for username and password: {}", username, password);
-            return userDetails;
-        } catch (CustomException e) {
-            logger.error("User login failed for username: {}. Error: {}", username, e.getMessage());
-            throw e;
-        }
-    }
+		try {
+			User user = checkPassword(username, password);
+			if (user == null) {
+				logger.warn("User not found or invalid credentials for username: {}", username);
+				throw new CustomException("Invalid username or password.");
+			}
+			Map<String, Object> userDetails = Stream
+					.of(new Object[][] { { "id", user.getId() }, { "fullname", user.getFullname() },
+							{ "username", user.getUsername() }, { "status", user.getStatus() },
+							{ "email", user.getEmail() }, { "phone", user.getPhone() }, { "role", user.getRole() }, })
+					.collect(Collectors.toMap(data -> (String) data[0], data -> data[1]));
 
-    /**
-     * Updates the user's password.
-     *
-     * @param currentPassword the current password of the user.
-     * @param newPassword     the new password to set.
-     * @return true if the password is updated successfully.
-     * @throws CustomException if the update fails.
-     */
-    public boolean updatePassword(String currentPassword, String newPassword) throws CustomException {
-        logger.info("Attempting to update password.");
-        try {
-            ColumnCriteria columnCriteria = new ColumnCriteria();
-            logger.debug("Hashing new password.");
-            columnCriteria.setFields(new ArrayList<>(Arrays.asList("password")));
-            columnCriteria.setValues(new ArrayList<>(Arrays.asList(Helper.hashPassword(newPassword))));
+			// Add additional staff details for employee role
+			if ("Employee".equals(user.getRole())) {
+				logger.debug("Fetching additional staff details for employee user.");
+				List<Staff> staffDetails = userDAO.getStaff(user.getId());
+				if (!staffDetails.isEmpty()) {
+					userDetails.put("branchId", staffDetails.get(0).getBranchId());
+				} else {
+					logger.warn("No staff details found for user with ID: {}", user.getId());
+				}
+			}
+			logger.info("User login successful for username: {}", username);
+			return userDetails;
+		} catch (CustomException e) {
+			logger.error("User login failed for username: {}. Error: {}", username, e.getMessage());
+			throw e;
+		} catch (Exception e) {
+			logger.error("Unexpected error occurred during login for username: {}. Error: {}", username,
+					e.getMessage());
+			throw new CustomException("An unexpected error occurred. Please try again later.", e);
+		}
+	}
 
-            String role = (String) Helper.getThreadLocalValue().get("role");
-            logger.debug("Determining update type based on role: {}", role);
+	/**
+	 * Validates the password for a user and returns user object.
+	 *
+	 * @param column   the column to search by (e.g., username, email).
+	 * @param value    the value of the column.
+	 * @param password the password to validate.
+	 * @return the User object if validation succeeds.
+	 * @throws CustomException if the password is invalid.
+	 */
+	private User checkPassword(String username, String password) throws CustomException {
+		logger.info("Validating password for user: {}", username);
+		try {
+			logger.debug("Fetching user for column: username and value: {}", username);
+			String key = "userDetails";
+			User user = null;
+			Map<String, User> cachedUserDetails = cacheService.get(key, new TypeReference<Map<String, User>>() {
+			});
+			if (cachedUserDetails != null && cachedUserDetails.containsKey(username)) {
+				logger.info("Fetching cached user details for username: {}", username);
+				user = cachedUserDetails.get(username);
+			} else {
+				if (cachedUserDetails == null) {
+					cachedUserDetails = new HashMap<String, User>();
+				}
+				user = userDAO.getUser("username", username);
+				cachedUserDetails.put(username, user);
+				cacheService.save(key, cachedUserDetails);
+				logger.debug("User details cached for username: {}", username);
+			}
+			logger.debug("Checking password match.");
+			if (!Helper.checkPassword(password, user.getPassword())) {
+				logger.warn("Password mismatch for user: {}", username);
+				throw new CustomException("Password does not match");
+			}
 
-            if ("Customer".equals(role)) {
-                logger.debug("Updating password for customer.");
-                userDAO.updateCustomer(columnCriteria);
-            } else {
-                logger.debug("Updating password for staff.");
-                userDAO.updateStaff(columnCriteria);
-            }
+			logger.info("Password validation successful for user: {}", username);
+			return user;
+		} catch (CustomException e) {
+			logger.error("Password validation failed for user: {}. Error: {}", username, e.getMessage());
+			throw e;
+		}
+	}
 
-            logger.info("Password updated successfully.");
-            return true;
-        } catch (CustomException e) {
-            logger.error("Password update failed. Error: {}", e.getMessage());
-            throw e;
-        }
-    }
+	/**
+	 * Updates the user's password.
+	 *
+	 * @param currentPassword the current password of the user.
+	 * @param newPassword     the new password to set.
+	 * @return true if the password is updated successfully.
+	 * @throws CustomException if the update fails.
+	 */
+	public boolean updatePassword(String currentPassword, String newPassword) throws CustomException {
+		logger.info("Attempting to update password.");
+		try {
+			ColumnCriteria columnCriteria = new ColumnCriteria();
+			logger.debug("Hashing new password.");
+			columnCriteria.setFields(new ArrayList<>(Arrays.asList("password")));
+			columnCriteria.setValues(new ArrayList<>(Arrays.asList(Helper.hashPassword(newPassword))));
 
-    /**
-     * Retrieves user details based on the role.
-     * @param userId id of the user.
-     * @return user details as an Object.
-     * @throws CustomException if retrieval fails.
-     */
-    public Object getUserDetails(Long userId) throws CustomException {
-        logger.info("Fetching user details.");
-        try {
-            String role = (String) Helper.getThreadLocalValue().get("role");
-            logger.debug("User role determined as: {}", role);
+			String role = (String) Helper.getThreadLocalValue().get("role");
+			logger.debug("Determining update type based on role: {}", role);
+			if ("Customer".equals(role)) {
+				logger.debug("Updating password for customer.");
+				userDAO.updateCustomer(columnCriteria);
+			} else {
+				logger.debug("Updating password for staff.");
+				userDAO.updateStaff(columnCriteria);
+			}
+			cacheService.delete("userDetails");
+			logger.info("Password updated successfully.");
+			return true;
+		} catch (CustomException e) {
+			logger.error("Password update failed. Error: {}", e.getMessage());
+			throw e;
+		}
+	}
 
-            if ("Customer".equals(role)) {
-                logger.info("Fetching details for customer.");
-                return userDAO.getCustomers(userId).get(0);
-            } else {
-                logger.info("Fetching details for staff.");
-                return userDAO.getStaff(userId).get(0);
-            }
-        } catch (CustomException e) {
-            logger.error("Error fetching user details. Error: {}", e.getMessage());
-            throw e;
-        }
-    }
+	/**
+	 * Retrieves user details based on the role.
+	 * 
+	 * @param userId id of the user.
+	 * @return user details as an Object.
+	 * @throws CustomException if retrieval fails.
+	 */
+	@SuppressWarnings("unchecked")
+	public <T extends User> T getUserDetails(Long userId, String role) throws CustomException {
+		logger.info("Fetching user details.");
+		try {
+			String username = (String) Helper.getThreadLocalValue().get("username");
+			String key = role + "Details";
 
-    /**
-     * Creates a new user based on the provided map.
-     *
-     * @param userMap a map containing user details.
-     * @throws CustomException if creation fails.
-     */
-    public void createUser(Map<String, Object> userMap) throws CustomException {
-        logger.info("Attempting to create user: {}", userMap);
-        try {
-            String role = (String) userMap.get("role");
-            logger.debug("User role determined as: {}", role);
+			logger.debug("User role determined as: {}", role);
 
-            if ("Customer".equals(role)) {
-                logger.debug("Creating customer user.");
-                userDAO.createCustomer(Helper.createPojoFromMap(userMap, dblayer.model.CustomerDetail.class));
-            } else {
-                logger.debug("Creating staff user.");
-                userDAO.createStaff(Helper.createPojoFromMap(userMap, Staff.class));
-            }
+			Map<String, T> cachedUserDetails = cacheService.get(key,
+					new TypeReference<Map<String, T>>() {
+					});
 
-            logger.info("User created successfully.");
-        } catch (CustomException e) {
-            logger.error("Error creating user. User data: {}. Error: {}", userMap, e.getMessage());
-            throw e;
-        }
-    }
+			if (cachedUserDetails != null && cachedUserDetails.containsKey(username)) {
+				logger.info("Fetching cached user details for username: {}", username);
+				return (T) cachedUserDetails.get(username); 
+			} else {
+				if (cachedUserDetails == null) {
+					cachedUserDetails = new HashMap<>();
+				}
+				T user;
+				if ("Customer".equals(role)) {
+					logger.info("Fetching details for customer.");
+					user = (T) userDAO.getCustomers(userId).get(0); 
+				} else {
+					logger.info("Fetching details for staff.");
+					user = (T) userDAO.getStaff(userId).get(0); 
+				}
+				cachedUserDetails.put(username, user);
+				cacheService.save(key, cachedUserDetails);
+				logger.debug("{} details cached for username: {}", role, username);
 
-    /**
-     * Updates user details based on the provided map.
-     *
-     * @param userMap a map containing updated user details.
-     * @throws CustomException if the update fails.
-     */
-    public void updateUserDetails(Map<String, Object> userMap) throws CustomException {
-        logger.info("Attempting to update user details.");
-        try {
-            List<String> fields = new ArrayList<>();
-            List<Object> values = new ArrayList<>();
-            String role = (String) Helper.getThreadLocalValue().get("role");
-            logger.debug("User role determined as: {}", role);
+				return (T) user;
+			}
+		} catch (CustomException e) {
+			logger.error("Error fetching user details. Error: {}", e.getMessage());
+			throw e;
+		} catch (Exception e) {
+			logger.error("Unexpected error occurred while fetching user details. Error: {}", e.getMessage());
+			throw new CustomException("An unexpected error occurred while fetching user details.", e);
+		}
+	}
 
-            for (String key : userMap.keySet()) {
-                logger.debug("Processing field: {}", key);
-                fields.add(key);
-                values.add(userMap.get(key));
-            }
+	/**
+	 * Creates a new user based on the provided map.
+	 *
+	 * @param userMap a map containing user details.
+	 * @throws CustomException if creation fails.
+	 */
+	public void createUser(Map<String, Object> userMap) throws CustomException {
+		logger.info("Attempting to create user: {}", userMap);
+		try {
+			String role = (String) userMap.get("role");
+			logger.debug("User role determined as: {}", role);
+			if ("Customer".equals(role)) {
+				logger.debug("Creating customer user.");
+				userDAO.createCustomer(Helper.createPojoFromMap(userMap, dblayer.model.CustomerDetail.class));
+			} else {
+				logger.debug("Creating staff user.");
+				userDAO.createStaff(Helper.createPojoFromMap(userMap, Staff.class));
+			}
+			logger.info("User created successfully.");
+		} catch (CustomException e) {
+			logger.error("Error creating user. User data: {}. Error: {}", userMap, e.getMessage());
+			throw e;
+		}
+	}
 
-            ColumnCriteria columnCriteria = new ColumnCriteria();
-            columnCriteria.setFields(fields);
-            columnCriteria.setValues(values);
+	/**
+	 * Updates user details based on the provided map.
+	 *
+	 * @param userMap a map containing updated user details.
+	 * @throws CustomException if the update fails.
+	 */
+	public void updateUserDetails(Map<String, Object> userMap) throws CustomException {
+		logger.info("Attempting to update user details.");
+		try {
+			List<String> fields = new ArrayList<>();
+			List<Object> values = new ArrayList<>();
+			String role = (String) Helper.getThreadLocalValue().get("role");
+			logger.debug("User role determined as: {}", role);
 
-            if ("Customer".equals(role)) {
-                logger.debug("Updating details for customer.");
-                userDAO.updateCustomer(columnCriteria);
-            } else {
-                logger.debug("Updating details for staff.");
-                userDAO.updateStaff(columnCriteria);
-            }
+			for (String key : userMap.keySet()) {
+				logger.debug("Processing field: {}", key);
+				fields.add(key);
+				values.add(userMap.get(key));
+			}
 
-            logger.info("User details updated successfully.");
-        } catch (CustomException e) {
-            logger.error("Error updating user details. Error: {}", e.getMessage());
-            throw e;
-        }
-    }
+			ColumnCriteria columnCriteria = new ColumnCriteria();
+			columnCriteria.setFields(fields);
+			columnCriteria.setValues(values);
 
-    /**
-     * Validates the password for a user.
-     *
-     * @param column   the column to search by (e.g., username, email).
-     * @param value    the value of the column.
-     * @param password the password to validate.
-     * @return the User object if validation succeeds.
-     * @throws CustomException if the password is invalid.
-     */
-    private User checkPassword(String column, Object value, String password) throws CustomException {
-        logger.info("Validating password for user: {}", value);
-        try {
-            logger.debug("Fetching user for column: {} and value: {}", column, value);
-            System.out.println(column + " " + value + " " + password);
-            User user = userDAO.getUser(column, value);
-            logger.debug("Checking password match.");
-            if (!Helper.checkPassword(password, user.getPassword())) {
-                logger.warn("Password mismatch for user: {}", value);
-                throw new CustomException("Password does not match");
-            }
+			if ("Customer".equals(role)) {
+				logger.debug("Updating details for customer.");
+				userDAO.updateCustomer(columnCriteria);
+			} else {
+				logger.debug("Updating details for staff.");
+				userDAO.updateStaff(columnCriteria);
+			}
+			cacheService.delete("userDetails");
+			logger.info("User details updated successfully.");
+		} catch (CustomException e) {
+			logger.error("Error updating user details. Error: {}", e.getMessage());
+			throw e;
+		}
+	}
 
-            logger.info("Password validation successful for user: {}", value);
-            return user;
-        } catch (CustomException e) {
-            logger.error("Password validation failed for user: {}. Error: {}", value, e.getMessage());
-            throw e;
-        }
-    }
 }

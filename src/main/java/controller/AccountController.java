@@ -8,6 +8,8 @@ import java.util.Map;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import service.AccountService;
@@ -61,9 +63,34 @@ public class AccountController {
 			responseJson.addProperty("message", "success");
 			response.setStatus(HttpServletResponse.SC_OK);
 		} catch (CustomException exception) {
-			// Handle custom exception for failed account creation
 			responseJson.addProperty("message", exception.getMessage());
 			response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+		} finally {
+			out.print(responseJson.toString());
+			out.close();
+		}
+	}
+
+	public void handlePut(HttpServletRequest request, HttpServletResponse response)
+			throws IOException, CustomException {
+		response.setContentType("application/json");
+		PrintWriter out = response.getWriter();
+		JsonObject responseJson = new JsonObject();
+
+		try (BufferedReader reader = request.getReader()) {
+			JsonObject jsonObject = JsonParser.parseReader(reader).getAsJsonObject();
+
+			String branchId = null, status = null;
+			Long accountNumber = jsonObject.get("accountNumber").getAsLong();
+			if (jsonObject.has("branchId")) {
+				branchId = jsonObject.get("branchId").getAsString();
+				accountService.updateAccount(accountNumber, "branchId", branchId);
+			} else if (jsonObject.has("status")) {
+				status = jsonObject.get("status").getAsString();
+				accountService.updateAccount(accountNumber, "status", status);
+			}
+			responseJson.addProperty("message", "success");
+			response.setStatus(HttpServletResponse.SC_OK);
 		} finally {
 			out.print(responseJson.toString());
 			out.close();
