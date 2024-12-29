@@ -43,12 +43,13 @@ public class BranchController {
 		response.setContentType("application/json");
 		PrintWriter out = response.getWriter();
 		Long branchId = Helper.parseLongOrDefault(request.getParameter("branchId"), 0L);
-		
+		String notExact = request.getParameter("notExact");
+		System.out.println(notExact);
 		try {
 			if(branchId == 0L) {
 				throw new CustomException("Invalid branch id ");
 			}
-			List<Branch> branches = branchService.getBranchDetails(branchId);
+			List<Branch> branches = branchService.getBranchDetails(branchId, notExact != null);
 			ObjectMapper mapper = new ObjectMapper();
 			String jsonResponse = mapper.writeValueAsString(branches);
 			out.write(jsonResponse);

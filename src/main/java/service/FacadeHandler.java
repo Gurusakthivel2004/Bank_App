@@ -29,6 +29,7 @@ public class FacadeHandler {
 	 * @throws CustomException If there is any error while fetching the dashboard
 	 *                         details.
 	 */
+	@SuppressWarnings("unchecked")
 	public Map<String, Object> dashBoardDetails() throws CustomException {
 		long id = (Long) Helper.getThreadLocalValue().get("id");
 		Map<String, Object> map = new HashMap<>();
@@ -40,16 +41,19 @@ public class FacadeHandler {
 			List<Account> accounts = accountService.getAccountDetails(id, 0l, 0l, 0l);
 			map.put("account", accounts);
 			logger.info(accounts);
+
+			logger.info("Fetching transaction details for user ID: {}", id);
 			// Fetch transaction details
 			List<Transaction> transactions = new ArrayList<>();
 			for (int i = 0; i < accounts.size(); i++) {
 				Account account = accounts.get(i);
-				List<Transaction> accountTransactions = transactionService.getTransactionDetails(id,
-						account.getAccountNumber(), 5L, 0L, 0L);
+				Map<String, Object> txMap = getTransactionMap(id, account.getAccountNumber(), 5l, 0l, 0l, -1l);
+				List<Transaction> accountTransactions = (List<Transaction>) transactionService
+						.getTransactionDetails(txMap).get("transactions");
 				transactions.addAll(accountTransactions);
 			}
 
-			logger.debug("Fetching transaction details for user ID: {}", id);
+			logger.info(transactions);
 			map.put("transactions", transactions);
 
 			// Fetch user details based on role
@@ -63,7 +67,7 @@ public class FacadeHandler {
 			List<Branch> branchDetails = new ArrayList<>();
 			BranchService branchService = new BranchService();
 			for (Account account : accounts) {
-				Branch branch = branchService.getBranchDetails(account.getBranchId()).get(0);
+				Branch branch = branchService.getBranchDetails(account.getBranchId(), false).get(0);
 				if (!branchDetails.contains(branch)) {
 					branchDetails.add(branch);
 				}
@@ -95,6 +99,7 @@ public class FacadeHandler {
 	 * @throws CustomException If there is an error while fetching the monthly
 	 *                         finance details.
 	 */
+	@SuppressWarnings("unchecked")
 	private void addMonthlyFinance(Map<String, Object> map, Long customerId, int monthLength) throws CustomException {
 		int month = LocalDate.now().getMonthValue();
 		int year = LocalDate.now().getYear();
@@ -107,8 +112,10 @@ public class FacadeHandler {
 
 			logger.debug("Fetching transaction details for month: {} (Start: {}, End: {})", currMonth, startMillis,
 					endMillis);
-			List<Transaction> transactions = transactionService.getTransactionDetails(customerId, 0l, 0l, startMillis,
-					endMillis);
+			Map<String, Object> txMap = getTransactionMap(customerId, 0l, 0l, startMillis, endMillis, -1l);
+			;
+			List<Transaction> transactions = (List<Transaction>) transactionService.getTransactionDetails(txMap)
+					.get("transactions");
 
 			Map<String, BigDecimal> monthlyFinance = new HashMap<>();
 			for (Transaction tx : transactions) {
@@ -116,10 +123,21 @@ public class FacadeHandler {
 				monthlyFinance.put(type,
 						((BigDecimal) monthlyFinance.getOrDefault(type, new BigDecimal(0))).add(tx.getAmount()));
 			}
-
 			map.put(currMonth + "", monthlyFinance);
 		}
 
 		logger.info("Monthly finance details added successfully for customer ID: {}", customerId);
+	}
+
+	private Map<String, Object> getTransactionMap(Long id, Long accountNumber, Long limit, Long from, Long to,
+			Long offset) {
+		Map<String, Object> txMap = new HashMap<>();
+		txMap.put("id", id);
+		txMap.put("accountNumber", accountNumber);
+		txMap.put("limit", limit);
+		txMap.put("from", from);
+		txMap.put("to", to);
+		txMap.put("offset", offset);
+		return txMap;
 	}
 }

@@ -13,6 +13,8 @@ import javax.servlet.http.HttpServletResponse;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import com.auth0.jwt.exceptions.JWTVerificationException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import service.CacheService;
 import util.Helper;
 import util.JwtUtil;
 
@@ -21,6 +23,7 @@ import util.JwtUtil;
 public class AuthFilter extends HttpFilter implements Filter {
 
 	private final Logger logger = LogManager.getLogger(AuthFilter.class);
+	CacheService cacheService = new CacheService();
 
 	@Override
 	public void doFilter(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
@@ -45,7 +48,18 @@ public class AuthFilter extends HttpFilter implements Filter {
 			logger.info("Authorization token found. Verifying token...");
 
 			try {
+
 				Long userId = JwtUtil.extractUserId(token);
+
+				// Retrieve blacklist map from cache
+				Map<String, String> blacklist = cacheService.get("blacklist", new TypeReference<Map<String, String>>() {
+				});
+				if (blacklist != null && blacklist.containsKey(token)) {
+					logger.warn("Token is blacklisted. Denying access.");
+					response.getWriter().println("Blacklisted token");
+					return;
+				}
+
 				String role = JwtUtil.extractRole(token);
 				String username = JwtUtil.extractUsername(token);
 				Long branchId = JwtUtil.extractBranchId(token);

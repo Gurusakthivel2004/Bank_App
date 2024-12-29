@@ -12,32 +12,11 @@ import org.apache.logging.log4j.Logger;
 public class UserDAO {
     private static final Logger logger = LogManager.getLogger(UserDAO.class);
 
-    private Criteria buildCriteria(Class<? extends MarkedClass> clazz, List<String> columns, List<String> operators, List<Object> values) {
-        Criteria criteria = new Criteria();
-        criteria.setClazz(clazz);
-        criteria.setColumn(columns);
-        criteria.setOperator(operators);
-        criteria.setValue(values);
-        return criteria;
-    }
-
-	private Criteria buildJoinCriteria(Class<? extends MarkedClass> clazz,
-			List<Object> joinTable, List<String> joinColumn, List<String> joinOperator, 
-                                        List<String> joinValue, List<String> columns, List<String> operators, List<Object> values) {
-        Criteria criteria = buildCriteria(clazz, columns, operators, values);
-        criteria.setJoinTable(joinTable);
-        criteria.setJoinColumn(joinColumn);
-        criteria.setJoinOperator(joinOperator);
-        criteria.setJoinValue(joinValue);
-        criteria.setSelectColumn(Arrays.asList("*"));
-        return criteria;
-    }
-
     public User getUser(String selectColumn, Object selectValue) throws CustomException {
         logger.info("Fetching user with column: {}, value: {}", selectColumn, selectValue);
         Helper.checkNullValues(selectColumn);
 
-        Criteria userCriteria = buildCriteria(User.class, Arrays.asList(selectColumn), Arrays.asList("="), Arrays.asList(selectValue));
+        Criteria userCriteria = Helper.buildCriteria(User.class, Arrays.asList(selectColumn), Arrays.asList("="), Arrays.asList(selectValue));
         userCriteria.setSelectColumn(Arrays.asList("*"));
 
         List<User> users = SQLHelper.get(userCriteria);
@@ -67,7 +46,7 @@ public class UserDAO {
         columnCriteria.getFields().add("modifiedAt");
         columnCriteria.getValues().add(System.currentTimeMillis());
 
-        Criteria criteria = buildCriteria(CustomerDetail.class, Arrays.asList("user_id"), Arrays.asList("="), 
+        Criteria criteria = Helper.buildCriteria(CustomerDetail.class, Arrays.asList("user_id"), Arrays.asList("="), 
                                           Arrays.asList(Helper.getThreadLocalValue().get("id")));
         SQLHelper.update(columnCriteria, criteria);
         logger.info("Customer updated successfully.");
@@ -75,7 +54,7 @@ public class UserDAO {
 
     public List<CustomerDetail> getCustomers(Long customerId) throws CustomException {
         logger.info("Fetching customers.");
-        Criteria customerJoinCriteria = buildJoinCriteria(CustomerDetail.class, 
+        Criteria customerJoinCriteria = Helper.buildJoinCriteria(CustomerDetail.class, 
                 Arrays.asList("customer", "user"), 
                 Arrays.asList("customerDetail.user_id", "customer.user_id"), 
                 Arrays.asList("=", "="), 
@@ -95,7 +74,7 @@ public class UserDAO {
         columnCriteria.setFields(Arrays.asList("status"));
         columnCriteria.setValues(Arrays.asList("Inactive"));
 
-        Criteria customerCriteria = buildCriteria(CustomerDetail.class, Arrays.asList("id"), Arrays.asList("="), 
+        Criteria customerCriteria = Helper.buildCriteria(CustomerDetail.class, Arrays.asList("id"), Arrays.asList("="), 
                                                   Arrays.asList(Helper.getThreadLocalValue().get("id")));
         SQLHelper.update(columnCriteria, customerCriteria);
 
@@ -121,7 +100,7 @@ public class UserDAO {
         columnCriteria.getFields().addAll(Arrays.asList("modified_at", "performed_by"));
         columnCriteria.getValues().addAll(Arrays.asList(System.currentTimeMillis(), Helper.getThreadLocalValue().get("id")));
 
-        Criteria criteria = buildCriteria(Staff.class, Arrays.asList("user_id"), Arrays.asList("="), 
+        Criteria criteria = Helper.buildCriteria(Staff.class, Arrays.asList("user_id"), Arrays.asList("="), 
                                           Arrays.asList(Helper.getThreadLocalValue().get("id")));
         SQLHelper.update(columnCriteria, criteria);
         logger.info("Staff updated successfully.");
@@ -133,7 +112,7 @@ public class UserDAO {
         }
 
         logger.info("Fetching staff with id: {}", id);
-        Criteria staffJoinCriteria = buildJoinCriteria(Staff.class, 
+        Criteria staffJoinCriteria = Helper.buildJoinCriteria(Staff.class, 
                 Arrays.asList("user"), 
                 Arrays.asList("staff.user_id"), 
                 Arrays.asList("="), 
@@ -153,7 +132,7 @@ public class UserDAO {
         columnCriteria.setFields(Arrays.asList("status"));
         columnCriteria.setValues(Arrays.asList("Inactive"));
 
-        Criteria staffCriteria = buildCriteria(Staff.class, Arrays.asList("user_id"), Arrays.asList("="), 
+        Criteria staffCriteria = Helper.buildCriteria(Staff.class, Arrays.asList("user_id"), Arrays.asList("="), 
                                                Arrays.asList(Helper.getThreadLocalValue().get("id")));
         SQLHelper.update(columnCriteria, staffCriteria);
         logger.info("Staff removed successfully.");

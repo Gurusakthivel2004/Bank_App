@@ -16,7 +16,6 @@ import org.apache.logging.log4j.Logger;
 import dblayer.connect.DBConnection;
 import dblayer.model.ColumnCriteria;
 import dblayer.model.Criteria;
-import dblayer.model.MarkedClass;
 import util.ColumnYamlUtil.ClassMapping;
 import util.ColumnYamlUtil.FieldMapping;
 
@@ -34,7 +33,7 @@ public class SQLHelper {
 			}
 			ClassMapping classMapping = ColumnYamlUtil.getMapping(clazz.getName());
 			if (classMapping == null) {
-				logger.error("Mapping for class ", clazz, " not found.");
+				logger.error("Mapping for class " + clazz + " not found.");
 				throw new CustomException("Mapping for class " + clazz + " not found.");
 			}
 			Map<String, FieldMapping> fieldMap = classMapping.getFields();
@@ -50,19 +49,23 @@ public class SQLHelper {
 					Object columnValue = resultSet.getObject(columnName);
 					field.set(instance, columnValue);
 				} catch (SQLSyntaxErrorException exception) {
+					logger.warn("SQL Syntax error while setting field: " + field.getName(), exception);
 					continue;
+				} catch (IllegalAccessException e) {
+					logger.error("Error accessing field: " + field.getName(), e);
+					throw new CustomException("Error mapping result set to object: " + e.getMessage());
 				}
 			}
+
 			Class<?> superclass = clazz.getSuperclass();
 			if (superclass != null && !superclass.getName().equals("dblayer.model.MarkedClass")) {
 				classMapping = ColumnYamlUtil.getMapping(superclass.getName());
-				String superClassTableName = classMapping.getTableName();
-				mapResultSetToObject(resultSet, (Class<? extends T>) superclass, instance, superClassTableName);
+				mapResultSetToObject(resultSet, (Class<? extends T>) superclass, instance, tableName);
 			}
+
 			return instance;
 		} catch (Exception e) {
-			System.out.println(e.getMessage());
-			logger.error(e.getMessage());
+			logger.error("Error mapping result set to object: ", e);
 			throw new CustomException("Error mapping result set to object: " + e.getMessage());
 		}
 	}
@@ -72,19 +75,25 @@ public class SQLHelper {
 			throws CustomException, SQLException {
 		Helper.checkNullValues(query);
 		if (connection == null || connection.isClosed()) {
-			throw new CustomException("Database connection is not established");
+			throw new CustomException("Database connection is not established or is closed.");
 		}
-		PreparedStatement preparedStatement = connection.prepareStatement(query, Statement.RETURN_GENERATED_KEYS);
-		if (values != null) {
-			for (int i = 0; i < values.length; i++) {
-				Object value = values[i];
-				preparedStatement.setObject(i + 1, value);
+		try {
+			PreparedStatement preparedStatement = connection.prepareStatement(query, Statement.RETURN_GENERATED_KEYS);
+			if (values != null) {
+				for (int i = 0; i < values.length; i++) {
+					Object value = values[i];
+					preparedStatement.setObject(i + 1, value);
+				}
 			}
+			logger.debug("PreparedStatement: " + preparedStatement.toString());
+			return preparedStatement;
+		} catch (SQLException e) {
+			logger.error("Error preparing statement: " + query, e);
+			throw new CustomException("Error preparing statement: " + e.getMessage());
 		}
-		return preparedStatement;
 	}
 
-	// execute the preparedStatement for the insert queries
+	// Execute the preparedStatement for the insert queries
 	private static Object executeNonSelect(Connection connection, String query, Object[] values)
 			throws CustomException {
 		try (PreparedStatement preparedStatement = getPreparedStatement(connection, query, values)) {
@@ -95,19 +104,22 @@ public class SQLHelper {
 				}
 			}
 			return null;
-		} catch (Exception e) {
-			e.printStackTrace();
+		} catch (SQLException e) {
+			logger.error("Error executing non-select query: " + query, e);
 			try {
-				connection.rollback(); // Roll back if any insert fails
+				if (connection != null && !connection.isClosed()) {
+					connection.rollback(); // Roll back if any insert fails
+					logger.info("Transaction rolled back due to error.");
+				}
 			} catch (SQLException rollbackException) {
-				rollbackException.printStackTrace();
+				logger.error("Rollback failed for query: " + query, rollbackException);
 				throw new CustomException("Rollback failed: " + rollbackException.getMessage());
 			}
-			throw new CustomException(e.getMessage());
+			throw new CustomException("Error executing query: " + e.getMessage(), e);
 		}
 	}
 
-	// execute the preparedStatement for the nonSelect queries.
+	// Execute the preparedStatement for the non-select queries.
 	private static Object executeNonSelect(String query, Object[] values) throws CustomException {
 		try (Connection connection = DBConnection.getConnection();
 				PreparedStatement preparedStatement = getPreparedStatement(connection, query, values)) {
@@ -118,9 +130,12 @@ public class SQLHelper {
 				}
 			}
 			return null;
+		} catch (SQLException e) {
+			logger.error("Error executing non-select query: " + query, e);
+			throw new CustomException("Database error while executing query: " + e.getMessage(), e);
 		} catch (Exception e) {
-			e.printStackTrace();
-			throw new CustomException(e.getMessage());
+			logger.error("Unexpected error executing query: " + query, e);
+			throw new CustomException("Unexpected error executing query: " + e.getMessage(), e);
 		}
 	}
 
@@ -131,19 +146,28 @@ public class SQLHelper {
 	// conditionValues : It contains the values of the placeholder(?) in the query.
 	public static <T> void QueryBuilder(StringBuilder sql, Criteria condition, List<Object> conditionValues)
 			throws CustomException {
+
+		if (condition == null) {
+			throw new CustomException("The condition object cannot be null.");
+		}
+		// Ensure the join column and join value lists are the same size
+		if (condition.getJoinColumn() != null && condition.getJoinColumn().size() != condition.getJoinValue().size()) {
+			throw new CustomException("Join columns and join values must have the same size.");
+		}
+
 		List<String> joinColumn = condition.getJoinColumn(), joinValue = condition.getJoinValue(),
 				joinOperator = condition.getJoinOperator();
 		List<Object> joinTable = condition.getJoinTable();
-		if (condition.getJoinColumn() != null) {
-			int len = condition.getJoinColumn().size();
-			for (int i = 0; i < len; i++) {
-				sql.append(" JOIN " + joinTable.get(i) + " ON ").append(joinColumn.get(i))
-						.append(" " + joinOperator.get(i) + " ").append(joinValue.get(i));
+
+		if (joinColumn != null && !joinColumn.isEmpty()) {
+			for (int i = 0; i < joinColumn.size(); i++) {
+				sql.append(" JOIN ").append(joinTable.get(i)).append(" ON ").append(joinColumn.get(i)).append(" ")
+						.append(joinOperator.get(i)).append(" ").append(joinValue.get(i));
 			}
 		}
 		List<String> columns = condition.getColumn(), operators = condition.getOperator();
 		List<Object> columnvalues = condition.getValue();
-		if (columns.size() != 0) {
+		if (!columns.isEmpty()) {
 			sql.append(" WHERE ");
 		}
 		for (int i = 0; i < columns.size(); i++) {
@@ -152,21 +176,10 @@ public class SQLHelper {
 			sql.append(column).append(" ");
 			switch (operator.toUpperCase()) {
 			case "IN":
-				sql.append("IN (");
-				for (int j = 0; j < condition.getValues().size(); j++) {
-					sql.append("?");
-					conditionValues.add(condition.getValues().get(j));
-					if (j < condition.getValues().size() - 1) {
-						sql.append(", ");
-					}
-				}
-				sql.append(")");
+				Helper.appendInClause(sql, condition, conditionValues);
 				break;
 			case "BETWEEN":
-				if (condition.getValues().size() == 2) {
-					sql.append("BETWEEN ? AND ?");
-					conditionValues.addAll(condition.getValues());
-				}
+				Helper.appendBetweenClause(sql, condition, conditionValues);
 				break;
 			case "LIKE":
 				sql.append("LIKE ?");
@@ -180,26 +193,26 @@ public class SQLHelper {
 			case "<":
 			case ">=":
 			case "<=":
-				if (value.getClass() == String.class && ((String) value).contains("SELECT")) {
-					sql.append(operator).append(" " + value);
-					break;
-				}
-				sql.append(operator).append(" ?");
-				conditionValues.add(value);
+				Helper.appendComparisonOperator(sql, operator, value, conditionValues);
 				break;
 			default:
-				throw new IllegalArgumentException("Unsupported operator: " + condition.getOperator());
+				throw new CustomException("Unsupported operator: " + operator);
 			}
 			if (condition.getLogicalOperator() != null && i < columns.size() - 1) {
 				sql.append(" ").append(condition.getLogicalOperator()).append(" ");
 			}
 		}
 		if (condition.getOrderBy() != null) {
-			sql.append("  ORDER BY ").append(condition.getOrderByField()).append(" " + condition.getOrderBy());
+			sql.append(" ORDER BY ").append(condition.getOrderByField()).append(" ").append(condition.getOrderBy());
 		}
 		if (condition.getLimitValue() != null) {
 			sql.append(" LIMIT ").append(condition.getLimitValue());
 		}
+		if (condition.getOffsetValue() != null && condition.getOffsetValue() >= 0) {
+			sql.append(" OFFSET ?");
+			conditionValues.add(condition.getOffsetValue());
+		}
+		logger.debug("Generated Query: " + sql.toString());
 	}
 
 	// @Update method
@@ -207,45 +220,57 @@ public class SQLHelper {
 	// columnCriteriaList : it contains the column and value to be updated.
 	// conditions : It contains the criteria that has to be included in that query
 	// (WHERE clause).
-	@SuppressWarnings("unchecked")
 	public static <T> void update(ColumnCriteria columnCriteriaList, Criteria criterias) throws CustomException {
-		Helper.checkNullValues(criterias);
-		Helper.checkNullValues(columnCriteriaList);
-		Class<? extends MarkedClass> clazz = (Class<? extends MarkedClass>) criterias.getClazz();
-		ClassMapping classMapping = ColumnYamlUtil.getMapping(criterias.getClazz().getName());
-		Map<String, FieldMapping> fieldMap = classMapping.getFields();
-		String table = classMapping.getTableName();
-		StringBuilder updateSql = new StringBuilder("UPDATE " + table + " SET ");
-		List<Object> values = new ArrayList<>(), setValues = columnCriteriaList.getValues();
-		List<String> setColumns = columnCriteriaList.getFields();
-		if (setColumns.size() == 0) {
-			throw new IllegalArgumentException("No columns to update.");
-		}
-		int len = updateSql.length();
-		for (int i = 0; i < setColumns.size(); i++) {
-			String setColumn = setColumns.get(i);
-			Object setValue = setValues.get(i);
-			FieldMapping fieldMapping = fieldMap.get(setColumn);
-			if (fieldMapping != null) {
-				if (len < updateSql.length()) {
-					updateSql.append(", ");
-					len = updateSql.length();
+		try {
+			Helper.checkNullValues(criterias);
+			Helper.checkNullValues(columnCriteriaList);
+
+			Class<?> clazz = criterias.getClazz();
+			ClassMapping classMapping = ColumnYamlUtil.getMapping(clazz.getName());
+			Helper.validateClassMapping(clazz, classMapping);
+
+			String table = classMapping.getTableName();
+			Helper.validateTableName(table, clazz.getName());
+
+			StringBuilder updateSql = new StringBuilder("UPDATE " + table + " SET ");
+			List<Object> values = new ArrayList<>();
+			List<Object> setValues = columnCriteriaList.getValues();
+			List<String> setColumns = columnCriteriaList.getFields();
+
+			Helper.validateQueryConditions(setColumns, "No columns to update.");
+
+			int len = updateSql.length();
+			for (int i = 0; i < setColumns.size(); i++) {
+				String setColumn = setColumns.get(i);
+				Object setValue = setValues.get(i);
+				FieldMapping fieldMapping = classMapping.getFields().get(setColumn);
+
+				if (fieldMapping != null) {
+					if (len < updateSql.length()) {
+						updateSql.append(", ");
+						len = updateSql.length();
+					}
+					updateSql.append(fieldMapping.getColumnName()).append(" = ?");
+					values.add(setValue);
 				}
-				updateSql.append(fieldMapping.getColumnName()).append(" = ?");
-				values.add(setValue);
 			}
-		}
-		if (values.size() > 0) {
-			if (classMapping.getReferedField() != null) {
-				criterias.setColumn(Arrays.asList(classMapping.getReferedField()));
+
+			if (!values.isEmpty()) {
+				if (classMapping.getReferedField() != null) {
+					criterias.setColumn(Arrays.asList(classMapping.getReferedField()));
+				}
+				QueryBuilder(updateSql, criterias, values);
+				executeNonSelect(updateSql.toString(), values.toArray());
 			}
-			QueryBuilder(updateSql, criterias, values);
-			executeNonSelect(updateSql.toString(), values.toArray());
-		}
-		Class<? extends MarkedClass> superclass = (Class<MarkedClass>) clazz.getSuperclass();
-		if (superclass != null && !superclass.getName().equals("dblayer.model.MarkedClass")) {
-			criterias.setClazz(superclass);
-			update(columnCriteriaList, criterias);
+
+			Class<?> superclass = clazz.getSuperclass();
+			if (superclass != null && !superclass.getName().equals("dblayer.model.MarkedClass")) {
+				criterias.setClazz(superclass);
+				update(columnCriteriaList, criterias);
+			}
+
+		} catch (Exception e) {
+			Helper.handleGeneralException(e, "Error occurred during update");
 		}
 	}
 
@@ -254,13 +279,23 @@ public class SQLHelper {
 	// conditions : It contains the criteria that has to be included in that query
 	// (WHERE clause).
 	public static <T> void delete(Criteria conditions) throws CustomException {
-		Helper.checkNullValues(conditions);
-		ClassMapping classMapping = ColumnYamlUtil.getMapping(conditions.getClazz().getName());
-		String table = classMapping.getTableName();
-		StringBuilder deleteSql = new StringBuilder("DELETE FROM ").append(table);
-		List<Object> values = new ArrayList<>();
-		QueryBuilder(deleteSql, conditions, values);
-		executeNonSelect(deleteSql.toString(), values.toArray());
+		try {
+			Helper.checkNullValues(conditions);
+			Class<?> clazz = conditions.getClazz();
+			ClassMapping classMapping = ColumnYamlUtil.getMapping(clazz.getName());
+			Helper.validateClassMapping(clazz, classMapping);
+
+			String table = classMapping.getTableName();
+			Helper.validateTableName(table, clazz.getName());
+			StringBuilder deleteSql = new StringBuilder("DELETE FROM ").append(table);
+			List<Object> values = new ArrayList<>();
+			QueryBuilder(deleteSql, conditions, values);
+			Helper.validateQueryConditions(values, "No conditions provided for deletion.");
+			executeNonSelect(deleteSql.toString(), values.toArray());
+
+		} catch (Exception e) {
+			Helper.handleGeneralException(e, "Error occurred during deletion");
+		}
 	}
 
 	// @Get method
@@ -271,114 +306,156 @@ public class SQLHelper {
 	// (WHERE clause).
 	@SuppressWarnings("unchecked")
 	public static <T> List<T> get(Criteria condition) throws CustomException {
-		Helper.checkNullValues(condition);
-		ClassMapping classMapping = ColumnYamlUtil.getMapping(condition.getClazz().getName());
-		String table = classMapping.getTableName();
-		List<String> selectColumns = condition.getSelectColumn();
-		StringBuilder selectSql = new StringBuilder("SELECT ");
-		for (int i = 0; i < selectColumns.size(); i++) {
-			selectSql.append(selectColumns.get(i));
-			if (i < selectColumns.size() - 1) {
-				selectSql.append(", ");
+		try {
+			Helper.checkNullValues(condition);
+			Class<?> clazz = condition.getClazz();
+			Helper.checkNull(clazz, "Class type cannot be null.");
+			ClassMapping classMapping = ColumnYamlUtil.getMapping(clazz.getName());
+			Helper.validateClassMapping(clazz, classMapping);
+
+			String table = classMapping.getTableName();
+			Helper.validateTableName(table, clazz.getName());
+
+			List<String> selectColumns = condition.getSelectColumn();
+			Helper.validateQueryConditions(selectColumns, "No columns to select.");
+
+			StringBuilder selectSql = new StringBuilder("SELECT ");
+			if (condition.getOffsetValue() != null && condition.getOffsetValue() == -1) {
+				selectSql.append("COUNT(" + selectColumns.get(0) + ")");
+			} else {
+				for (int i = 0; i < selectColumns.size(); i++) {
+					selectSql.append(selectColumns.get(i));
+					if (i < selectColumns.size() - 1) {
+						selectSql.append(", ");
+					}
+				}
 			}
-		}
-		selectSql.append(" FROM ").append(table);
-		List<Object> conditionValues = new ArrayList<>();
-		if (condition.getColumn() != null) {
-			QueryBuilder(selectSql, condition, conditionValues);
-		}
-		System.out.println(selectSql);
-		System.out.println(conditionValues);
-		List<T> list = new ArrayList<>();
-		try (Connection connection = DBConnection.getConnection();
-				PreparedStatement preparedStatement = getPreparedStatement(connection, selectSql.toString(),
-						conditionValues.toArray());
-				ResultSet resultSet = preparedStatement.executeQuery()) {
-			while (resultSet.next()) {
-				list.add((T) mapResultSetToObject(resultSet, condition.getClazz(), null, table));
+			selectSql.append(" FROM ").append(table);
+
+			List<Object> conditionValues = new ArrayList<>();
+			if (condition.getColumn() != null) {
+				QueryBuilder(selectSql, condition, conditionValues);
 			}
-			return list;
-		} catch (SQLException e) {
-			throw new CustomException("Error fetching data..");
+			List<T> list = new ArrayList<>();
+			try (Connection connection = DBConnection.getConnection();
+					PreparedStatement preparedStatement = getPreparedStatement(connection, selectSql.toString(),
+							conditionValues.toArray());
+					ResultSet resultSet = preparedStatement.executeQuery()) {
+				if (condition.getOffsetValue() != null && condition.getOffsetValue() == -1) {
+					Object count = resultSet.getObject("COUNT(*)");
+					List<Long> counts = new ArrayList<Long>();
+					counts.add((Long) count);
+					return (List<T>) counts;
+				}
+				while (resultSet.next()) {
+					list.add((T) mapResultSetToObject(resultSet, clazz, null, table));
+				}
+				return list;
+			} catch (SQLException e) {
+				Helper.handleSQLException(e);
+			}
+		} catch (Exception e) {
+			Helper.handleGeneralException(e, "Error occurred while fetching data.");
 		}
+		return null;
 	}
 
 	// @Insert method
 	// table : name of the table.
 	// pojo : pojo class
 	public static Object insert(Object pojo) throws CustomException {
-		Helper.checkNullValues(pojo);
+	    Helper.checkNullValues(pojo);
+	    try (Connection connection = DBConnection.getConnection()) {
+	        if (connection == null || connection.isClosed()) {
+	            throw new CustomException("Database connection is not established");
+	        }
+	        connection.setAutoCommit(false);
+	        Class<?> clazz = pojo.getClass();
+	        List<Class<?>> classList = getClassHierarchy(clazz);
+	        Object generatedValue = null;
+	        for (int k = classList.size() - 1; k >= 0; k--) {
+	            clazz = classList.get(k);
+	            ClassMapping classMapping = ColumnYamlUtil.getMapping(clazz.getName());
+	            Map<String, FieldMapping> fieldMap = classMapping.getFields();
+	            String tableName = classMapping.getTableName();
 
-		// Get the connection and begin a transaction
-		try (Connection connection = DBConnection.getConnection()) {
-			if (connection == null || connection.isClosed()) {
-				throw new CustomException("Database connection is not established");
-			}
-			connection.setAutoCommit(false); // Start transaction
+	            Field[] fields = clazz.getDeclaredFields();
+	            StringBuilder insertSql = buildInsertSQL(fields, classMapping, tableName, pojo, fieldMap);
+	            List<Object> values = collectFieldValues(fields, pojo, classMapping, fieldMap, generatedValue);
 
-			Class<?> clazz = pojo.getClass();
-			List<Class<?>> classList = new ArrayList<>();
-			while (!clazz.getName().equals("dblayer.model.MarkedClass")) {
-				classList.add(clazz);
-				clazz = clazz.getSuperclass();
-			}
-
-			Object generatedValue = null;
-			for (int k = classList.size() - 1; k >= 0; k--) {
-				clazz = classList.get(k);
-				ClassMapping classMapping = ColumnYamlUtil.getMapping(clazz.getName());
-				Map<String, FieldMapping> fieldMap = classMapping.getFields();
-				String tableName = classMapping.getTableName();
-
-				Field[] fields = clazz.getDeclaredFields();
-				int length = fields.length, ctr = 0;
-				StringBuilder insertSql = new StringBuilder("INSERT INTO ").append(tableName).append(" (");
-				List<Object> values = new ArrayList<>();
-
-				for (int i = 0; i < length; i++) {
-					Field field = fields[i];
-					if (classMapping.getAutoIncrementField() != null
-							&& classMapping.getAutoIncrementField().equals(field.getName())) {
-						continue;
-					}
-					field.setAccessible(true);
-					try {
-						FieldMapping fieldMapping = fieldMap.get(field.getName());
-						if (fieldMapping == null) {
-							continue;
-						}
-						insertSql.append(fieldMapping.getColumnName()).append(", ");
-						if (generatedValue != null && classMapping.getReferenceField() != null
-								&& classMapping.getReferenceField().equals(field.getName())) {
-							values.add(generatedValue);
-						} else {
-							values.add(field.get(pojo));
-						}
-					} catch (IllegalAccessException e) {
-						throw new CustomException("Error accessing field value: " + e.getMessage());
-					}
-					ctr++;
-				}
-
-				insertSql.deleteCharAt(insertSql.length() - 2);
-				insertSql.append(") VALUES (");
-				for (int i = 0; i < ctr; i++) {
-					insertSql.append("?");
-					if (i < ctr - 1) {
-						insertSql.append(", ");
-					}
-				}
-				insertSql.append(");");
-				Object incrementValue = executeNonSelect(connection, insertSql.toString(), values.toArray());
-				if (k == classList.size() - 1) {
-					generatedValue = incrementValue;
-				}
-			}
-			connection.commit();
-			return generatedValue;
-		} catch (Exception e) {
-			e.printStackTrace();
-			throw new CustomException("Transaction failed and rolled back: ");
-		}
+	            Object incrementValue = executeNonSelect(connection, insertSql.toString(), values.toArray());
+	            if (k == classList.size() - 1) {
+	                generatedValue = incrementValue;
+	            }
+	        }
+	        connection.commit();
+	        return generatedValue;
+	    } catch (Exception e) {
+	        logger.error("An error occurred while executing insert query", e);
+	        throw new CustomException(e.getMessage());
+	    }
 	}
+
+	private static List<Class<?>> getClassHierarchy(Class<?> clazz) {
+	    List<Class<?>> classList = new ArrayList<>();
+	    while (!clazz.getName().equals("dblayer.model.MarkedClass")) {
+	        classList.add(clazz);
+	        clazz = clazz.getSuperclass();
+	    }
+	    return classList;
+	}
+
+	private static StringBuilder buildInsertSQL(Field[] fields, ClassMapping classMapping, String tableName,
+	                                           Object pojo, Map<String, FieldMapping> fieldMap) throws CustomException {
+	    StringBuilder insertSql = new StringBuilder("INSERT INTO ").append(tableName).append(" (");
+	    int ctr = 0;
+	    for (Field field : fields) {
+	        if (isAutoIncrementField(classMapping, field)) continue;
+	        field.setAccessible(true);
+	        FieldMapping fieldMapping = fieldMap.get(field.getName());
+			if (fieldMapping == null) continue;
+
+			insertSql.append(fieldMapping.getColumnName()).append(", ");
+			ctr++;
+	    }
+	    if (ctr == 0) throw new CustomException("No valid fields found for insertion");
+	    insertSql.deleteCharAt(insertSql.length() - 2);
+	    insertSql.append(") VALUES (");
+	    for (int i = 0; i < ctr; i++) {
+	        insertSql.append("?");
+	        if (i < ctr - 1) {
+	            insertSql.append(", ");
+	        }
+	    }
+	    insertSql.append(");");
+	    return insertSql;
+	}
+
+	private static List<Object> collectFieldValues(Field[] fields, Object pojo, ClassMapping classMapping,
+	                                               Map<String, FieldMapping> fieldMap, Object generatedValue) throws CustomException {
+	    List<Object> values = new ArrayList<>();
+	    for (Field field : fields) {
+	        if (isAutoIncrementField(classMapping, field)) continue;
+	        field.setAccessible(true);
+	        try {
+	            FieldMapping fieldMapping = fieldMap.get(field.getName());
+	            if (fieldMapping == null) continue;
+	            if (generatedValue != null && classMapping.getReferenceField() != null
+	                    && classMapping.getReferenceField().equals(field.getName())) {
+	                values.add(generatedValue);
+	            } else {
+	                values.add(field.get(pojo));
+	            }
+	        } catch (IllegalAccessException e) {
+	            throw new CustomException("Error accessing field value: " + e.getMessage());
+	        }
+	    }
+	    return values;
+	}
+
+	private static boolean isAutoIncrementField(ClassMapping classMapping, Field field) {
+	    return classMapping.getAutoIncrementField() != null
+	            && classMapping.getAutoIncrementField().equals(field.getName());
+	}
+
 }

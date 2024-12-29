@@ -24,7 +24,7 @@ window.onload = async _ => {
 		console.log(result)
 	} catch (error) {
 		console.error('Error during fetch or processing:' + error);
-		window.location.href = 'index.html';
+		window.location = "index.html";
 	}
 };
 

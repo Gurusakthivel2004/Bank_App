@@ -13,9 +13,11 @@ public class UserDashboardController {
 	public void handleGet(HttpServletRequest request, HttpServletResponse response) throws IOException {
 		PrintWriter out = response.getWriter();
 		response.setContentType("application/json");
+
 		try {
 			FacadeHandler facadeHandler = new FacadeHandler();
 			Map<String, Object> data = facadeHandler.dashBoardDetails();
+			System.out.println(data);
 			ObjectMapper mapper = new ObjectMapper();
 			String jsonResponse = mapper.writeValueAsString(data);
 			response.setStatus(HttpServletResponse.SC_OK);

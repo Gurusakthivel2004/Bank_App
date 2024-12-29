@@ -5,13 +5,16 @@ import java.io.IOException;
 import java.lang.reflect.Field;
 import java.math.BigDecimal;
 import java.sql.Date;
+import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.StringJoiner;
 import java.util.regex.Pattern;
@@ -24,8 +27,13 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.JsonPrimitive;
+
+import dblayer.model.ColumnCriteria;
 import dblayer.model.Criteria;
+import dblayer.model.MarkedClass;
+import dblayer.model.Transaction;
 import service.BranchService;
+import util.ColumnYamlUtil.ClassMapping;
 
 public class Helper {
 
@@ -57,6 +65,43 @@ public class Helper {
 		if (inputObject == null) {
 			throw new CustomException("Error: Null value provided.");
 		}
+	}
+
+	public static void checkNull(Object obj, String message) throws CustomException {
+		if (obj == null) {
+			throw new CustomException(message);
+		}
+	}
+
+	public static void checkEmptyString(String str, String message) throws CustomException {
+		if (str == null || str.isEmpty()) {
+			throw new CustomException(message);
+		}
+	}
+
+	public static void validateClassMapping(Class<?> clazz, ClassMapping classMapping) throws CustomException {
+		checkNull(clazz, "Class type cannot be null.");
+		checkNull(classMapping, "Class mapping not found for class: " + clazz.getName());
+	}
+
+	public static void validateTableName(String table, String clazzName) throws CustomException {
+		checkEmptyString(table, "Table name is not defined for class: " + clazzName);
+	}
+
+	public static void validateQueryConditions(List<?> conditions, String message) throws CustomException {
+		if (conditions == null || conditions.isEmpty()) {
+			throw new CustomException(message);
+		}
+	}
+
+	public static void handleSQLException(SQLException e) throws CustomException {
+		logger.error("SQL error: " + e.getMessage(), e);
+		throw new CustomException("SQL error occurred.");
+	}
+
+	public static void handleGeneralException(Exception e, String message) throws CustomException {
+		logger.error(message + ": " + e.getMessage(), e);
+		throw new CustomException(message);
 	}
 
 	public static void checkNumber(String number) throws CustomException {
@@ -102,6 +147,14 @@ public class Helper {
 			criteria.getColumn().add(column);
 			criteria.getOperator().add(operator);
 			criteria.getValue().add(value);
+		}
+	}
+
+	public static void addConditionIfPresent(Criteria criteria, Map<String, Object> map, String mapKey, String column,
+			String operator, Long defaultValue) {
+		Long value = (Long) map.getOrDefault(mapKey, defaultValue);
+		if (value > defaultValue) {
+			Helper.addCondition(criteria, true, column, operator, value);
 		}
 	}
 
@@ -239,6 +292,139 @@ public class Helper {
 			}
 		}
 		return null;
+	}
+
+	public static Map<String, Object> getParametersAsMap(HttpServletRequest request) {
+		Map<String, Object> parameterMap = new HashMap<>();
+
+		request.getParameterMap().forEach((key, value) -> {
+			String paramValue = value != null && value.length > 0 ? value[0] : null;
+
+			if (paramValue != null) {
+				Object processedValue = processDynamicKey(key, paramValue);
+				parameterMap.put(key, processedValue);
+			}
+		});
+
+		return parameterMap;
+	}
+
+	private static Object processDynamicKey(String key, String paramValue) {
+		List<String> Longkeys = new ArrayList<>(Arrays.asList("id", "limit", "accountNumber", "offset"));
+		if (key.toLowerCase().contains("id") || Longkeys.contains(key)) {
+			return Helper.parseLongOrDefault(paramValue, 0L);
+		}
+		if (key.equalsIgnoreCase("from") || key.equalsIgnoreCase("to")) {
+			return Helper.parseDateToMillisOrDefault(paramValue, 0L);
+		}
+		return paramValue;
+	}
+
+	public static void appendInClause(StringBuilder sql, Criteria condition, List<Object> conditionValues)
+			throws CustomException {
+		List<Object> inValues = condition.getValues();
+		if (inValues == null || inValues.isEmpty()) {
+			throw new CustomException("IN clause requires at least one value.");
+		}
+
+		sql.append("IN (");
+		for (int j = 0; j < inValues.size(); j++) {
+			sql.append("?");
+			conditionValues.add(inValues.get(j));
+			if (j < inValues.size() - 1) {
+				sql.append(", ");
+			}
+		}
+		sql.append(")");
+	}
+
+	// Helper method for BETWEEN operator
+	public static void appendBetweenClause(StringBuilder sql, Criteria condition, List<Object> conditionValues)
+			throws CustomException {
+		List<Object> betweenValues = condition.getValues();
+		if (betweenValues == null || betweenValues.size() != 2) {
+			throw new CustomException("BETWEEN operator requires exactly two values.");
+		}
+
+		sql.append("BETWEEN ? AND ?");
+		conditionValues.addAll(betweenValues);
+	}
+
+	// Helper method for comparison operators (=, <>, >, <, >=, <=)
+	public static void appendComparisonOperator(StringBuilder sql, String operator, Object value,
+			List<Object> conditionValues) {
+		if (value.getClass() == String.class && ((String) value).contains("SELECT")) {
+			sql.append(operator).append(" ").append(value);
+		} else {
+			sql.append(operator).append(" ?");
+			conditionValues.add(value);
+		}
+	}
+
+	public static Criteria createCriteria(Class<? extends MarkedClass> clazz, String column, String operator,
+			Object value) {
+		Criteria criteria = new Criteria();
+		criteria.setClazz(clazz);
+		if (column != null && operator != null && value != null) {
+			criteria.getColumn().add(column);
+			criteria.getOperator().add(operator);
+			criteria.getValue().add(value);
+		}
+		return criteria;
+	}
+
+	public static ColumnCriteria createColumnCriteria(List<String> fields, List<Object> values) {
+		ColumnCriteria columnCriteria = new ColumnCriteria();
+		columnCriteria.setFields(fields);
+		columnCriteria.setValues(values);
+		return columnCriteria;
+	}
+
+	public static <T> void validateModel(T instance) throws CustomException {
+		if (instance == null) {
+			throw new CustomException("instance cannot be null.");
+		}
+		StringBuilder errorMessages = new StringBuilder();
+		for (Field field : Transaction.class.getDeclaredFields()) {
+			field.setAccessible(true);
+			if (field.getName().equals("id")) {
+				continue;
+			}
+			try {
+				Object value = field.get(instance);
+				if (value == null || (value instanceof String && ((String) value).trim().isEmpty())
+						|| (value instanceof BigDecimal && ((BigDecimal) value).compareTo(BigDecimal.ZERO) <= 0)) {
+					errorMessages.append("Invalid value for field: ").append(field.getName()).append("\n");
+				}
+			} catch (IllegalAccessException e) {
+				throw new CustomException("Error accessing field: " + field.getName(), e);
+			}
+		}
+		if (errorMessages.length() > 0) {
+			throw new CustomException("Validation failed:\n" + errorMessages.toString());
+		}
+	}
+
+	public static Criteria buildCriteria(Class<? extends MarkedClass> clazz, List<String> columns, List<String> operators,
+			List<Object> values) {
+		Criteria criteria = new Criteria();
+		criteria.setClazz(clazz);
+		criteria.setColumn(columns);
+		criteria.setOperator(operators);
+		criteria.setValue(values);
+		return criteria;
+	}
+
+	public static Criteria buildJoinCriteria(Class<? extends MarkedClass> clazz, List<Object> joinTable,
+			List<String> joinColumn, List<String> joinOperator, List<String> joinValue, List<String> columns,
+			List<String> operators, List<Object> values) {
+		Criteria criteria = buildCriteria(clazz, columns, operators, values);
+		criteria.setJoinTable(joinTable);
+		criteria.setJoinColumn(joinColumn);
+		criteria.setJoinOperator(joinOperator);
+		criteria.setJoinValue(joinValue);
+		criteria.setSelectColumn(Arrays.asList("*"));
+		return criteria;
 	}
 
 }

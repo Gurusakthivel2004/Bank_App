@@ -143,7 +143,7 @@ document.addEventListener("DOMContentLoaded", async _ => {
 			currentAccountIndex = selectedValue;
 		});
 	} catch (error) {
-		window.history.back();
+		window.location = "index.html";
 	}
 
 });

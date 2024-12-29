@@ -10,12 +10,14 @@ import javax.servlet.http.HttpServletResponse;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import service.CacheService;
 import service.UserService;
 import util.CustomException;
-import util.JwtService;
 import util.JwtUtil;
 
 public class LoginController {
+
+	private final CacheService cacheService = new CacheService();
 
 	public void handlePost(HttpServletRequest request, HttpServletResponse response) throws IOException {
 		response.setContentType("application/json");
@@ -41,7 +43,6 @@ public class LoginController {
 			}
 
 			String jwtToken = JwtUtil.generateToken(jwtClaims);
-
 			Map<String, Object> responseData = new HashMap<>();
 			responseData.put("token", jwtToken);
 			responseData.putAll(userDetails); // Adds all user details from the map
@@ -68,22 +69,16 @@ public class LoginController {
 
 		if (authHeader != null && authHeader.startsWith("Bearer ")) {
 			String token = authHeader.substring(7);
-
-			try {
-				JwtService.invalidateToken(token);
-
-				response.setStatus(HttpServletResponse.SC_OK);
-				responseJson.addProperty("message", "Logout successful");
-			} catch (CustomException e) {
-				// Handle invalid token case
-				response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-				responseJson.addProperty("message", e.getMessage());
-			}
+			// Store blacklisted token in cache
+			Map<String, String> blacklistEntry = new HashMap<>();
+			blacklistEntry.put(token, "blacklisted");
+			cacheService.saveWithTTL("blacklist", blacklistEntry, 3600);
+			response.setStatus(HttpServletResponse.SC_OK);
+			responseJson.addProperty("message", "Logout successful");
 		} else {
 			response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
 			responseJson.addProperty("message", "Missing or invalid Authorization header");
 		}
-
 		out.print(responseJson.toString());
 		out.close();
 	}

@@ -62,8 +62,9 @@
 					<li><a class="py-2 px-4"
 						onclick="toggleModal('passwordChangeModal')"><img
 							src="./images/settings.svg" width="30px" height="30px" alt="" /></a></li>
-					<li id="create-user-item"><a class="py-2 px-4" href="create-user.html"><img
-							src="./images/create-user.svg" width="30px" height="30px" alt="" /></a></li>
+					<li id="create-user-item"><a class="py-2 px-4"
+						href="create-user.html"><img src="./images/create-user.svg"
+							width="30px" height="30px" alt="" /></a></li>
 					<li><a class="py-2 px-4" onclick="logout()"><img
 							src="./images/logout.svg" width="30px" height="30px" alt="" /></a></li>
 				</ul>
@@ -184,21 +185,33 @@
 						<div class="transaction-filter d-flex flex-wrap">
 							<div id="idfilter" style="display: flex;"
 								class="id-dropdown align-items-baseline me-3 mb-3">
-								<label class="fw-bold fs-5 me-2 text-dark">ID:</label> <input
-									class="form-control" type="text" id="IdsearchInput"
-									placeholder="Enter ID" aria-expanded="false">
+								<label class="fw-bold  me-2 text-dark">User Id:</label> <input
+									class="form-control" type="text" style="width: 170px"
+									id="IdsearchInput" placeholder="UserId" aria-expanded="false">
 							</div>
 							<div class="id-dropdown d-flex align-items-baseline me-3 mb-3">
-								<label class="fw-bold fs-5 me-2 text-dark">Account:</label> <input
-									class="form-control" type="text" id="AccountsearchInput"
-									placeholder="Enter Account" aria-expanded="false">
+								<label class="fw-bold me-2 text-dark">Account:</label> <input
+									class="form-control" style="width: 170px;" type="text"
+									id="AccountsearchInput" placeholder="Account number"
+									aria-expanded="false">
 							</div>
 							<div class="id-dropdown d-flex align-items-baseline me-3 mb-3">
-								<label class="fw-bold fs-5 me-2 text-dark">From:</label> <input
+								<label class="fw-bold me-2 text-dark">Type:</label> <select
+									class="form-control" id="typesearchInput" style="width: 170px;"
+									aria-expanded="false">
+									<option value="" selected>Select Type</option>
+									<option value="Credit">Credit</option>
+									<option value="Debit">Debit</option>
+									<option value="Deposit">Deposit</option>
+									<option value="Withdraw">Withdraw</option>
+								</select>
+							</div>
+							<div class="id-dropdown d-flex align-items-baseline me-3 mb-3">
+								<label class="fw-bold  me-2 text-dark">From:</label> <input
 									class="form-control" type="date" id="FromDatesearchInput">
 							</div>
 							<div class="id-dropdown d-flex align-items-baseline mb-3">
-								<label class="fw-bold fs-5 me-2 text-dark">To:</label> <input
+								<label class="fw-bold me-2 text-dark">To:</label> <input
 									class="form-control" type="date" id="ToDatesearchInput">
 							</div>
 						</div>
@@ -225,17 +238,21 @@
 
 					</div>
 
-					<div class="pagination-buttons d-flex w-100 mt-5"
-						style="margin-left: 38%; position: fixed; top: 85%;">
-						<button
-							style="background-color: #2b0444; color: white; font-weight: 500;"
-							class="py-2 px-3 rounded" id="prevButton" onclick="prevPage()"
-							disabled>Previous</button>
-						<div id="pageNumbers" class="d-flex align-items-center"></div>
-						<button
-							style="background-color: #2b0444; color: white; font-weight: 500;"
-							class="py-2 px-3 rounded" id="nextButton" onclick="nextPage()">Next</button>
+
+					<div id="buttons" class="pagination-buttons w-100 mt-5"
+						style="margin-left: 36%; position: fixed; top: 85%; display: flex; gap: 1rem;">
+
+						<button id="prevButton" class="btn btn-dark"
+							style="background-color: #2b0444; font-weight: 500; padding: 10px 20px; border-radius: 5px;"
+							onclick="prevPage()" disabled>Back</button>
+						<div id="pageNumbers" class="d-flex align-items-center"
+							style="color: black; font-weight: 700; font-size: 17px;">
+						</div>
+						<button id="nextButton" class="btn btn-dark"
+							style="background-color: #2b0444; font-weight: 500; padding: 10px 20px; border-radius: 5px;"
+							onclick="nextPage()">Next</button>
 					</div>
+
 
 				</div>
 			</div>

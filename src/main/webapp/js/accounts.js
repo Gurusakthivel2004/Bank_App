@@ -1,10 +1,13 @@
 let filterCustomer = '';
 let filterAccount = '';
 let filterBranch = '';
+let filterStatus = '';
+let filterType = '';
 let lastAccount = '';
 const accountsPerPage = 8;
 let cachedAccounts = [];
 let initialBranchId;
+let initialStatus;
 let currentPageIndex = 0;
 let lastPage = 1000000;
 let isrecursed = false;
@@ -19,6 +22,7 @@ async function fetchAccounts() {
 			if (filterAccount) url += `&accountNumber=${filterAccount}`;
 			if (filterBranch) url += `&branchId=${filterBranch}`;
 			if (lastAccount) url += `&lastAccount=${lastAccount}`;
+			console.log(url);
 			const response = await fetch(url, {
 				method: 'GET',
 				headers: {
@@ -74,8 +78,8 @@ function updatePagination() {
 		const pageButton = document.createElement("button");
 		pageButton.innerText = (i + 1).toString();
 		pageButton.style = i === currentPageIndex
-			? "background-color: #4677bd; color: white; font-weight: bold; margin: 0 5px;"
-			: "background-color: #2b0444; color: white; font-weight: 500; margin: 0 5px;";
+			? "background-color: #4677bd; color: white; font-weight: bold;border: 0"
+			: "background-color: #2b0444; color: white; font-weight: 500;border: 0";
 		pageButton.className = "py-2 px-3 rounded";
 		pageButton.onclick = () => goToPage(i);
 		pageNumbersContainer.appendChild(pageButton);
@@ -102,26 +106,46 @@ function prevPage() {
 	}
 }
 
+let previousBranch, previousId, previousAccount, branchIdInput;
+
 function applyFilters() {
 	const customerIdInput = document.getElementById("customerIdsearchInput").value.trim();
 	const accountInput = document.getElementById("accountsearchInput").value.trim();
+	const statusInput = document.getElementById("accountStatussearchInput").value.trim();
+	const typeInput = document.getElementById("accountTypesearchInput").value.trim();
 	if (role == "Manager") {
-		const branchIdInput = document.getElementById("branchIdsearchInput").value.trim();
+		branchIdInput = document.getElementById("branchIdsearchInput").value.trim();
 		filterBranch = branchIdInput;
 	}
 	lastAccount = ''
 	filterAccount = accountInput;
-	cachedAccounts = [];
-	currentPageIndex = 0;
+	filterStatus = statusInput;
+	filterType = typeInput;
 	filterCustomer = customerIdInput;
+	console.log(filterAccount.length);
+
 	if (filterAccount.length == 0 && filterBranch.length == 0) {
-		filterCustomer = customerIdInput ? customerIdInput : '-1';
+		filterCustomer = customerIdInput ? customerIdInput : '';
+		if (previousAccount != accountInput || previousBranch != branchIdInput || previousId != customerIdInput) {
+			cachedAccounts = [];
+			currentPageIndex = 0;
+			lastPage = 1000000;
+			isrecursed = false;
+			fetchAccounts();
+		} else {
+			console.log('here');
+			renderAccounts(cachedAccounts[currentPageIndex]);
+		}
+	} else if(filterAccount.length >= 4 || filterBranch.length > 0) {
 		cachedAccounts = [];
 		currentPageIndex = 0;
 		lastPage = 1000000;
 		isrecursed = false;
+		fetchAccounts();
 	}
-	fetchAccounts();
+	previousAccount = accountInput;
+	previousBranch = branchIdInput;
+	previousId = customerIdInput;
 }
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -139,6 +163,8 @@ document.addEventListener("DOMContentLoaded", () => {
 	document.getElementById("customerIdsearchInput").addEventListener("input", applyFilters);
 	document.getElementById("branchIdsearchInput").addEventListener("input", applyFilters);
 	document.getElementById("accountsearchInput").addEventListener("input", applyFilters);
+	document.getElementById("accountStatussearchInput").addEventListener("input", applyFilters);
+	document.getElementById("accountTypesearchInput").addEventListener("input", applyFilters);
 });
 
 const getDate = (millis, time) => {
@@ -177,25 +203,37 @@ const accountClick = async account => {
 	document.getElementById('accountfullname').innerText = userResult.fullname;
 	document.getElementById('accountphone').innerText = userResult.phone;
 	document.getElementById('accountNumber2').innerText = account.accountNumber;
-	document.getElementById('accountUserStatus').innerText = userResult.status;
+	document.getElementById('accountStatus').value = account.status
 	toggleModal('accountDetailsModal');
+	initialStatus = accountStatusInput.value;
 }
 
 function renderAccounts(accounts) {
 	const accountHistory = document.querySelector(".account-data");
 	accountHistory.innerHTML = '';
-	if (accounts.length == 0) {
+
+	const filteredAccounts = accounts.filter(account => {
+		const matchesStatus = filterStatus ? account.status === filterStatus : true;
+		const matchesType = filterType ? account.accountType === filterType : true;
+		return matchesStatus && matchesType;
+	});
+
+	if (filteredAccounts.length === 0) {
+
+		document.getElementById('buttons').style.display = "none";
 		const accountDiv = document.createElement("div");
-		accountDiv.className = "account-item d-flex align-items-center mb-1";
-		accountDiv.style = "background-color: #ffffff; padding: 10px; border-bottom: 1px solid #ddd; border-radius: 10px;";
+		accountDiv.className = "account-item d-flex row mb-1";
+		accountDiv.style = "background-color: #ffffff; height: 650px; padding: 10px; border-bottom: 1px solid #ddd; border-radius: 10px;";
 		accountDiv.innerHTML = `
-			           <p class="text-center py-5" style="width: 100%;font-family:'Roboto'; font-size: 23px; font-weight: bold; color: #007BFF; margin-left: 40%;">No accounts found!</p>
-			        `;
+						<img height="500px" style="margin:auto;width: 50%" src="./images/notfound.avif" alt="" />
+			          `;
 		accountHistory.appendChild(accountDiv);
 		return;
 	}
-	accounts.forEach(account => {
+
+	filteredAccounts.forEach(account => {
 		if (account.accountType !== "Operational") {
+			document.getElementById('buttons').style.display = "flex";
 			const accountDiv = document.createElement("div");
 			accountDiv.onclick = () => accountClick(account);
 			accountDiv.className = "account-item d-flex align-items-center my-2";
@@ -212,7 +250,7 @@ function renderAccounts(accounts) {
 
 					<p class="acctype" style="width: 15%; color: #2b0444;">${account.accountType}</p>
 					<p class="accstatus"
-					style="width: 15%; font-weight: bold; color: ${account.accountType === 'Active' ? 'blue' : 'red'};">${account.status}</p>
+					style="width: 15%; font-weight: bold; color: ${account.status === 'Active' ? 'blue' : 'red'};">${account.status}</p>
 				<p class="accountcreatedat" style="width: 15%; color: #2b0444;">${getDate(account.createdAt, false)}</p>
 			</div>`;
 
@@ -221,6 +259,90 @@ function renderAccounts(accounts) {
 	});
 }
 
+
+const accountStatusInput = document.getElementById("accountStatus");
+const dropdownStatus = document.getElementById("dropdownStatus");
+const options = ["Active", "Inactive", "Suspended"];
+
+function populateDropdown() {
+	initialStatus = accountStatusInput.value;
+	dropdownStatus.innerHTML = "";
+	options.forEach(option => {
+		const optionElement = document.createElement("div");
+		optionElement.textContent = option;
+		optionElement.style = "padding: 5px; cursor: pointer; color: #2c3e50;";
+		optionElement.onclick = () => selectOption(option);
+		optionElement.onmouseover = () => {
+			optionElement.style.backgroundColor = "#f0f0f0";
+		};
+		optionElement.onmouseout = () => {
+			optionElement.style.backgroundColor = "white";
+		};
+		dropdownStatus.appendChild(optionElement);
+	});
+}
+
+function toggleDropdown() {
+	if (accountStatusInput.disabled) return;
+	dropdownStatus.style.display = dropdownStatus.style.display === "none" ? "block" : "none";
+}
+
+function selectOption(option) {
+	accountStatusInput.value = option;
+	dropdownStatus.style.display = "none";
+}
+
+function updateStatus() {
+	accountStatusInput.disabled = false;
+	document.getElementById("statusEdit").style.display = "none";
+	document.getElementById("statusSave").style.display = "block";
+	toggleDropdown();
+}
+
+async function saveStatus() {
+	accountStatusInput.disabled = true;
+	document.getElementById("statusEdit").style.display = "block";
+	document.getElementById("statusSave").style.display = "none";
+	dropdownStatus.style.display = "none";
+	const accountUpdateData = {
+		accountNumber: document.getElementById('accountNumber2').innerText,
+		status: accountStatusInput.value
+	};
+	if (accountStatusInput && accountStatusInput.value !== initialStatus) {
+		console.log('entered');
+		updateAccount(accountUpdateData);
+	}
+}
+
+const updateAccount = async accountUpdateData => {
+	const response = await fetch('http://localhost:8080/Bank_Application/api/Account', {
+		method: 'PUT',
+		headers: {
+			'Content-Type': 'application/json',
+			'Authorization': `Bearer ${token}`
+		},
+		body: JSON.stringify(accountUpdateData)
+	});
+	const result = await response.json();
+	const successPop = document.getElementById('successPopup');
+	if (result.message == 'success') {
+		successPop.textContent = "Account updated!";
+		successPop.style.backgroundColor = '#4CAF50';
+		successPop.style.color = 'white';
+		successPop.style.display = 'block';
+	} else {
+		successPop.textContent = result.message;
+		successPop.style.backgroundColor = 'red';
+		successPop.style.color = 'white';
+		successPop.style.display = 'block';
+	}
+	setTimeout(() => {
+		successPop.style.display = 'none';
+		location.reload();
+	}, 3000);
+}
+
+populateDropdown();
 let validBranchIds = [];
 const dropdown = document.getElementById('dropdown');
 
@@ -232,7 +354,7 @@ function fetchDropdownOptions(query) {
 		return;
 	}
 
-	fetch(`http://localhost:8080/Bank_Application/api/Branch?branchId=${query}`, {
+	fetch(`http://localhost:8080/Bank_Application/api/Branch?branchId=${query}&notExact=true`, {
 		method: 'GET',
 		headers: {
 			'Content-Type': 'application/json',
@@ -283,10 +405,6 @@ function fetchDropdownOptions(query) {
 async function saveBranch() {
 	const input = document.getElementById('accountbranchId');
 	const inputValue = parseInt(input.value);
-	console.log(validBranchIds)
-	console.log(inputValue)
-	console.log(dropdown.style.display)
-	console.log(validBranchIds.includes(inputValue))
 	if (inputValue && inputValue === initialBranchId) {
 		dropdown.innerHTML = '<div class="dropdown-option" style="padding: 10px; color: grey;">No changes made</div>';
 		dropdown.style.display = 'block';
@@ -303,34 +421,7 @@ async function saveBranch() {
 		accountNumber: document.getElementById('accountNumber2').innerText,
 		branchId: input.value
 	};
-	console.log(accountUpdateData);
-
-	const response = await fetch('http://localhost:8080/Bank_Application/api/Account', {
-		method: 'PUT',
-		headers: {
-			'Content-Type': 'application/json',
-			'Authorization': `Bearer ${token}`
-		},
-		body: JSON.stringify(accountUpdateData)
-	});
-	const result = await response.json();
-	console.log(result);
-	const successPop = document.getElementById('successPopup');
-	if (result.message == 'success') {
-		successPop.textContent = "Account updated!";
-		successPop.style.backgroundColor = '#4CAF50';
-		successPop.style.color = 'white';
-		successPop.style.display = 'block';
-	} else {
-		successPop.textContent = result.message;
-		successPop.style.backgroundColor = 'red';
-		successPop.style.color = 'white';
-		successPop.style.display = 'block';
-	}
-	setTimeout(() => {
-		successPop.style.display = 'none';
-		location.reload();
-	}, 3000);
+	updateAccount(accountUpdateData);
 }
 
 document.addEventListener('click', (event) => {

@@ -62,7 +62,7 @@ document.addEventListener("DOMContentLoaded", async _ => {
 
 	} catch (error) {
 		console.error('Error during fetch or processing:', error);
-		window.history.back();
+		window.location = "index.html";
 	}
 });
 

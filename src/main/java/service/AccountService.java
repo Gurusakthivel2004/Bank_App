@@ -1,20 +1,17 @@
 package service;
 
 import java.util.Map;
+import java.util.stream.Collectors;
 import java.math.BigDecimal;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
 import com.fasterxml.jackson.core.type.TypeReference;
-
 import dblayer.dao.AccountDAO;
 import dblayer.model.Account;
 import dblayer.model.ColumnCriteria;
-import dblayer.model.Criteria;
 import util.CustomException;
 import util.Helper;
 
@@ -88,9 +85,26 @@ public class AccountService {
 	private List<Account> filterAccountsByBranch(List<Account> accounts) throws CustomException {
 		if (Helper.getThreadLocalValue().get("branchId") != null) {
 			logger.debug("Filtering accounts based on branch ID");
-			return accountDAO.checkAccountBranchId(accounts);
+			return checkAccountBranchId(accounts);
 		}
 		return accounts;
+	}
+
+	public List<Account> checkAccountBranchId(List<Account> accounts) throws CustomException {
+		logger.info("Checking accounts against branchId in ThreadLocal.");
+		try {
+			long branchId = (Long) Helper.getThreadLocalValue().get("branchId");
+			logger.debug("Branch ID retrieved from ThreadLocal: {}", branchId);
+
+			List<Account> filteredAccounts = accounts.stream().filter(account -> account.getBranchId() == branchId)
+					.collect(Collectors.toList());
+
+			logger.info("{} accounts matched the branchId: {}", filteredAccounts.size(), branchId);
+			return filteredAccounts;
+		} catch (Exception e) {
+			logger.error("Error checking accounts against branchId.", e);
+			throw new CustomException("Failed to check accounts");
+		}
 	}
 
 	private void saveToCache(String key, Long accountCreated, List<Account> accounts) {
@@ -145,8 +159,7 @@ public class AccountService {
 			columnCriteria.setValues(Arrays.asList(value, System.currentTimeMillis()));
 
 			accountDAO.updateAccount(columnCriteria, "account_number", accountNumber);
-			cacheService.delete("customerIdAccounts");
-			cacheService.delete("branchIdAccounts");
+			cacheService.delete("Accounts");
 			logger.info("Account successfully updated with account number: {}", accountNumber);
 		} catch (CustomException e) {
 			logger.error("Error updating account. Error: {}", e.getMessage());

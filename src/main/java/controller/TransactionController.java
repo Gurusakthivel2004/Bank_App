@@ -14,26 +14,23 @@ import util.CustomException;
 import util.Helper;
 
 public class TransactionController {
-	
+
 	TransactionService transactionService = new TransactionService();
-	
+
 	public void handleGet(HttpServletRequest request, HttpServletResponse response) throws IOException {
 		response.setContentType("application/json");
 		PrintWriter out = response.getWriter();
+		JsonObject responseJson = new JsonObject();
 
-		Long id = Helper.parseLongOrDefault(request.getParameter("id"), 0L);
-		Long accountNumber = Helper.parseLongOrDefault(request.getParameter("accountNumber"), 0L);
-		Long from = Helper.parseDateToMillisOrDefault(request.getParameter("from"), 0L);
-		Long to = Helper.parseDateToMillisOrDefault(request.getParameter("to"), 0L);
-		Long limit = Helper.parseDateToMillisOrDefault(request.getParameter("limit"), 0L);
-		
 		try {
-			Object transactions = transactionService.getTransactionDetails(id, accountNumber, limit, from, to);
+			Map<String, Object> txMap = Helper.getParametersAsMap(request);
+			Object transactions = transactionService.getTransactionDetails(txMap);
 			String jsonResponse = new ObjectMapper().writeValueAsString(transactions);
 			out.write(jsonResponse);
-		} catch (CustomException e) {
-			response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-			out.println(e.getMessage());
+		} catch (CustomException exception) {
+			responseJson.addProperty("message", exception.getMessage());
+			response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+			out.print(responseJson.toString());
 		} finally {
 			out.close();
 		}
@@ -47,11 +44,10 @@ public class TransactionController {
 		try (BufferedReader reader = request.getReader()) {
 			JsonObject jsonObject = JsonParser.parseReader(reader).getAsJsonObject();
 			Map<String, Object> transactionMap = Helper.mapJsonObject(jsonObject);
-			transactionService.createTransaction(transactionMap);
+			transactionService.prepareTransaction(transactionMap);
 			responseJson.addProperty("message", "success");
 			response.setStatus(HttpServletResponse.SC_OK);
 		} catch (CustomException exception) {
-			// Handle custom exception for failed account creation
 			responseJson.addProperty("message", exception.getMessage());
 			response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
 		} finally {

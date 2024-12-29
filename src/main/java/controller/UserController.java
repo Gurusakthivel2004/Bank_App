@@ -17,7 +17,8 @@ import util.CustomException;
 import util.Helper;
 
 public class UserController {
-	UserService userService = new UserService();
+	
+	private final UserService userService = new UserService();
 
 	public void handleGet(HttpServletRequest request, HttpServletResponse response) throws IOException {
 		PrintWriter out = response.getWriter();
@@ -26,7 +27,7 @@ public class UserController {
 			long userId = Helper.parseLongOrDefault(request.getParameter("userId"),
 					(long) Helper.getThreadLocalValue().get("id"));
 			String role = request.getParameter("role");
-			if(role.isEmpty()) {
+			if(role == null) {
 				role = (String) Helper.getThreadLocalValue().get("role");
 			}
 			Object userDetails = userService.getUserDetails(userId, role);

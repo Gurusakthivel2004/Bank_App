@@ -24,7 +24,7 @@ public class BranchService {
 	 * @return A list of matching branches.
 	 * @throws CustomException If an error occurs during branch retrieval.
 	 */
-	public List<Branch> getBranchDetails(Long branchId) throws CustomException {
+	public List<Branch> getBranchDetails(Long branchId, boolean notExact) throws CustomException {
 		logger.info("Fetching branch details for branchId: {}", branchId);
 
 		try {
@@ -42,7 +42,8 @@ public class BranchService {
 				cachedBranch = new HashMap<>();
 			}
 
-			List<Branch> branches = branchDAO.getBranch(branchId);
+			List<Branch> branches = branchDAO.getBranch(branchId, notExact);
+			System.out.println(branches);
 			if (branches.isEmpty()) {
 				logger.warn("No branch details found for branchId: {}", branchId);
 				return null;

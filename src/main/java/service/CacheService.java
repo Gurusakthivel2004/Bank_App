@@ -37,6 +37,22 @@ public class CacheService {
 		}
 	}
 
+	public <T> void saveWithTTL(String key, T value, int ttlSeconds) {
+		if (key == null || value == null) {
+			logger.error("Key or value cannot be null.");
+			return;
+		}
+		try (Jedis jedis = RedisCache.getConnection()) {
+			String jsonValue = objectMapper.writeValueAsString(value);
+			jedis.setex(key, ttlSeconds, jsonValue); // Set key with expiration time
+			logger.info("Successfully saved key '{}' in Redis with TTL {} seconds.", key, ttlSeconds);
+		} catch (JsonProcessingException e) {
+			logger.error("Failed to serialize value for key '{}': {}", key, e.getMessage());
+		} catch (Exception e) {
+			logger.error("Failed to save key '{}' in Redis: {}", key, e.getMessage());
+		}
+	}
+
 	public <K, V> Map<K, V> get(String key, TypeReference<Map<K, V>> typeRef) {
 		if (key == null || typeRef == null) {
 			logger.error("Key or type reference cannot be null.");
@@ -71,7 +87,7 @@ public class CacheService {
 				logger.warn("Key '{}' does not exist in Redis. Inserting new value.", key);
 			}
 			String jsonValue = objectMapper.writeValueAsString(value);
-			jedis.set(key, jsonValue); // This will overwrite the existing value
+			jedis.set(key, jsonValue);
 			logger.info("Successfully updated key '{}' in Redis.", key);
 		} catch (JsonProcessingException e) {
 			logger.error("Failed to serialize value for key '{}': {}", key, e.getMessage());
@@ -103,7 +119,7 @@ public class CacheService {
 
 	public List<String> getAllKeys() {
 		try (Jedis jedis = RedisCache.getConnection()) {
-			Set<String> keys = jedis.keys("*"); 
+			Set<String> keys = jedis.keys("*");
 			return new ArrayList<>(keys);
 		} catch (Exception e) {
 			logger.error("Failed to retrieve keys from Redis: {}", e.getMessage());

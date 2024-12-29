@@ -4,88 +4,78 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class Criteria {
-	
-	@Override
-	public String toString() {
-		return "Criteria [clazz=" + clazz + ", tableName=" + tableName + ", selectColumn=" + selectColumn + ", column="
-				+ column + ", value=" + value + ", operator=" + operator + ", logicalOperator=" + logicalOperator
-				+ ", values=" + values + ", joinColumn=" + joinColumn + ", joinOperator=" + joinOperator
-				+ ", joinValue=" + joinValue + ", joinTable=" + joinTable + ", orderBy=" + orderBy + ", orderByField="
-				+ orderByField + ", limitValue=" + limitValue + "]";
-	}
-
 
 	private Class<? extends MarkedClass> clazz;
 	private String tableName;
 	private List<String> selectColumn;
 	private List<String> column;
-    private List<Object> value;
-    private List<String> operator;
-    private String logicalOperator;
-    // values is for BETWEEN IN operations..
-    private List<Object> values;
+	private List<Object> value;
+	private List<String> operator;
+	private String logicalOperator;
+	// values is for BETWEEN IN operations..
+	private List<Object> values;
 	private List<String> joinColumn;
 	private List<String> joinOperator;
 	private List<String> joinValue;
-    private List<Object> joinTable;
-    private String orderBy;
-    private String orderByField;
-    private Object limitValue;
-    
-    public Criteria() {
-    	column = new ArrayList<String>();
-    	value = new ArrayList<Object>();
-    	operator = new ArrayList<String>();
-    }
-    
-    
-    public String getTableName() {
-        return tableName;
-    }
-    
-    public void setTableName(String tableName) {
-        this.tableName = tableName;
-    }
-    
-    public List<String> getColumn() {
-        return column;
-    }
+	private List<Object> joinTable;
+	private String orderBy;
+	private String orderByField;
+	private Object limitValue;
+	private Long offsetValue;
 
-    public void setColumn(List<String> column) {
-        this.column = column;
-    }
+	public Criteria() {
+		column = new ArrayList<String>();
+		value = new ArrayList<Object>();
+		operator = new ArrayList<String>();
+	}
 
-    public List<Object> getValue() {
-        return value;
-    }
+	public String getTableName() {
+		return tableName;
+	}
 
-    public void setValue(List<Object> value) {
-        this.value = value;
-    }
+	public void setTableName(String tableName) {
+		this.tableName = tableName;
+	}
 
-    public List<Object> getValues() {
-        return values;
-    }
+	public List<String> getColumn() {
+		return column;
+	}
 
-    public void setValues(List<Object> values) {
-        this.values = values;
-    }
+	public void setColumn(List<String> column) {
+		this.column = column;
+	}
 
-    public List<String> getOperator() {
-        return operator;
-    }
+	public List<Object> getValue() {
+		return value;
+	}
 
-    public void setOperator(List<String> operator) {
-        this.operator = operator;
-    }
-    
-    public String getOrderBy() {
-        return orderBy;
-    }
+	public void setValue(List<Object> value) {
+		this.value = value;
+	}
 
-    public void setOrderBy(String orderBy) {
-        this.orderBy = orderBy;
-    }
+	public List<Object> getValues() {
+		return values;
+	}
+
+	public void setValues(List<Object> values) {
+		this.values = values;
+	}
+
+	public List<String> getOperator() {
+		return operator;
+	}
+
+	public void setOperator(List<String> operator) {
+		this.operator = operator;
+	}
+
+	public String getOrderBy() {
+		return orderBy;
+	}
+
+	public void setOrderBy(String orderBy) {
+		this.orderBy = orderBy;
+	}
 
 	public List<String> getSelectColumn() {
 		return selectColumn;
@@ -99,8 +89,15 @@ public class Criteria {
 		return clazz;
 	}
 
-	public void setClazz(Class<? extends MarkedClass> clazz) {
-		this.clazz = clazz;
+	@SuppressWarnings("unchecked")
+	public <T> void setClazz(Class<T> clazz) {
+	    if (MarkedClass.class.isAssignableFrom(clazz)) {
+	        this.clazz = (Class<? extends MarkedClass>) clazz;
+	    } else if (clazz == Integer.class) {
+	        this.clazz = (Class<? extends MarkedClass>) clazz;
+	    } else {
+	        throw new IllegalArgumentException("Invalid class type: " + clazz.getName());
+	    }
 	}
 
 	public Object getLimitValue() {
@@ -151,13 +148,29 @@ public class Criteria {
 		this.joinOperator = joinOperator;
 	}
 
-
 	public String getOrderByField() {
 		return orderByField;
 	}
 
-
 	public void setOrderByField(String orderByField) {
 		this.orderByField = orderByField;
 	}
+
+	public Long getOffsetValue() {
+		return offsetValue;
+	}
+
+	public void setOffsetValue(Long offsetValue) {
+		this.offsetValue = offsetValue;
+	}
+
+	@Override
+	public String toString() {
+		return "Criteria [clazz=" + clazz + ", tableName=" + tableName + ", selectColumn=" + selectColumn + ", column="
+				+ column + ", value=" + value + ", operator=" + operator + ", logicalOperator=" + logicalOperator
+				+ ", values=" + values + ", joinColumn=" + joinColumn + ", joinOperator=" + joinOperator
+				+ ", joinValue=" + joinValue + ", joinTable=" + joinTable + ", orderBy=" + orderBy + ", orderByField="
+				+ orderByField + ", limitValue=" + limitValue + ", offsetValue=" + offsetValue + "]";
+	}
+
 }

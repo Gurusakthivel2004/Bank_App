@@ -4,7 +4,6 @@ import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.stream.Collectors;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import dblayer.model.Account;
@@ -29,7 +28,8 @@ public class AccountDAO {
 
 			ColumnCriteria columnCriteria = new ColumnCriteria();
 			columnCriteria.setFields(Arrays.asList("accountNumber"));
-			String accountNumber = "7018120" + String.format("%04d", accountId);
+			String accountNumber = "701" + String.format("%04d", account.getBranchId())
+					+ String.format("%04d", accountId);
 			columnCriteria.setValues(Arrays.asList(Long.parseLong(accountNumber)));
 
 			logger.debug("Account number generated: {}", accountNumber);
@@ -57,12 +57,9 @@ public class AccountDAO {
 			Criteria criteria = new Criteria();
 			criteria.setClazz(Account.class);
 			criteria.setSelectColumn(new ArrayList<>(Arrays.asList("*")));
-			criteria.getColumn().add("status");
-			criteria.getOperator().add("=");
-			criteria.getValue().add("Active");
 
 			Helper.addCondition(criteria, userId > 0, "user_id", "=", userId);
-			Helper.addCondition(criteria, accountNumber > 0, "account_number", "=", accountNumber);
+			Helper.addCondition(criteria, accountNumber > 0, "account_number", "LIKE", "%" + accountNumber + "%");
 			Helper.addCondition(criteria, accountCreated > 0, "created_at", "=", accountCreated);
 			Helper.addCondition(criteria, branchId > 0, "branch_id", "=", branchId);
 
@@ -84,23 +81,6 @@ public class AccountDAO {
 		}
 	}
 
-	public List<Account> checkAccountBranchId(List<Account> accounts) throws CustomException {
-		logger.info("Checking accounts against branchId in ThreadLocal.");
-		try {
-			long branchId = (Long) Helper.getThreadLocalValue().get("branchId");
-			logger.debug("Branch ID retrieved from ThreadLocal: {}", branchId);
-
-			List<Account> filteredAccounts = accounts.stream().filter(account -> account.getBranchId() == branchId)
-					.collect(Collectors.toList());
-
-			logger.info("{} accounts matched the branchId: {}", filteredAccounts.size(), branchId);
-			return filteredAccounts;
-		} catch (Exception e) {
-			logger.error("Error checking accounts against branchId.", e);
-			throw new CustomException("Failed to check accounts");
-		}
-	}
-
 	public <T> void updateAccount(ColumnCriteria columnCriteria, String column, Object value) throws CustomException {
 		logger.info("Updating account with ColumnCriteria: {}", columnCriteria);
 		try {
@@ -110,7 +90,7 @@ public class AccountDAO {
 			Criteria criteria = new Criteria();
 			criteria.setClazz(Account.class);
 			Helper.addCondition(criteria, value != null, column, "=", value);
-			
+
 			SQLHelper.update(columnCriteria, criteria);
 			logger.info("Account updated successfully.");
 		} catch (Exception e) {
