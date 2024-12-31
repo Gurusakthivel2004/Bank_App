@@ -77,6 +77,7 @@ public class TransactionDAO {
 			if (offset == 0) {
 				criteria.setOffsetValue(-1l);
 				txResult.put("count", SQLHelper.get(criteria).get(0));
+				System.out.println(txMap.get("count"));
 			}
 			criteria.setOffsetValue(offset);
 		}

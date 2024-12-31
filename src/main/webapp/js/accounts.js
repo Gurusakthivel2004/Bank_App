@@ -1,27 +1,29 @@
-let filterCustomer = '';
+let filterId = '';
 let filterAccount = '';
 let filterBranch = '';
 let filterStatus = '';
 let filterType = '';
-let lastAccount = '';
 const accountsPerPage = 8;
 let cachedAccounts = [];
-let initialBranchId;
-let initialStatus;
+let accountsCount;
 let currentPageIndex = 0;
-let lastPage = 1000000;
-let isrecursed = false;
+let filterOffset = 0;
 const role = localStorage.getItem("role");
 const token = localStorage.getItem('token');
 
 async function fetchAccounts() {
 	try {
 		if (!cachedAccounts[currentPageIndex]) {
-			let url = 'http://localhost:8080/Bank_Application/api/Account?';
-			if (filterCustomer) url += `customerId=${filterCustomer}`;
+			if (role == "Employee") {
+				filterBranch = localStorage.getItem('branchId');
+			}
+			console.log(filterId);
+			let url = `http://localhost:8080/Bank_Application/api/Account?offset=${filterOffset}&limit=${accountsPerPage}`;
+			if (filterId) url += `&userId=${filterId}`;
 			if (filterAccount) url += `&accountNumber=${filterAccount}`;
 			if (filterBranch) url += `&branchId=${filterBranch}`;
-			if (lastAccount) url += `&lastAccount=${lastAccount}`;
+			if (filterType) url += `&accountType=${filterType}`;
+			if (filterStatus) url += `&status=${filterStatus}`;
 			console.log(url);
 			const response = await fetch(url, {
 				method: 'GET',
@@ -30,122 +32,98 @@ async function fetchAccounts() {
 					'Authorization': `Bearer ${token}`
 				},
 			});
-			const accounts = await response.json();
-			console.log(accounts);
-			if (accounts.length == 0 && filterBranch.length == 0) {
-				if (!isrecursed) {
-					isrecursed = true;
-					goToPage(currentPageIndex - 1);
-					return;
-				}
-			}
-			lastPage = accounts.length < accountsPerPage ? currentPageIndex : 1000000;
+			console.log(response);
+			const accountsResult = await response.json();
+			const accounts = accountsResult["accounts"];
+			console.log(accountsResult);
+
+			accountsCount = filterOffset == 0 ? accountsResult["count"] : accountsCount;
 			if (response.ok) {
 				cachedAccounts[currentPageIndex] = accounts;
-				if (accounts.length > 0) {
-					lastAccount = accounts[accounts.length - 1].createdAt;
-				}
+				filterOffset += accountsPerPage;
+			} else {
+				console.error('Error fetching accounts:', response.message || 'Unknown error');
+				renderAccounts([]);
 			}
-		}
-		if (currentPageIndex == lastPage && lastPage != 1000000 || cachedAccounts[currentPageIndex].length == 0) {
-			document.getElementById("nextButton").disabled = true;
-		} else {
-			document.getElementById("nextButton").disabled = false;
 		}
 		renderAccounts(cachedAccounts[currentPageIndex]);
 		document.getElementById("prevButton").disabled = currentPageIndex === 0;
 		updatePagination();
 	} catch (error) {
-		localStorage.clear();
-		window.location.href = 'index.html';
+		console.log(error);
 	}
 }
+
+let totalPages;
 
 function updatePagination() {
 	const pageNumbersContainer = document.getElementById("pageNumbers");
 	pageNumbersContainer.innerHTML = '';
+	console.log(accountsCount, accountsPerPage)
+	totalPages = Math.ceil(accountsCount / accountsPerPage) || 1; // Calculate total pages
+	const currentPage = currentPageIndex + 1;
 
-	const totalPages = cachedAccounts.length;
-	const maxVisiblePages = 3;
-
-	let startPage = Math.max(0, currentPageIndex - Math.floor(maxVisiblePages / 2));
-	let endPage = Math.min(totalPages, startPage + maxVisiblePages);
-	if (endPage === totalPages && totalPages > maxVisiblePages) {
-		startPage = Math.max(0, totalPages - maxVisiblePages);
-	}
-
-	for (let i = startPage; i < endPage; i++) {
-		const pageButton = document.createElement("button");
-		pageButton.innerText = (i + 1).toString();
-		pageButton.style = i === currentPageIndex
-			? "background-color: #4677bd; color: white; font-weight: bold;border: 0"
-			: "background-color: #2b0444; color: white; font-weight: 500;border: 0";
-		pageButton.className = "py-2 px-3 rounded";
-		pageButton.onclick = () => goToPage(i);
-		pageNumbersContainer.appendChild(pageButton);
-	}
-}
-
-function goToPage(pageIndex) {
-	currentPageIndex = pageIndex;
-	fetchAccounts();
+	console.log("curr, total: ", currentPageIndex, totalPages)
+	document.getElementById('nextButton').disabled = currentPageIndex == totalPages - 1;
+	const paginationText = `Page ${currentPage} of ${totalPages}`;
+	pageNumbersContainer.innerHTML = `<span>${paginationText}</span>`;
 }
 
 function nextPage() {
-	console.log(currentPageIndex, lastPage)
-	if (currentPageIndex <= lastPage) {
+	document.getElementById('nextButton').disabled = currentPageIndex == totalPages - 2;
+	if (currentPageIndex < totalPages - 1) {
 		currentPageIndex++;
 		fetchAccounts();
 	}
 }
 
 function prevPage() {
+	document.getElementById('prevButton').disabled = currentPageIndex == 0;
 	if (currentPageIndex > 0) {
+		document.getElementById('nextButton').disabled = false;
 		currentPageIndex--;
 		fetchAccounts();
 	}
 }
 
-let previousBranch, previousId, previousAccount, branchIdInput;
+let previousBranch = '', previousId = '', previousAccount = '', branchIdInput = '', previousType = '', previousStatus = '';
 
 function applyFilters() {
-	const customerIdInput = document.getElementById("customerIdsearchInput").value.trim();
+	const idInput = document.getElementById("customerIdsearchInput").value.trim();
 	const accountInput = document.getElementById("accountsearchInput").value.trim();
 	const statusInput = document.getElementById("accountStatussearchInput").value.trim();
 	const typeInput = document.getElementById("accountTypesearchInput").value.trim();
 	if (role == "Manager") {
 		branchIdInput = document.getElementById("branchIdsearchInput").value.trim();
 		filterBranch = branchIdInput;
+	} if (accountInput == '') {
+		filterId = idInput ? idInput : -1;
+	} else {
+		filterId = idInput ? idInput : role != "Customer" ? 0 : -1;
 	}
-	lastAccount = ''
 	filterAccount = accountInput;
 	filterStatus = statusInput;
 	filterType = typeInput;
-	filterCustomer = customerIdInput;
-	console.log(filterAccount.length);
+	console.log(previousId, idInput);
 
-	if (filterAccount.length == 0 && filterBranch.length == 0) {
-		filterCustomer = customerIdInput ? customerIdInput : '';
-		if (previousAccount != accountInput || previousBranch != branchIdInput || previousId != customerIdInput) {
+	if (previousAccount != accountInput || previousBranch != branchIdInput || previousId != idInput || previousStatus != statusInput || previousType != typeInput) {
+		console.log('here1');
+		if (!(filterAccount.length > 0 && filterAccount.length < 4) && Number.isFinite(Number(filterAccount))) {
+			console.log('here');
 			cachedAccounts = [];
 			currentPageIndex = 0;
-			lastPage = 1000000;
-			isrecursed = false;
+			filterOffset = 0;
 			fetchAccounts();
-		} else {
-			console.log('here');
-			renderAccounts(cachedAccounts[currentPageIndex]);
 		}
-	} else if(filterAccount.length >= 4 || filterBranch.length > 0) {
-		cachedAccounts = [];
-		currentPageIndex = 0;
-		lastPage = 1000000;
-		isrecursed = false;
-		fetchAccounts();
+	}
+	if (Number.isFinite(Number(filterAccount))) {
+		previousAccount = filterAccount;
 	}
 	previousAccount = accountInput;
 	previousBranch = branchIdInput;
-	previousId = customerIdInput;
+	previousId = idInput;
+	previousType = typeInput;
+	previousStatus = statusInput;
 }
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -190,8 +168,7 @@ const updateBranch = async _ => {
 }
 
 const accountClick = async account => {
-	const userId = account.userId;
-	const userDetailsResponse = await fetch(`http://localhost:8080/Bank_Application/api/User?userId=${userId}&role=Customer`, {
+	const userDetailsResponse = await fetch(`http://localhost:8080/Bank_Application/api/User?accountNumber=${account.accountNumber}`, {
 		method: 'GET',
 		headers: {
 			'Content-Type': 'application/json',
@@ -199,6 +176,7 @@ const accountClick = async account => {
 		},
 	});
 	const userResult = await userDetailsResponse.json();
+	console.log(userResult);
 	document.getElementById('accountbranchId').value = account.branchId;
 	document.getElementById('accountfullname').innerText = userResult.fullname;
 	document.getElementById('accountphone').innerText = userResult.phone;
@@ -211,15 +189,8 @@ const accountClick = async account => {
 function renderAccounts(accounts) {
 	const accountHistory = document.querySelector(".account-data");
 	accountHistory.innerHTML = '';
-
-	const filteredAccounts = accounts.filter(account => {
-		const matchesStatus = filterStatus ? account.status === filterStatus : true;
-		const matchesType = filterType ? account.accountType === filterType : true;
-		return matchesStatus && matchesType;
-	});
-
-	if (filteredAccounts.length === 0) {
-
+	console.log(accounts);
+	if (accounts == null || accounts.length === 0) {
 		document.getElementById('buttons').style.display = "none";
 		const accountDiv = document.createElement("div");
 		accountDiv.className = "account-item d-flex row mb-1";
@@ -231,8 +202,8 @@ function renderAccounts(accounts) {
 		return;
 	}
 
-	filteredAccounts.forEach(account => {
-		if (account.accountType !== "Operational") {
+	accounts.forEach(account => {
+		if (role != "Customer" && (account.accountType != "Operational" && role == "Employee")) {
 			document.getElementById('buttons').style.display = "flex";
 			const accountDiv = document.createElement("div");
 			accountDiv.onclick = () => accountClick(account);
@@ -309,7 +280,6 @@ async function saveStatus() {
 		status: accountStatusInput.value
 	};
 	if (accountStatusInput && accountStatusInput.value !== initialStatus) {
-		console.log('entered');
 		updateAccount(accountUpdateData);
 	}
 }
@@ -341,6 +311,133 @@ const updateAccount = async accountUpdateData => {
 		location.reload();
 	}, 3000);
 }
+
+let validUserIds = []; // Declare this globally or in the appropriate scope
+
+function saveAccount() {
+	const userIdInput = document.getElementById('newUserId');
+	const balanceInput = document.getElementById('newbalance');
+	const accountTypeSelect = document.getElementById('newAccountType');
+	const message = document.getElementById('accountMessage');
+	message.style.display = 'none';
+
+	console.log(validUserIds)
+	console.log(userIdInput.value.trim());
+	console.log(validUserIds.includes(userIdInput.value.trim()));
+	if (!userIdInput.value.trim()) {
+		message.textContent = "User ID is required.";
+		message.style.display = 'block';
+		userIdInput.focus();
+		return;
+	}
+
+	if (!validUserIds.includes(Number(userIdInput.value.trim()))) {
+		message.textContent = "Invalid User ID. Please select a valid ID.";
+		message.style.display = 'block';
+		userIdInput.focus();
+		return;
+	}
+
+	// Check if the balance is valid
+	if (!balanceInput.value.trim() || isNaN(balanceInput.value) || parseFloat(balanceInput.value) < 0) {
+		message.textContent = "Balance must be a valid positive number.";
+		message.style.display = 'block';
+		balanceInput.focus();
+		return;
+	}
+
+	// Check if account type is selected
+	if (!accountTypeSelect.value) {
+		message.textContent = "Please select an account type.";
+		message.style.display = 'block';
+		accountTypeSelect.focus();
+		return;
+	}
+
+	// Prepare account details
+	const accountDetails = {
+		userId: userIdInput.value.trim(),
+		balance: parseFloat(balanceInput.value),
+		accountType: accountTypeSelect.value
+	};
+
+	console.log("Account Details Saved:", accountDetails);
+
+	// Show success popup
+	const successPopup = document.getElementById('successPopup');
+	successPopup.textContent = "Account details saved successfully!";
+	successPopup.style.display = 'block';
+
+	setTimeout(() => {
+		successPopup.style.display = 'none';
+	}, 3000);
+
+	// Reset form fields
+	userIdInput.value = '';
+	balanceInput.value = '0.0';
+	accountTypeSelect.value = '';
+	toggleModal('newAccountModal');
+}
+
+
+
+function fetchUserIdDetails(query) {
+	const userDropdown = document.getElementById('dropdown');
+	userDropdown.innerHTML = '';
+	if (!query) {
+		userDropdown.innerHTML = '<div class="dropdown-option" style="padding: 10px; color: grey;">Enter a user ID</div>';
+		userDropdown.style.display = 'block';
+		return;
+	}
+
+	fetch(`http://localhost:8080/Bank_Application/api/User?userId=${query}&notExact=true`, {
+		method: 'GET',
+		headers: {
+			'Content-Type': 'application/json',
+			'Authorization': `Bearer ${token}`
+		},
+	})
+		.then(response => response.json())
+		.then(data => {
+			console.log(data);
+			if (!data || data.length === 0) {
+				userDropdown.innerHTML = '<div class="dropdown-option" style="padding: 10px; color: grey;">User ID not found</div>';
+				userDropdown.style.display = 'block';
+				return;
+			}
+			data.forEach((user, index) => {
+				const option = document.createElement('div');
+				option.className = 'dropdown-option py-2 px-3';
+				option.style = `
+				       cursor: pointer;
+				       ${index === data.length - 1 ? '' : 'border-bottom: 1px solid #cdc2c2;'}
+				   `;
+				option.innerHTML = `
+                    <div style="font-weight: bold; color: #2c3e50;">
+                        ID: ${user.id}
+                    </div>
+                    <div style="font-size: 12px; color: grey;">
+                        NAME: ${user.fullname} <br>
+                    </div>
+                `;
+				validUserIds.push(user.id);
+				option.onclick = () => {
+					document.getElementById('newUserId').value = user.id;
+					userDropdown.style.display = 'none';
+				};
+				userDropdown.appendChild(option);
+			});
+			userDropdown.style.display = 'block';
+		})
+		.catch(err => {
+			console.error('Error fetching user details:', err);
+			userDropdown.innerHTML = '<div class="dropdown-option" style="padding: 10px; color: red;">Error fetching data</div>';
+			userDropdown.style.display = 'block';
+		});
+}
+
+
+
 
 populateDropdown();
 let validBranchIds = [];

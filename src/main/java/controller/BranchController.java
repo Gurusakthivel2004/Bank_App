@@ -44,7 +44,6 @@ public class BranchController {
 		PrintWriter out = response.getWriter();
 		Long branchId = Helper.parseLongOrDefault(request.getParameter("branchId"), 0L);
 		String notExact = request.getParameter("notExact");
-		System.out.println(notExact);
 		try {
 			if(branchId == 0L) {
 				throw new CustomException("Invalid branch id ");

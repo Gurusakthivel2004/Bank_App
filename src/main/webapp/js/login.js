@@ -19,6 +19,7 @@ async function login(event) {
 		});
 
 		const result = await response.json();
+		console.log(result);
 		if (result.message == "success") {
 			localStorage.setItem('token', result.token); 
 			localStorage.setItem('fullname', result.fullname);
@@ -26,6 +27,9 @@ async function login(event) {
 			localStorage.setItem('phone', result.phone);
 			localStorage.setItem('status', result.status);
 			localStorage.setItem('role', result.role);
+			if(result.branchId !== null) {
+				localStorage.setItem('branchId', result.branchId);
+			} 
 
 			if (password === 'default') {
 				toggleModal('passwordChangeModal');

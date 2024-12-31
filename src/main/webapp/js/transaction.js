@@ -38,7 +38,8 @@ async function fetchTransactions() {
 				cachedTransactions[currentPageIndex] = transactions;
 				filterOffset += transactionsPerPage;
 			} else {
-				console.error('Error fetching transactions:', transactions.message || 'Unknown error');
+				console.error('Error fetching transactions:', response.message || 'Unknown error');
+				renderTransactions([]);
 			}
 		}
 		renderTransactions(cachedTransactions[currentPageIndex]);
@@ -58,6 +59,7 @@ function updatePagination() {
 	totalPages = Math.ceil(transactionsCount / transactionsPerPage) || 1; // Calculate total pages
 	const currentPage = currentPageIndex + 1;
 
+	document.getElementById('nextButton').disabled = currentPageIndex == totalPages - 1;
 	const paginationText = `Page ${currentPage} of ${totalPages}`;
 	pageNumbersContainer.innerHTML = `<span>${paginationText}</span>`;
 }
@@ -88,7 +90,7 @@ function applyFilters() {
 	const fromDateInput = document.getElementById("FromDatesearchInput").value.trim();
 	const toDateInput = document.getElementById("ToDatesearchInput").value.trim();
 	filterType = document.getElementById("typesearchInput").value.trim();
-	if (accountInput.length == 0) {
+	if (accountInput == '') {
 		filterId = idInput ? idInput : -1;
 	} else {
 		filterId = idInput ? idInput : role != "Customer" ? 0 : -1;
@@ -100,7 +102,6 @@ function applyFilters() {
 		if (!(filterAccount.length > 0 && filterAccount.length < 4) && Number.isFinite(Number(filterAccount))) {
 			cachedTransactions = [];
 			currentPageIndex = 0;
-			filterId = idInput ? idInput : -1;
 			filterOffset = 0;
 			fetchTransactions();
 		}
@@ -158,7 +159,7 @@ function renderTransactions(transactions) {
 	const transactionHistory = document.querySelector(".transaction-data");
 	transactionHistory.innerHTML = '';
 
-	if (transactions.length == 0) {
+	if (transactions == null || transactions.length == 0) {
 		const transactionDiv = document.createElement("div");
 		transactionDiv.className = "transaction-item d-flex align-items-center mb-1";
 		transactionDiv.style = "background-color: #ffffff; height: 640px; padding: 10px; border-bottom: 1px solid #ddd; border-radius: 10px;";

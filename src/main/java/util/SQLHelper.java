@@ -86,6 +86,7 @@ public class SQLHelper {
 				}
 			}
 			logger.debug("PreparedStatement: " + preparedStatement.toString());
+			System.out.println("PreparedStatement: " + preparedStatement.toString());
 			return preparedStatement;
 		} catch (SQLException e) {
 			logger.error("Error preparing statement: " + query, e);
@@ -341,13 +342,13 @@ public class SQLHelper {
 					PreparedStatement preparedStatement = getPreparedStatement(connection, selectSql.toString(),
 							conditionValues.toArray());
 					ResultSet resultSet = preparedStatement.executeQuery()) {
-				if (condition.getOffsetValue() != null && condition.getOffsetValue() == -1) {
-					Object count = resultSet.getObject("COUNT(*)");
-					List<Long> counts = new ArrayList<Long>();
-					counts.add((Long) count);
-					return (List<T>) counts;
-				}
 				while (resultSet.next()) {
+					if (condition.getOffsetValue() != null && condition.getOffsetValue() == -1) {
+						Object count = resultSet.getObject("COUNT(*)");
+						List<Long> counts = new ArrayList<Long>();
+						counts.add((Long) count);
+						return (List<T>) counts;
+					}
 					list.add((T) mapResultSetToObject(resultSet, clazz, null, table));
 				}
 				return list;
@@ -364,98 +365,103 @@ public class SQLHelper {
 	// table : name of the table.
 	// pojo : pojo class
 	public static Object insert(Object pojo) throws CustomException {
-	    Helper.checkNullValues(pojo);
-	    try (Connection connection = DBConnection.getConnection()) {
-	        if (connection == null || connection.isClosed()) {
-	            throw new CustomException("Database connection is not established");
-	        }
-	        connection.setAutoCommit(false);
-	        Class<?> clazz = pojo.getClass();
-	        List<Class<?>> classList = getClassHierarchy(clazz);
-	        Object generatedValue = null;
-	        for (int k = classList.size() - 1; k >= 0; k--) {
-	            clazz = classList.get(k);
-	            ClassMapping classMapping = ColumnYamlUtil.getMapping(clazz.getName());
-	            Map<String, FieldMapping> fieldMap = classMapping.getFields();
-	            String tableName = classMapping.getTableName();
+		Helper.checkNullValues(pojo);
+		try (Connection connection = DBConnection.getConnection()) {
+			if (connection == null || connection.isClosed()) {
+				throw new CustomException("Database connection is not established");
+			}
+			connection.setAutoCommit(false);
+			Class<?> clazz = pojo.getClass();
+			List<Class<?>> classList = getClassHierarchy(clazz);
+			Object generatedValue = null;
+			for (int k = classList.size() - 1; k >= 0; k--) {
+				clazz = classList.get(k);
+				ClassMapping classMapping = ColumnYamlUtil.getMapping(clazz.getName());
+				Map<String, FieldMapping> fieldMap = classMapping.getFields();
+				String tableName = classMapping.getTableName();
 
-	            Field[] fields = clazz.getDeclaredFields();
-	            StringBuilder insertSql = buildInsertSQL(fields, classMapping, tableName, pojo, fieldMap);
-	            List<Object> values = collectFieldValues(fields, pojo, classMapping, fieldMap, generatedValue);
+				Field[] fields = clazz.getDeclaredFields();
+				StringBuilder insertSql = buildInsertSQL(fields, classMapping, tableName, pojo, fieldMap);
+				List<Object> values = collectFieldValues(fields, pojo, classMapping, fieldMap, generatedValue);
 
-	            Object incrementValue = executeNonSelect(connection, insertSql.toString(), values.toArray());
-	            if (k == classList.size() - 1) {
-	                generatedValue = incrementValue;
-	            }
-	        }
-	        connection.commit();
-	        return generatedValue;
-	    } catch (Exception e) {
-	        logger.error("An error occurred while executing insert query", e);
-	        throw new CustomException(e.getMessage());
-	    }
+				Object incrementValue = executeNonSelect(connection, insertSql.toString(), values.toArray());
+				if (k == classList.size() - 1) {
+					generatedValue = incrementValue;
+				}
+			}
+			connection.commit();
+			return generatedValue;
+		} catch (Exception e) {
+			logger.error("An error occurred while executing insert query", e);
+			throw new CustomException(e.getMessage());
+		}
 	}
 
 	private static List<Class<?>> getClassHierarchy(Class<?> clazz) {
-	    List<Class<?>> classList = new ArrayList<>();
-	    while (!clazz.getName().equals("dblayer.model.MarkedClass")) {
-	        classList.add(clazz);
-	        clazz = clazz.getSuperclass();
-	    }
-	    return classList;
+		List<Class<?>> classList = new ArrayList<>();
+		while (!clazz.getName().equals("dblayer.model.MarkedClass")) {
+			classList.add(clazz);
+			clazz = clazz.getSuperclass();
+		}
+		return classList;
 	}
 
 	private static StringBuilder buildInsertSQL(Field[] fields, ClassMapping classMapping, String tableName,
-	                                           Object pojo, Map<String, FieldMapping> fieldMap) throws CustomException {
-	    StringBuilder insertSql = new StringBuilder("INSERT INTO ").append(tableName).append(" (");
-	    int ctr = 0;
-	    for (Field field : fields) {
-	        if (isAutoIncrementField(classMapping, field)) continue;
-	        field.setAccessible(true);
-	        FieldMapping fieldMapping = fieldMap.get(field.getName());
-			if (fieldMapping == null) continue;
+			Object pojo, Map<String, FieldMapping> fieldMap) throws CustomException {
+		StringBuilder insertSql = new StringBuilder("INSERT INTO ").append(tableName).append(" (");
+		int ctr = 0;
+		for (Field field : fields) {
+			if (isAutoIncrementField(classMapping, field))
+				continue;
+			field.setAccessible(true);
+			FieldMapping fieldMapping = fieldMap.get(field.getName());
+			if (fieldMapping == null)
+				continue;
 
 			insertSql.append(fieldMapping.getColumnName()).append(", ");
 			ctr++;
-	    }
-	    if (ctr == 0) throw new CustomException("No valid fields found for insertion");
-	    insertSql.deleteCharAt(insertSql.length() - 2);
-	    insertSql.append(") VALUES (");
-	    for (int i = 0; i < ctr; i++) {
-	        insertSql.append("?");
-	        if (i < ctr - 1) {
-	            insertSql.append(", ");
-	        }
-	    }
-	    insertSql.append(");");
-	    return insertSql;
+		}
+		if (ctr == 0)
+			throw new CustomException("No valid fields found for insertion");
+		insertSql.deleteCharAt(insertSql.length() - 2);
+		insertSql.append(") VALUES (");
+		for (int i = 0; i < ctr; i++) {
+			insertSql.append("?");
+			if (i < ctr - 1) {
+				insertSql.append(", ");
+			}
+		}
+		insertSql.append(");");
+		return insertSql;
 	}
 
 	private static List<Object> collectFieldValues(Field[] fields, Object pojo, ClassMapping classMapping,
-	                                               Map<String, FieldMapping> fieldMap, Object generatedValue) throws CustomException {
-	    List<Object> values = new ArrayList<>();
-	    for (Field field : fields) {
-	        if (isAutoIncrementField(classMapping, field)) continue;
-	        field.setAccessible(true);
-	        try {
-	            FieldMapping fieldMapping = fieldMap.get(field.getName());
-	            if (fieldMapping == null) continue;
-	            if (generatedValue != null && classMapping.getReferenceField() != null
-	                    && classMapping.getReferenceField().equals(field.getName())) {
-	                values.add(generatedValue);
-	            } else {
-	                values.add(field.get(pojo));
-	            }
-	        } catch (IllegalAccessException e) {
-	            throw new CustomException("Error accessing field value: " + e.getMessage());
-	        }
-	    }
-	    return values;
+			Map<String, FieldMapping> fieldMap, Object generatedValue) throws CustomException {
+		List<Object> values = new ArrayList<>();
+		for (Field field : fields) {
+			if (isAutoIncrementField(classMapping, field))
+				continue;
+			field.setAccessible(true);
+			try {
+				FieldMapping fieldMapping = fieldMap.get(field.getName());
+				if (fieldMapping == null)
+					continue;
+				if (generatedValue != null && classMapping.getReferenceField() != null
+						&& classMapping.getReferenceField().equals(field.getName())) {
+					values.add(generatedValue);
+				} else {
+					values.add(field.get(pojo));
+				}
+			} catch (IllegalAccessException e) {
+				throw new CustomException("Error accessing field value: " + e.getMessage());
+			}
+		}
+		return values;
 	}
 
 	private static boolean isAutoIncrementField(ClassMapping classMapping, Field field) {
-	    return classMapping.getAutoIncrementField() != null
-	            && classMapping.getAutoIncrementField().equals(field.getName());
+		return classMapping.getAutoIncrementField() != null
+				&& classMapping.getAutoIncrementField().equals(field.getName());
 	}
 
 }

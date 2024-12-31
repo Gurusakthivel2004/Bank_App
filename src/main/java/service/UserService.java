@@ -12,7 +12,6 @@ import org.apache.logging.log4j.Logger;
 import com.fasterxml.jackson.core.type.TypeReference;
 import dblayer.dao.UserDAO;
 import dblayer.model.ColumnCriteria;
-import dblayer.model.CustomerDetail;
 import dblayer.model.Staff;
 import dblayer.model.User;
 import util.CustomException;
@@ -36,11 +35,12 @@ public class UserService {
 		logger.info("Attempting login for username: {}", username);
 
 		try {
-			User user = checkPassword(username, password);
-			if (user == null) {
+			List<User> users = checkPassword(username, password);
+			if (users == null || users.isEmpty() || users.size() > 1) {
 				logger.warn("User not found or invalid credentials for username: {}", username);
 				throw new CustomException("Invalid username or password.");
 			}
+			User user = users.get(0);
 			Map<String, Object> userDetails = Stream
 					.of(new Object[][] { { "id", user.getId() }, { "fullname", user.getFullname() },
 							{ "username", user.getUsername() }, { "status", user.getStatus() },
@@ -78,34 +78,36 @@ public class UserService {
 	 * @return the User object if validation succeeds.
 	 * @throws CustomException if the password is invalid.
 	 */
-	private User checkPassword(String username, String password) throws CustomException {
+	private List<User> checkPassword(String username, String password) throws CustomException {
 		logger.info("Validating password for user: {}", username);
 		try {
 			logger.debug("Fetching user for column: username and value: {}", username);
 			String key = "userDetails";
-			User user = null;
-			Map<String, User> cachedUserDetails = cacheService.get(key, new TypeReference<Map<String, User>>() {
-			});
+			List<User> users = null;
+			Map<String, List<User>> cachedUserDetails = cacheService.get(key,
+					new TypeReference<Map<String, List<User>>>() {
+					});
 			if (cachedUserDetails != null && cachedUserDetails.containsKey(username)) {
 				logger.info("Fetching cached user details for username: {}", username);
-				user = cachedUserDetails.get(username);
+				users = cachedUserDetails.get(username);
 			} else {
 				if (cachedUserDetails == null) {
-					cachedUserDetails = new HashMap<String, User>();
+					cachedUserDetails = new HashMap<String, List<User>>();
 				}
-				user = userDAO.getUser("username", username);
-				cachedUserDetails.put(username, user);
+				users = userDAO.getUser("username", username, false);
+				cachedUserDetails.put(username, users);
 				cacheService.save(key, cachedUserDetails);
 				logger.debug("User details cached for username: {}", username);
 			}
 			logger.debug("Checking password match.");
+			User user = users.get(0);
 			if (!Helper.checkPassword(password, user.getPassword())) {
 				logger.warn("Password mismatch for user: {}", username);
 				throw new CustomException("Password does not match");
 			}
 
 			logger.info("Password validation successful for user: {}", username);
-			return user;
+			return users;
 		} catch (CustomException e) {
 			logger.error("Password validation failed for user: {}. Error: {}", username, e.getMessage());
 			throw e;
@@ -154,38 +156,39 @@ public class UserService {
 	 * @throws CustomException if retrieval fails.
 	 */
 	@SuppressWarnings("unchecked")
-	public <T extends User> T getUserDetails(Long userId, String role) throws CustomException {
+	public <T extends User> List<T> getUserDetails(Long userId, String role, boolean notExact) throws CustomException {
 		logger.info("Fetching user details.");
 		try {
-			String username = (String) Helper.getThreadLocalValue().get("username");
 			String key = role + "Details";
 
 			logger.debug("User role determined as: {}", role);
 
-			Map<String, T> cachedUserDetails = cacheService.get(key,
-					new TypeReference<Map<String, T>>() {
-					});
+			Map<Long, List<T>> cachedUserDetails = cacheService.get(key, new TypeReference<Map<Long, List<T>>>() {
+			});
 
-			if (cachedUserDetails != null && cachedUserDetails.containsKey(username)) {
-				logger.info("Fetching cached user details for username: {}", username);
-				return (T) cachedUserDetails.get(username); 
+			if (cachedUserDetails != null && cachedUserDetails.containsKey(userId)) {
+				logger.info("Fetching cached user details for userId: {}", userId);
+				return (List<T>) cachedUserDetails.get(userId);
 			} else {
 				if (cachedUserDetails == null) {
 					cachedUserDetails = new HashMap<>();
 				}
-				T user;
-				if ("Customer".equals(role)) {
+				List<T> user;
+				if (notExact) {
 					logger.info("Fetching details for customer.");
-					user = (T) userDAO.getCustomers(userId).get(0); 
+					user = (List<T>) userDAO.getUser("*", userId, notExact);
+				} else if ("Customer".equals(role)) {
+					logger.info("Fetching details for customer.");
+					user = (List<T>) userDAO.getCustomers(userId);
 				} else {
 					logger.info("Fetching details for staff.");
-					user = (T) userDAO.getStaff(userId).get(0); 
+					user = (List<T>) userDAO.getStaff(userId);
 				}
-				cachedUserDetails.put(username, user);
+				cachedUserDetails.put(userId, user);
 				cacheService.save(key, cachedUserDetails);
-				logger.debug("{} details cached for username: {}", role, username);
+				logger.debug("{} details cached for userId: {}", role, userId);
 
-				return (T) user;
+				return (List<T>) user;
 			}
 		} catch (CustomException e) {
 			logger.error("Error fetching user details. Error: {}", e.getMessage());

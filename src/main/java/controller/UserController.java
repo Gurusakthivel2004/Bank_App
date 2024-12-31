@@ -27,10 +27,11 @@ public class UserController {
 			long userId = Helper.parseLongOrDefault(request.getParameter("userId"),
 					(long) Helper.getThreadLocalValue().get("id"));
 			String role = request.getParameter("role");
+			String notExact = request.getParameter("notExact");
 			if(role == null) {
 				role = (String) Helper.getThreadLocalValue().get("role");
 			}
-			Object userDetails = userService.getUserDetails(userId, role);
+			Object userDetails = userService.getUserDetails(userId, role,  notExact != null);
 			ObjectMapper mapper = new ObjectMapper();
 			String jsonResponse = mapper.writeValueAsString(userDetails);
 

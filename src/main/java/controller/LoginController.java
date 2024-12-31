@@ -73,6 +73,7 @@ public class LoginController {
 			Map<String, String> blacklistEntry = new HashMap<>();
 			blacklistEntry.put(token, "blacklisted");
 			cacheService.saveWithTTL("blacklist", blacklistEntry, 3600);
+//			cacheService.deleteAll();
 			response.setStatus(HttpServletResponse.SC_OK);
 			responseJson.addProperty("message", "Logout successful");
 		} else {

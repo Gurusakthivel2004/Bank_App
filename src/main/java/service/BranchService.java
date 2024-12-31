@@ -43,7 +43,6 @@ public class BranchService {
 			}
 
 			List<Branch> branches = branchDAO.getBranch(branchId, notExact);
-			System.out.println(branches);
 			if (branches.isEmpty()) {
 				logger.warn("No branch details found for branchId: {}", branchId);
 				return null;

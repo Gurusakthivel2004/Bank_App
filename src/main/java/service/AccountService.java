@@ -1,10 +1,11 @@
 package service;
 
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.math.BigDecimal;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -32,54 +33,80 @@ public class AccountService {
 	 * @throws CustomException If an error occurs during account retrieval.
 	 */
 
-	public List<Account> getAccountDetails(Long customerId, Long accountNumber, Long branchId, Long accountCreated)
-			throws CustomException {
-		logger.info("Fetching account details for customerId: {}, accountNumber: {}, branchId: {}, accountCreated: {}",
-				customerId, accountNumber, branchId, accountCreated);
+	@SuppressWarnings("unchecked")
+	public Map<String, Object> getAccountDetails(Map<String, Object> accountMap) throws CustomException {
 
 		try {
-			String key = generateCacheKey(customerId, accountNumber, branchId);
+			Long customerId = (Long) accountMap.getOrDefault("userId", 0l), branchId = (Long) accountMap.getOrDefault("branchId", 0l);
+			if (!(accountMap.containsKey("accountNumber") || branchId > 0)) {
+				if (customerId == null || customerId == -1) {
+					accountMap.put("userId", (Long) Helper.getThreadLocalValue().get("id"));
+				}
+				if (branchId == null || branchId == -1) {
+					accountMap.put("branchId", (Long) Helper.getThreadLocalValue().get("branchId"));
+				}
+			}
+			String key = generateCacheKey(accountMap);
 			Map<Long, List<Account>> cachedAccounts = cacheService.get(key,
 					new TypeReference<Map<Long, List<Account>>>() {
 					});
 			// Return cached accounts if available
-			if (cachedAccounts != null && cachedAccounts.containsKey(accountCreated)) {
-				return cachedAccounts.get(accountCreated);
+			Long cachedKey = extractLongFromString(key);
+			if (cachedAccounts != null && cachedAccounts.containsKey(cachedKey)) {
+				return (Map<String, Object>) cachedAccounts.get(cachedKey);
 			}
 			// Fetch accounts from database
-			List<Account> accounts = fetchAccounts(customerId, accountNumber, branchId, accountCreated);
+			Map<String, Object> accountsResult = fetchAccounts(accountMap);
+			List<Account> accounts = (List<Account>) accountsResult.get("accounts");
 			if (accounts != null && !accounts.isEmpty()) {
 				// Filter based on branch ID if needed
 				List<Account> filteredAccounts = filterAccountsByBranch(accounts);
-
-				// Save to cache if cache key exists
 				if (!key.isEmpty()) {
-					saveToCache(key, accountCreated, filteredAccounts);
+					saveToCache(key, cachedKey, accountsResult);
 				}
-				return filteredAccounts;
+				accountsResult.put("accounts", filteredAccounts);
 			}
-			return accounts;
+			return accountsResult;
 		} catch (Exception e) {
-			logger.error("Error fetching account details: {}", e.getMessage());
+			logger.error("Error fetching account details: {}", e);
 			throw new CustomException("Unable to fetch account details. Please try again later.", e);
 		}
 	}
 
-	private String generateCacheKey(Long customerId, Long accountNumber, Long branchId) {
+	private String generateCacheKey(Map<String, Object> accountMap) {
+		if (accountMap == null) {
+			return "";
+		}
+		Long userId = (Long) accountMap.getOrDefault("userId", 0L);
+		Long accountNumber = (Long) accountMap.getOrDefault("accountNumber", 0L);
+		Long branchId = (Long) accountMap.getOrDefault("branchId", 0L);
 		if (accountNumber == 0L && branchId == 0L) {
-			return "customerIdAccounts:" + customerId;
-		} else if (customerId == 0L && accountNumber == 0L) {
+			return "customerIdAccounts:" + userId;
+		} else if (userId == 0L && accountNumber == 0L) {
 			return "branchIdAccounts:" + branchId;
 		}
 		return "";
 	}
 
-	private List<Account> fetchAccounts(Long customerId, Long accountNumber, Long branchId, Long accountCreated)
-			throws CustomException {
-		if (accountCreated > 0) {
-			return accountDAO.getAccounts(customerId, accountNumber, branchId, accountCreated, 8L);
+	private Long extractLongFromString(String str) {
+		if (str == null || str.isEmpty()) {
+			return null;
 		}
-		return accountDAO.getAccounts(customerId, accountNumber, branchId, accountCreated, 0L);
+		Pattern pattern = Pattern.compile("\\d+");
+		Matcher matcher = pattern.matcher(str);
+		if (matcher.find()) {
+			try {
+				return Long.parseLong(matcher.group());
+			} catch (NumberFormatException e) {
+				logger.error("Number exceeds Long range.", e);
+				return null;
+			}
+		}
+		return null;
+	}
+
+	private Map<String, Object> fetchAccounts(Map<String, Object> accountMap) throws CustomException {
+		return accountDAO.getAccounts(accountMap);
 	}
 
 	private List<Account> filterAccountsByBranch(List<Account> accounts) throws CustomException {
@@ -107,9 +134,7 @@ public class AccountService {
 		}
 	}
 
-	private void saveToCache(String key, Long accountCreated, List<Account> accounts) {
-		Map<Long, List<Account>> accountMap = new HashMap<>();
-		accountMap.put(accountCreated, accounts);
+	private void saveToCache(String key, Long accountCreated, Map<String, Object> accountMap) {
 		cacheService.save(key, accountMap);
 		logger.debug("Saved accounts to cache with key '{}'", key);
 	}
@@ -121,9 +146,9 @@ public class AccountService {
 	 * @throws CustomException If the account creation process fails.
 	 */
 
+	@SuppressWarnings("unchecked")
 	public void createAccount(Map<String, Object> accountMap) throws CustomException {
 		logger.info("Creating a new account with data: {}", accountMap);
-
 		try {
 			accountMap.put("minBalance", new BigDecimal(500));
 			accountMap.put("branchId", Helper.getThreadLocalValue().get("branchId"));
@@ -131,8 +156,9 @@ public class AccountService {
 			accountMap.put("status", "Active");
 			accountMap.put("performedBy", Helper.getThreadLocalValue().get("id"));
 
-			long userId = Long.parseLong((String) accountMap.get("userId"));
-			boolean isPrimary = getAccountDetails(userId, 0l, 0l, 0l).isEmpty();
+			List<Account> accounts = (List<Account>) getAccountDetails(accountMap);
+			boolean isPrimary = accounts.isEmpty();
+			accountMap.put("isPrimary", isPrimary);
 			accountMap.put("isPrimary", isPrimary);
 
 			logger.debug("Populated accountMap with additional data: {}", accountMap);
@@ -174,20 +200,18 @@ public class AccountService {
 	 * @throws CustomException If the account cannot be found or deletion fails.
 	 */
 
-	public void deleteAccount(Long accountId) throws CustomException {
-		logger.info("Attempting to delete account with ID: {}", accountId);
+	public void deleteAccount(Map<String, Object> accountMap) throws CustomException {
+		logger.info("Attempting to delete account");
 
 		try {
-			List<Account> accounts = accountDAO.getAccounts(accountId, 0l, 0l, 0l, 0l);
+			Map<String, Object> accounts = accountDAO.getAccounts(accountMap);
 			if (accounts.isEmpty()) {
-				logger.error("No acc" + "ount found with ID: {}", accountId);
-				throw new CustomException("Account not found for ID: " + accountId);
+				throw new CustomException("Account not found");
 			}
-
-			accountDAO.removeAccount(accountId);
-			logger.info("Account successfully deleted with ID: {}", accountId);
+			accountDAO.removeAccount(accountMap);
+			logger.info("Account successfully deleted");
 		} catch (CustomException e) {
-			logger.error("Error deleting account with ID {}: {}", accountId, e.getMessage());
+			logger.error("Error deleting account", e.getMessage());
 			throw e;
 		} catch (Exception e) {
 			logger.error("Unexpected error during account deletion: {}", e.getMessage());

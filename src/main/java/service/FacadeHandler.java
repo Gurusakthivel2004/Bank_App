@@ -38,7 +38,9 @@ public class FacadeHandler {
 
 		try {
 			logger.debug("Fetching account details for user ID: {}", id);
-			List<Account> accounts = accountService.getAccountDetails(id, 0l, 0l, 0l);
+			Map<String, Object> accountMap = new HashMap<>();
+			accountMap.put("userId", id);
+			List<Account> accounts = (List<Account>) accountService.getAccountDetails(accountMap).get("accounts");
 			map.put("account", accounts);
 			logger.info(accounts);
 
@@ -60,7 +62,7 @@ public class FacadeHandler {
 			String role = (String) Helper.getThreadLocalValue().get("role");
 			String key = "Customer".equals(role) ? "customerDetail" : "staff";
 			logger.debug("Fetching {} details for user ID: {}", key, id);
-			map.put(key, userService.getUserDetails(id, role));
+			map.put(key, userService.getUserDetails(id, role, false));
 
 			// Fetch branch details for the accounts
 			logger.debug("Fetching branch details for user ID: {}", id);
@@ -79,7 +81,7 @@ public class FacadeHandler {
 
 			logger.info("Dashboard details fetched successfully for user ID: {}", id);
 		} catch (CustomException e) {
-			logger.error("Error occurred while fetching dashboard details for user ID: {}: {}", id, e.getMessage());
+			logger.error("Error occurred while fetching dashboard details for user ID: {}: {}", id, e);
 			throw e;
 		} catch (Exception e) {
 			logger.error("Unexpected error occurred while fetching dashboard details for user ID: {}: {}", id,

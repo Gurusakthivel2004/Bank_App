@@ -4,6 +4,7 @@ import java.util.Map;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -42,8 +43,10 @@ public class TransactionService {
 			if (id == -1l) {
 				id = (Long) Helper.getThreadLocalValue().get("id");
 			}
+			Map<String, Object> accountMap = new HashMap<>();
+			accountMap.put("userId", id);
 			if (accountNumber == null) {
-				List<Account> accounts = accountDAO.getAccounts(id, 0l, 0l, 0l, 0l);
+				List<Account> accounts = (List<Account>) accountDAO.getAccounts(accountMap).get("accounts");
 				if (accounts == null) {
 					logger.error("No Accounts found");
 					throw new CustomException("No accounts found for user " + id);
@@ -57,7 +60,8 @@ public class TransactionService {
 			String role = Helper.getThreadLocalValue().get("role").toString();
 			if (role.equals("Employee")) {
 				accountNumber = primaryAccount != null ? primaryAccount.getAccountNumber() : accountNumber;
-				List<Account> accounts = accountDAO.getAccounts(id, accountNumber, 0L, 0L, 0L);
+				accountMap.put("accountNumber", accountNumber);
+				List<Account> accounts = (List<Account>) accountDAO.getAccounts(accountMap).get("accounts");
 				txMap.remove("id");
 				txMap.remove("accountNumber");
 				return transactionDAO.getTransactionByBranchId(accounts, txMap);
@@ -80,11 +84,12 @@ public class TransactionService {
 	 * @param transactionMap A map containing transaction details.
 	 * @throws CustomException If the transaction creation process fails.
 	 */
+	@SuppressWarnings("unchecked")
 	public void prepareTransaction(Map<String, Object> transactionMap) throws CustomException {
 		logger.info("Initiating transaction creation...");
 		AccountService accountDAO = new AccountService();
 		List<Account> accounts;
-
+		Map<String, Object> accountMap = new HashMap<>();
 		if (Helper.getThreadLocalValue().get("role").equals("Employee")) {
 			long branchId = Long.parseLong((String) transactionMap.get("branchId"));
 			long accountNumber = Long.parseLong((String) transactionMap.get("accountNumber"));
@@ -92,13 +97,16 @@ public class TransactionService {
 			logger.debug("Employee role detected. Verifying branch ID for accounts...");
 
 			// Use cache for account details
-			accounts = accountDAO.getAccountDetails(0l, transactionAccountNumber, 0l, 0l);
+			
+			accountMap.put("accountNumber", accountNumber);
+			accounts = (List<Account>) accountDAO.getAccountDetails(accountMap).get("accounts");
 			Account account = accounts.get(0);
 			if (account.getBranchId() != branchId) {
 				logger.warn("Branch ID mismatch for account number: {}", accountNumber);
 				throw new CustomException("Invalid account");
 			}
-			accounts = accountDAO.getAccountDetails(0l, transactionAccountNumber, 0l, 0l);
+			accountMap.put("accountNumber", transactionAccountNumber);
+			accounts = (List<Account>) accountDAO.getAccountDetails(accountMap).get("accounts");
 			Account transactionAccount = accounts.get(0);
 			if (transactionAccount.getBranchId() != branchId) {
 				logger.warn("Branch ID mismatch for transaction account number: {}", transactionAccountNumber);
@@ -117,7 +125,8 @@ public class TransactionService {
 			logger.debug("Bank name is Horizon. Retrieving transaction IFSC...");
 			try {
 				long transactionAccountNumber = Long.parseLong((String) transactionMap.get("transactionAccountNumber"));
-				accounts = accountDAO.getAccountDetails(0l, transactionAccountNumber, 0l, 0l);
+				accountMap.put("accountNumber", transactionAccountNumber);
+				accounts = (List<Account>) accountDAO.getAccountDetails(accountMap).get("accounts");
 				Account transactionAccount = accounts.get(0);
 				branches = branchDAO.getBranch(transactionAccount.getBranchId(), false);
 				String transactionIfsc = branches.get(0).getIfscCode();
@@ -137,6 +146,7 @@ public class TransactionService {
 		logger.info("Transaction successfully created for account number: {}", transaction.getAccountNumber());
 	}
 
+	@SuppressWarnings("unchecked")
 	public void prepareRecipientTransaction(Transaction transaction, boolean thisBank) throws CustomException {
 		logger.info("Starting transaction processing...");
 		Long txId = createTransaction(transaction);
@@ -147,7 +157,9 @@ public class TransactionService {
 				Long transactionAccountNumber = transaction.getTransactionAccountNumber();
 				String transactionIfsc = transaction.getTransactionIfsc();
 				String ifsc = transaction.getIfsc();
-				List<Account> accounts = accountDAO.getAccounts(0l, transactionAccountNumber, 0l, 0l, 0l);
+				Map<String, Object> accountMap = new HashMap<>();
+				accountMap.put("accountNumber", transactionAccountNumber);
+				List<Account> accounts = (List<Account>) accountDAO.getAccounts(accountMap).get("accounts");
 				Helper.checkNullValues(accounts);
 
 				String transactionType = transaction.getTransactionType();
@@ -178,6 +190,7 @@ public class TransactionService {
 		}
 	}
 
+	@SuppressWarnings("unchecked")
 	public Long createTransaction(Transaction transaction) throws CustomException {
 		logger.info("Creating a new transaction...");
 
@@ -188,7 +201,9 @@ public class TransactionService {
 
 		String transactionType = transaction.getTransactionType();
 		BigDecimal amount = transaction.getAmount();
-		List<Account> accounts = accountDAO.getAccounts(0l, transaction.getAccountNumber(), 0l, 0l, 0l);
+		Map<String, Object> accountMap = new HashMap<>();
+		accountMap.put("accountNumber", transaction.getAccountNumber());
+		List<Account> accounts = (List<Account>) accountDAO.getAccounts(accountMap).get("accounts");
 		Helper.checkNullValues(accounts);
 
 		BigDecimal accountBalance = accounts.get(0).getBalance();
@@ -220,10 +235,14 @@ public class TransactionService {
 		return txId;
 	}
 
+	@SuppressWarnings("unchecked")
 	private BigDecimal computeDepositBalance(BigDecimal accountBalance, Transaction transaction, AccountDAO accountDAO)
 			throws CustomException {
 		logger.info("Computing deposit balance...");
-		Account account = accountDAO.getAccounts(0l, transaction.getAccountNumber(), 0l, 0l, 0l).get(0);
+		Map<String, Object> accountMap = new HashMap<>();
+		accountMap.put("accountNumber", transaction.getAccountNumber());
+		List<Account> accounts = (List<Account>) accountDAO.getAccounts(accountMap).get("accounts");
+		Account account = accounts.get(0);
 		if (!"Operational".equals(account.getAccountType())) {
 			return accountBalance.add(transaction.getAmount());
 		} else {

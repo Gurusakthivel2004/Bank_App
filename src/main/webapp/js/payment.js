@@ -121,7 +121,7 @@ document.addEventListener("DOMContentLoaded", async _ => {
 		document.getElementById('paymentmode').style.display = 'flex';
 	}
 	try {
-		const response = await fetch('http://localhost:8080/Bank_Application/api/Account?customerId=-1', {
+		const response = await fetch('http://localhost:8080/Bank_Application/api/Account?userId=-1', {
 			method: 'GET',
 			headers: {
 				'Content-Type': 'application/json',
@@ -130,7 +130,7 @@ document.addEventListener("DOMContentLoaded", async _ => {
 		});
 		const result = await response.json(), accountsDropdown = document.querySelector('.accountsSelect');;
 		console.log(result);
-		result.forEach((account) => {
+		result.accounts.forEach((account) => {
 			const option = document.createElement('option');
 			option.value = account.accountNumber;
 			option.id = account.branchId;
@@ -143,7 +143,7 @@ document.addEventListener("DOMContentLoaded", async _ => {
 			currentAccountIndex = selectedValue;
 		});
 	} catch (error) {
-		window.location = "index.html";
+		console.log(error);
 	}
 
 });

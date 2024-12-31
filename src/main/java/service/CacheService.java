@@ -116,6 +116,21 @@ public class CacheService {
 			logger.error("Failed to delete key '{}' from Redis: {}", deleteKey, e.getMessage());
 		}
 	}
+	
+	public void deleteAll() {
+		try (Jedis jedis = RedisCache.getConnection()) {
+			List<String> allKeys = getAllKeys();
+			for (String key : allKeys) {
+				if (jedis.del(key) > 0) {
+					logger.info("Successfully deleted key '{}' from Redis.", key);
+				} else {
+					logger.warn("Key '{}' does not exist in Redis.", key);
+				}
+			}
+		} catch (Exception e) {
+			logger.error("Failed to delete from Redis: {}", e.getMessage());
+		}
+	}
 
 	public List<String> getAllKeys() {
 		try (Jedis jedis = RedisCache.getConnection()) {

@@ -310,7 +310,7 @@ public class Helper {
 	}
 
 	private static Object processDynamicKey(String key, String paramValue) {
-		List<String> Longkeys = new ArrayList<>(Arrays.asList("id", "limit", "accountNumber", "offset"));
+		List<String> Longkeys = new ArrayList<>(Arrays.asList("id", "limit", "accountNumber", "offset", "balance"));
 		if (key.toLowerCase().contains("id") || Longkeys.contains(key)) {
 			return Helper.parseLongOrDefault(paramValue, 0L);
 		}
