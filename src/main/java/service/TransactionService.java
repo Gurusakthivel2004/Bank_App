@@ -23,59 +23,45 @@ public class TransactionService {
 	private final Logger logger = LogManager.getLogger(TransactionService.class.getName());
 	private TransactionDAO transactionDAO = new TransactionDAO();
 
-	/**
-	 * Retrieves a list of transactions based on the provided criteria.
-	 * 
-	 * @param id            The transaction ID associated with the transactions.
-	 * @param accountNumber The account number associated with the transactions.
-	 * @param limitValue    The number of transactions.
-	 * @param from          The start date for filtering transactions (can be null).
-	 * @param to            The end date for filtering transactions (can be null).
-	 * @return A list of matching transactions.
-	 * @throws CustomException If an error occurs while retrieving transactions.
-	 */
-	@SuppressWarnings("unchecked")
 	public Map<String, Object> getTransactionDetails(Map<String, Object> txMap) throws CustomException {
 		try {
-			AccountDAO accountDAO = new AccountDAO();
-			Account primaryAccount = null;
-			Long id = (Long) txMap.get("id"), accountNumber = (Long) txMap.get("accountNumber");
-			if (id == -1l) {
-				id = (Long) Helper.getThreadLocalValue().get("id");
-			}
-			Map<String, Object> accountMap = new HashMap<>();
-			accountMap.put("userId", id);
-			if (accountNumber == null) {
-				List<Account> accounts = (List<Account>) accountDAO.getAccounts(accountMap).get("accounts");
-				if (accounts == null) {
-					logger.error("No Accounts found");
-					throw new CustomException("No accounts found for user " + id);
-				}
-				primaryAccount = accounts.stream().filter(Account::getIsPrimary).findAny().orElse(null);
-				if (primaryAccount == null) {
-					logger.error("Primary account can't be null");
-					throw new CustomException("No primary account found.");
+			Long customerId = (Long) txMap.get("customerId");
+			Long accountNumber = (Long) txMap.getOrDefault("accountNumber", 0L);
+			if (customerId != null && customerId == -1L) {
+				customerId = (Long) Helper.getThreadLocalValue().get("id");
+				txMap.put("customerId", customerId);
+
+				if (accountNumber == 0L) {
+					Account primaryAccount = fetchPrimaryAccount(customerId);
+					accountNumber = primaryAccount != null ? primaryAccount.getAccountNumber() : accountNumber;
 				}
 			}
 			String role = Helper.getThreadLocalValue().get("role").toString();
-			if (role.equals("Employee")) {
-				accountNumber = primaryAccount != null ? primaryAccount.getAccountNumber() : accountNumber;
-				accountMap.put("accountNumber", accountNumber);
-				List<Account> accounts = (List<Account>) accountDAO.getAccounts(accountMap).get("accounts");
-				txMap.remove("id");
-				txMap.remove("accountNumber");
-				return transactionDAO.getTransactionByBranchId(accounts, txMap);
+			if ("Employee".equals(role)) {
+				txMap.put("branchId", Helper.getThreadLocalValue().get("branchId"));
 			}
-			long primaryAccountNumber = primaryAccount != null ? primaryAccount.getAccountNumber() : accountNumber;
-			txMap.put("accountNumber", primaryAccountNumber);
+
+			txMap.put("accountNumber", accountNumber);
 			Map<String, Object> txResult = transactionDAO.getTransactions(txMap);
-			logger.debug("Retrieved {} transaction(s) for the given criteria",
-					((List<Transaction>) txResult.get("transactions")).size());
 			return txResult;
+
 		} catch (Exception e) {
 			logger.error("Error fetching transaction details: {}", e);
-			throw new CustomException(e.getMessage());
+			throw new CustomException("Error fetching transaction details: " + e.getMessage());
 		}
+	}
+
+	@SuppressWarnings("unchecked")
+	private Account fetchPrimaryAccount(Long customerId) throws CustomException {
+		Map<String, Object> accountMap = new HashMap<>();
+		accountMap.put("userId", customerId);
+		List<Account> accounts = (List<Account>) new AccountDAO().getAccounts(accountMap).get("accounts");
+		if (accounts == null || accounts.isEmpty()) {
+			logger.error("No Accounts found for user {}", customerId);
+			throw new CustomException("No accounts found for user " + customerId);
+		}
+		return accounts.stream().filter(Account::getIsPrimary).findFirst()
+				.orElseThrow(() -> new CustomException("No primary account found for user " + customerId));
 	}
 
 	/**
@@ -97,7 +83,7 @@ public class TransactionService {
 			logger.debug("Employee role detected. Verifying branch ID for accounts...");
 
 			// Use cache for account details
-			
+
 			accountMap.put("accountNumber", accountNumber);
 			accounts = (List<Account>) accountDAO.getAccountDetails(accountMap).get("accounts");
 			Account account = accounts.get(0);
@@ -116,8 +102,8 @@ public class TransactionService {
 
 		BranchDAO branchDAO = new BranchDAO();
 		Long branchId = Long.parseLong((String) transactionMap.get("branchId"));
-		List<Branch> branches = branchDAO.getBranch(branchId, false);
-		String ifsc = branches.get(0).getIfscCode();
+		List<Object> branches = branchDAO.getBranch(branchId, false);
+		String ifsc = ((Branch) branches.get(0)).getIfscCode();
 		transactionMap.put("ifsc", ifsc);
 		transactionMap.remove("branchId");
 		logger.debug("IFSC code retrieved and set for branch ID: {}", branchId);
@@ -129,7 +115,7 @@ public class TransactionService {
 				accounts = (List<Account>) accountDAO.getAccountDetails(accountMap).get("accounts");
 				Account transactionAccount = accounts.get(0);
 				branches = branchDAO.getBranch(transactionAccount.getBranchId(), false);
-				String transactionIfsc = branches.get(0).getIfscCode();
+				String transactionIfsc = ((Branch) branches.get(0)).getIfscCode();
 				transactionMap.put("transactionIfsc", transactionIfsc);
 			} catch (IndexOutOfBoundsException e) {
 				logger.error("Error while fetching transaction account details: {}", e.getMessage());

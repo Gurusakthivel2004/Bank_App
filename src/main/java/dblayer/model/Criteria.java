@@ -16,9 +16,10 @@ public class Criteria {
 	private List<Object> values;
 	private List<String> joinColumn;
 	private List<String> joinOperator;
-	private List<String> joinValue;
+	private List<Object> joinValue;
 	private List<Object> joinTable;
 	private String orderBy;
+	private List<String>  Alias;
 	private String orderByField;
 	private Object limitValue;
 	private Long offsetValue;
@@ -124,11 +125,11 @@ public class Criteria {
 		this.joinColumn = joinColumn;
 	}
 
-	public List<String> getJoinValue() {
+	public List<Object> getJoinValue() {
 		return joinValue;
 	}
 
-	public void setJoinValue(List<String> joinValue) {
+	public void setJoinValue(List<Object> joinValue) {
 		this.joinValue = joinValue;
 	}
 
@@ -171,6 +172,14 @@ public class Criteria {
 				+ ", values=" + values + ", joinColumn=" + joinColumn + ", joinOperator=" + joinOperator
 				+ ", joinValue=" + joinValue + ", joinTable=" + joinTable + ", orderBy=" + orderBy + ", orderByField="
 				+ orderByField + ", limitValue=" + limitValue + ", offsetValue=" + offsetValue + "]";
+	}
+
+	public List<String> getAlias() {
+		return Alias;
+	}
+
+	public void setAlias(List<String> alias) {
+		Alias = alias;
 	}
 
 }

@@ -52,10 +52,12 @@ public class AccountDAO {
 	public Map<String, Object> getAccounts(Map<String, Object> accountMap) throws CustomException {
 		logger.info("Fetching accounts with parameters: {}", accountMap);
 		try {
+			// Initialize criteria
 			Criteria criteria = new Criteria();
 			criteria.setClazz(Account.class);
 			criteria.setSelectColumn(new ArrayList<>(Arrays.asList("*")));
 
+			// Extract filter values from the input map
 			Long userId = (Long) accountMap.getOrDefault("userId", 0L);
 			Long accountNumber = (Long) accountMap.getOrDefault("accountNumber", 0L);
 			Long branchId = (Long) accountMap.getOrDefault("branchId", 0L);
@@ -65,13 +67,15 @@ public class AccountDAO {
 			String type = (String) accountMap.getOrDefault("accountType", "");
 			String status = (String) accountMap.getOrDefault("status", "");
 
+			// Dynamically add conditions to criteria
 			Helper.addCondition(criteria, userId > 0, "user_id", "=", userId);
 			Helper.addCondition(criteria, accountNumber > 0, "account_number", "LIKE", "%" + accountNumber + "%");
-			Helper.addCondition(criteria, accountCreated > 0, "created_at", "=", accountCreated);
 			Helper.addCondition(criteria, branchId > 0, "branch_id", "=", branchId);
-			Helper.addCondition(criteria, type != "", "account_type", "=", type);
-			Helper.addCondition(criteria, status != "", "status", "=", status);
+			Helper.addCondition(criteria, accountCreated > 0, "created_at", "=", accountCreated);
+			Helper.addCondition(criteria, !type.isEmpty(), "account_type", "=", type);
+			Helper.addCondition(criteria, !status.isEmpty(), "status", "=", status);
 
+			// Set limit and logical operator
 			if (limitValue > 0) {
 				criteria.setLimitValue(limitValue);
 			}
@@ -82,10 +86,24 @@ public class AccountDAO {
 			Map<String, Object> txResult = new HashMap<>();
 			if (offset >= 0) {
 				if (offset == 0) {
-					criteria.setOffsetValue(-1l);
+					criteria.setOffsetValue(-1L);
 					txResult.put("count", SQLHelper.get(criteria).get(0));
 				}
-				criteria.setOffsetValue(offset);
+				Criteria staffJoinCriteria = Helper.buildJoinCriteria(Account.class, Arrays.asList("branch"),
+						new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), new ArrayList<>(),
+						new ArrayList<>(), true);
+
+				staffJoinCriteria.setSelectColumn(Arrays.asList("account.*", "branch.name"));
+				Helper.addJoinCondition(staffJoinCriteria, true, "account.branch_id", "=", "branch.id");
+				Helper.addCondition(staffJoinCriteria, userId > 0, "user_id", "=", userId);
+				Helper.addCondition(staffJoinCriteria, accountNumber > 0, "account_number", "LIKE",
+						"%" + accountNumber + "%");
+				Helper.addCondition(staffJoinCriteria, branchId > 0, "branch_id", "=", branchId);
+				Helper.addCondition(staffJoinCriteria, !type.isEmpty(), "account_type", "=", type);
+				Helper.addCondition(staffJoinCriteria, !status.isEmpty(), "status", "=", status);
+
+				staffJoinCriteria.setAlias(Arrays.asList(null, "branchName"));
+				txResult.put("joinedAccounts", SQLHelper.get(staffJoinCriteria));
 			}
 
 			logger.debug("Criteria for fetching accounts: {}", criteria);

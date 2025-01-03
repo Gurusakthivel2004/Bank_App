@@ -9,7 +9,6 @@ import java.util.Map;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import dblayer.model.Account;
-import dblayer.model.Branch;
 import dblayer.model.Transaction;
 import util.CustomException;
 import util.Helper;
@@ -66,10 +65,10 @@ public class FacadeHandler {
 
 			// Fetch branch details for the accounts
 			logger.debug("Fetching branch details for user ID: {}", id);
-			List<Branch> branchDetails = new ArrayList<>();
+			List<Object> branchDetails = new ArrayList<>();
 			BranchService branchService = new BranchService();
 			for (Account account : accounts) {
-				Branch branch = branchService.getBranchDetails(account.getBranchId(), false).get(0);
+				Object branch = branchService.getBranchDetails(account.getBranchId(), false).get(0);
 				if (!branchDetails.contains(branch)) {
 					branchDetails.add(branch);
 				}
@@ -103,29 +102,34 @@ public class FacadeHandler {
 	 */
 	@SuppressWarnings("unchecked")
 	private void addMonthlyFinance(Map<String, Object> map, Long customerId, int monthLength) throws CustomException {
-		int month = LocalDate.now().getMonthValue();
-		int year = LocalDate.now().getYear();
-
+		int currentMonth = LocalDate.now().getMonthValue();
+		int currentYear = LocalDate.now().getYear();
 		logger.debug("Adding monthly finance details for customer ID: {}", customerId);
-		for (int i = 0; i < monthLength; i++) {
-			int currMonth = month - i;
-			long startMillis = Helper.getStartOfMonthMillis(year, currMonth);
-			Long endMillis = Helper.getEndOfMonthMillis(year, currMonth);
 
-			logger.debug("Fetching transaction details for month: {} (Start: {}, End: {})", currMonth, startMillis,
-					endMillis);
-			Map<String, Object> txMap = getTransactionMap(customerId, 0l, 0l, startMillis, endMillis, -1l);
-			;
+		for (int i = 0; i < monthLength; i++) {
+			int adjustedMonth = currentMonth - i;
+			int adjustedYear = currentYear;
+
+			if (adjustedMonth <= 0) {
+				adjustedMonth += 12;
+				adjustedYear--;
+			}
+
+			long startMillis = Helper.getStartOfMonthMillis(adjustedYear, adjustedMonth);
+			long endMillis = Helper.getEndOfMonthMillis(adjustedYear, adjustedMonth);
+
+			logger.debug("Fetching transaction details for month: {}-{} (Start: {}, End: {})", adjustedYear,
+					adjustedMonth, startMillis, endMillis);
+			Map<String, Object> txMap = getTransactionMap(customerId, 0L, 0L, startMillis, endMillis, -1L);
 			List<Transaction> transactions = (List<Transaction>) transactionService.getTransactionDetails(txMap)
 					.get("transactions");
 
 			Map<String, BigDecimal> monthlyFinance = new HashMap<>();
 			for (Transaction tx : transactions) {
 				String type = tx.getTransactionType();
-				monthlyFinance.put(type,
-						((BigDecimal) monthlyFinance.getOrDefault(type, new BigDecimal(0))).add(tx.getAmount()));
+				monthlyFinance.put(type, monthlyFinance.getOrDefault(type, BigDecimal.ZERO).add(tx.getAmount()));
 			}
-			map.put(currMonth + "", monthlyFinance);
+			map.put(adjustedMonth + "", monthlyFinance);
 		}
 
 		logger.info("Monthly finance details added successfully for customer ID: {}", customerId);
@@ -134,12 +138,26 @@ public class FacadeHandler {
 	private Map<String, Object> getTransactionMap(Long id, Long accountNumber, Long limit, Long from, Long to,
 			Long offset) {
 		Map<String, Object> txMap = new HashMap<>();
-		txMap.put("id", id);
-		txMap.put("accountNumber", accountNumber);
-		txMap.put("limit", limit);
-		txMap.put("from", from);
-		txMap.put("to", to);
-		txMap.put("offset", offset);
+
+		if (id != null && id > 0) {
+			txMap.put("customerId", id);
+		}
+		if (accountNumber != null && accountNumber > 0) {
+			txMap.put("accountNumber", accountNumber);
+		}
+		if (limit != null && limit > 0) {
+			txMap.put("limit", limit);
+		}
+		if (from != null && from > 0) {
+			txMap.put("from", from);
+		}
+		if (to != null && to > 0) {
+			txMap.put("to", to);
+		}
+		if (offset != null && offset > 0) {
+			txMap.put("offset", offset);
+		}
 		return txMap;
 	}
+
 }

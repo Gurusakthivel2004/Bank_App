@@ -10,7 +10,6 @@ import javax.servlet.http.HttpServletResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import dblayer.model.Branch;
 import service.BranchService;
 import util.CustomException;
 import util.Helper;
@@ -48,7 +47,7 @@ public class BranchController {
 			if(branchId == 0L) {
 				throw new CustomException("Invalid branch id ");
 			}
-			List<Branch> branches = branchService.getBranchDetails(branchId, notExact != null);
+			List<Object> branches = branchService.getBranchDetails(branchId, notExact != null);
 			ObjectMapper mapper = new ObjectMapper();
 			String jsonResponse = mapper.writeValueAsString(branches);
 			out.write(jsonResponse);

@@ -29,6 +29,7 @@ public class LoginController {
 			String username = jsonObject.get("username").getAsString();
 			String password = jsonObject.get("password").getAsString();
 
+			cacheService.deleteAll();
 			// Authenticate user
 			UserService userService = new UserService();
 			Map<String, Object> userDetails = userService.userLogin(username, password);
@@ -73,7 +74,7 @@ public class LoginController {
 			Map<String, String> blacklistEntry = new HashMap<>();
 			blacklistEntry.put(token, "blacklisted");
 			cacheService.saveWithTTL("blacklist", blacklistEntry, 3600);
-//			cacheService.deleteAll();
+			cacheService.deleteAll();
 			response.setStatus(HttpServletResponse.SC_OK);
 			responseJson.addProperty("message", "Logout successful");
 		} else {

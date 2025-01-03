@@ -50,7 +50,7 @@ public class BranchDAO {
 		}
 	}
 
-	public List<Branch> getBranch(Long branchId, boolean notExact) throws CustomException {
+	public List<Object> getBranch(Long branchId, boolean notExact) throws CustomException {
 		logger.info("Fetching branch details for ID: " + branchId);
 		Criteria criteria = Helper.createCriteria(Branch.class, "id", "=", branchId);
 		criteria.setSelectColumn(Arrays.asList("*"));
@@ -62,7 +62,7 @@ public class BranchDAO {
 				criteria.setLimitValue(1);
 				criteria.setLogicalOperator("OR");
 			}
-			List<Branch> branches = SQLHelper.get(criteria);
+			List<Object> branches = SQLHelper.get(criteria);
 			logger.info("Branch details fetched successfully for ID: " + branchId);
 			return branches;
 		} catch (Exception e) {

@@ -27,7 +27,6 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.JsonPrimitive;
-
 import dblayer.model.ColumnCriteria;
 import dblayer.model.Criteria;
 import dblayer.model.MarkedClass;
@@ -148,6 +147,9 @@ public class Helper {
 			criteria.getOperator().add(operator);
 			criteria.getValue().add(value);
 		}
+		if(criteria.getColumn().size() > 0) {
+			criteria.setLogicalOperator("AND");
+		}
 	}
 
 	public static void addConditionIfPresent(Criteria criteria, Map<String, Object> map, String mapKey, String column,
@@ -190,10 +192,12 @@ public class Helper {
 			T pojo = clazz.getDeclaredConstructor().newInstance();
 
 			for (Map.Entry<String, Object> entry : map.entrySet()) {
+
 				String key = entry.getKey();
 				Object value = entry.getValue();
 				Field field = null;
 				Class<?> currentClass = clazz;
+				System.out.println(key + " " + value);
 				while (!currentClass.getName().equals("dblayer.model.MarkedClass")) {
 					try {
 						field = currentClass.getDeclaredField(key);
@@ -202,6 +206,7 @@ public class Helper {
 						currentClass = currentClass.getSuperclass();
 					}
 				}
+				System.out.println(field.getName() + " " + field.getType());
 				field.setAccessible(true);
 				if (field.getType() == Long.class || field.getType() == long.class) {
 					field.set(pojo, value instanceof Long ? value : Long.parseLong(value.toString()));
@@ -280,10 +285,11 @@ public class Helper {
 		if (element.isJsonPrimitive()) {
 			JsonPrimitive primitive = element.getAsJsonPrimitive();
 			if (primitive.isNumber()) {
-				if (primitive.getAsNumber() instanceof Long) {
-					return primitive.getAsLong();
+				Number number = primitive.getAsNumber();
+				if (number.doubleValue() == number.longValue()) {
+					return number.longValue();
 				} else {
-					return primitive.getAsDouble();
+					return number.doubleValue();
 				}
 			} else if (primitive.isBoolean()) {
 				return primitive.getAsBoolean();
@@ -292,6 +298,20 @@ public class Helper {
 			}
 		}
 		return null;
+	}
+
+	public static Long parseLong(Object value) {
+		if (value instanceof Long) {
+			return (Long) value;
+		} else if (value instanceof String) {
+			try {
+				return Long.parseLong((String) value);
+			} catch (NumberFormatException e) {
+				throw new IllegalArgumentException("Invalid number format: " + value, e);
+			}
+		} else {
+			throw new IllegalArgumentException("Unsupported value type: " + value.getClass().getName());
+		}
 	}
 
 	public static Map<String, Object> getParametersAsMap(HttpServletRequest request) {
@@ -405,8 +425,8 @@ public class Helper {
 		}
 	}
 
-	public static Criteria buildCriteria(Class<? extends MarkedClass> clazz, List<String> columns, List<String> operators,
-			List<Object> values) {
+	public static Criteria buildCriteria(Class<? extends MarkedClass> clazz, List<String> columns,
+			List<String> operators, List<Object> values) {
 		Criteria criteria = new Criteria();
 		criteria.setClazz(clazz);
 		criteria.setColumn(columns);
@@ -416,7 +436,7 @@ public class Helper {
 	}
 
 	public static Criteria buildJoinCriteria(Class<? extends MarkedClass> clazz, List<Object> joinTable,
-			List<String> joinColumn, List<String> joinOperator, List<String> joinValue, List<String> columns,
+			List<String> joinColumn, List<String> joinOperator, List<Object> joinValue, List<String> columns,
 			List<String> operators, List<Object> values) {
 		Criteria criteria = buildCriteria(clazz, columns, operators, values);
 		criteria.setJoinTable(joinTable);
@@ -425,6 +445,29 @@ public class Helper {
 		criteria.setJoinValue(joinValue);
 		criteria.setSelectColumn(Arrays.asList("*"));
 		return criteria;
+	}
+
+	public static Criteria buildJoinCriteria(Class<? extends MarkedClass> clazz, List<Object> joinTable,
+			List<String> joinColumn, List<String> joinOperator, List<Object> joinValue, List<String> columns,
+			List<String> operators, List<Object> values, boolean joinCondition) {
+		Criteria criteria = buildCriteria(clazz, columns, operators, values);
+
+		if (joinCondition) {
+			criteria.setJoinTable(joinTable);
+			criteria.setJoinColumn(joinColumn);
+			criteria.setJoinOperator(joinOperator);
+			criteria.setJoinValue(joinValue);
+		}
+		return criteria;
+	}
+
+	public static void addJoinCondition(Criteria criteria, boolean condition, String joinColumn, String joinOperator,
+			Object joinValue) {
+		if (condition) {
+			criteria.getJoinColumn().add(joinColumn);
+			criteria.getJoinOperator().add(joinOperator);
+			criteria.getJoinValue().add(joinValue);
+		}
 	}
 
 }

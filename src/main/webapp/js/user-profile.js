@@ -20,7 +20,7 @@ window.onload = async _ => {
 			},
 		});
 		const result = await response.json();
-		setValues(result);
+		setValues(result[0]);
 		console.log(result)
 	} catch (error) {
 		console.error('Error during fetch or processing:' + error);

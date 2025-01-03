@@ -4,10 +4,9 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 import dblayer.model.Account;
 import dblayer.model.ColumnCriteria;
@@ -48,70 +47,79 @@ public class TransactionDAO {
 
 	public Map<String, Object> getTransactions(Map<String, Object> txMap) throws CustomException {
 		logger.info("Fetching transactions with provided filters...");
+
+		Criteria criteria = initializeCriteria();
+		criteria = applyBranchFilter(criteria, txMap);
+		applyTransactionFilters(criteria, txMap);
+		applyAccountNumberFilter(criteria, txMap);
+		
+		applyPagination(criteria, txMap);
+
+		return executeQuery(criteria, txMap);
+	}
+
+	private Criteria initializeCriteria() {
 		Criteria criteria = new Criteria();
 		criteria.setClazz(Transaction.class);
 		criteria.setOrderBy("DESC");
 		criteria.setOrderByField("transaction_time");
 		criteria.setSelectColumn(Arrays.asList("*"));
+		return criteria;
+	}
 
-		Helper.addConditionIfPresent(criteria, txMap, "id", "customer_id", "=", 0L);
+	private void applyTransactionFilters(Criteria criteria, Map<String, Object> txMap) {
+		Helper.addConditionIfPresent(criteria, txMap, "customerId", "customer_id", "=", 0L);
 		Helper.addConditionIfPresent(criteria, txMap, "from", "transaction_time", ">", 0L);
 		Helper.addConditionIfPresent(criteria, txMap, "to", "transaction_time", "<", 0L);
 		Helper.addCondition(criteria, txMap.get("transactionType") != null, "transaction_type", "=",
 				txMap.get("transactionType"));
-		Helper.addCondition(criteria, (Long) txMap.get("accountNumber") > 0, "account_number", "LIKE",
-				"%" + txMap.get("accountNumber") + "%");
+	}
 
+	private void applyAccountNumberFilter(Criteria criteria, Map<String, Object> txMap) {
+		Long accountNumber = (Long) txMap.get("accountNumber");
+		if (accountNumber != null && accountNumber > 0) {
+			if (accountNumber <= 9999) {
+				Helper.addCondition(criteria, true, "RIGHT(account_number, 4)", "=", accountNumber);
+			} else {
+				Helper.addConditionIfPresent(criteria, txMap, "accountNumber", "account_number", "=", 0L);
+			}
+		}
+	}
+
+	private Criteria applyBranchFilter(Criteria criteria, Map<String, Object> txMap) {
+		if (!txMap.containsKey("branchId")) {
+			return criteria;
+		}
+		criteria = Helper.buildJoinCriteria(Transaction.class, Arrays.asList("branch"), new ArrayList<>(),
+				new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), true);
+		criteria.setSelectColumn(Collections.singletonList("transaction.*"));
+		Helper.addJoinCondition(criteria, true, "transaction.ifsc", "=", "branch.ifsc_code");
+		Helper.addCondition(criteria, true, "branch.id", "=", txMap.get("branchId"));
+		return criteria;
+	}
+
+	private void applyPagination(Criteria criteria, Map<String, Object> txMap) {
 		Long limitValue = (Long) txMap.getOrDefault("limit", 0L);
 		Long offset = (Long) txMap.getOrDefault("offset", -1L);
 
 		if (limitValue > 0) {
 			criteria.setLimitValue(limitValue);
 		}
-		if (criteria.getColumn().size() > 1) {
-			criteria.setLogicalOperator("AND");
-		}
-
-		Map<String, Object> txResult = new HashMap<>();
 		if (offset >= 0) {
-			if (offset == 0) {
-				criteria.setOffsetValue(-1l);
-				txResult.put("count", SQLHelper.get(criteria).get(0));
-				System.out.println(txMap.get("count"));
-			}
+			criteria.setOffsetValue(offset == 0 ? -1L : offset);
+		}
+	}
+
+	private Map<String, Object> executeQuery(Criteria criteria, Map<String, Object> txMap) throws CustomException {
+		Map<String, Object> txResult = new HashMap<>();
+		Long offset = (Long) txMap.getOrDefault("offset", -1L);
+		if (offset == 0) {
+			criteria.setOffsetValue(-1L);
+			txResult.put("count", SQLHelper.get(criteria).get(0));
 			criteria.setOffsetValue(offset);
 		}
 		txResult.put("transactions", SQLHelper.get(criteria));
 		return txResult;
-	}
-
-	@SuppressWarnings("unchecked")
-	public Map<String, Object> getTransactionByBranchId(List<Account> accounts, Map<String, Object> txMap)
-			throws CustomException {
-		logger.info("Checking transactions by branch ID...");
-		Map<String, Object> transactions = new HashMap<>();
-		transactions.put("transactions", new ArrayList<Transaction>());
-		Long branchId = (Long) Helper.getThreadLocalValue().get("branchId");
-		for (Account account : accounts) {
-			if (account.getBranchId() == branchId) {
-				try {
-					txMap.put("id", 0l);
-					txMap.put("accountNumber", account.getAccountNumber());
-					Map<String, Object> accountTransactions = getTransactions(txMap);
-					transactions.put("count", ((Long) transactions.getOrDefault("count", 0l))
-							+ ((Long) accountTransactions.getOrDefault("count", 0l)));
-					((List<Transaction>) transactions.get("transactions"))
-							.addAll((List<Transaction>) accountTransactions.get("transactions"));
-				} catch (CustomException e) {
-					logger.log(Level.SEVERE, "Error fetching transactions for account: " + account.getAccountNumber(),
-							e);
-					throw e;
-				}
-			} else {
-				logger.info("Skipping account due to branch mismatch: " + account.getAccountNumber());
-			}
-		}
-		return transactions;
 	}
 
 }

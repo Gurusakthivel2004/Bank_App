@@ -18,7 +18,7 @@
 				<a class="m-0 p-0" href="dashboard.html"><img class="w-5 h-5"
 					width="100px" height="100px" src="./images/logo2.png" alt="" /></a>
 				<h1
-					style="padding-right: 50px;ne; font-family: sans-serif; letter-spacing: -0.5px; font-weight: 990; font-size: xxx-large; color: #2b0444;">Horizon</h1>
+					style="padding-right: 50px; ne; font-family: sans-serif; letter-spacing: -0.5px; font-weight: 990; font-size: xxx-large; color: #2b0444;">Horizon</h1>
 			</div>
 			<div class="d-flex justify-content-between">
 				<div class="profile-dropdown">
@@ -182,17 +182,24 @@
 						class="d-flex column mb-3 justify-content-between align-items-baseline">
 						<h3
 							style="font-family: sans-serif; font-weight: 900; color: #2b0444; font-size: larger;">Transactions</h3>
-						<div class="transaction-filter d-flex flex-wrap">
+						<div style="font-family: sans-serif;"
+							class="transaction-filter d-flex flex-wrap">
 							<div id="idfilter" style="display: flex;"
 								class="id-dropdown align-items-baseline me-3 mb-3">
 								<label class="fw-bold  me-2 text-dark">User Id:</label> <input
-									class="form-control" type="text" style="width: 170px"
+									class="form-control" type="text" style="width: 150px"
 									id="IdsearchInput" placeholder="UserId" aria-expanded="false">
+							</div>
+							<div id="branchidfilter" style="display: none;"
+								class="id-dropdown align-items-baseline me-3 mb-3">
+								<label class="fw-bold  me-2 text-dark">Branch Id:</label> <input
+									class="form-control" type="text" style="width: 150px"
+									id="branchIdsearchInput" placeholder="BranchId" aria-expanded="false">
 							</div>
 							<div class="id-dropdown d-flex align-items-baseline me-3 mb-3">
 								<label class="fw-bold me-2 text-dark">Account:</label> <input
 									class="form-control" style="width: 170px;" type="text"
-									id="AccountsearchInput" placeholder="Account number"
+									id="AccountsearchInput" placeholder="Last 4 digits"
 									aria-expanded="false">
 							</div>
 							<div class="id-dropdown d-flex align-items-baseline me-3 mb-3">
@@ -215,23 +222,24 @@
 									class="form-control" type="date" id="ToDatesearchInput">
 							</div>
 						</div>
-
 					</div>
 
-					<div class="transaction-history text-dark rounded">
+					<div class="transaction-history rounded">
 						<div
-							style="background-color: #2b0444; color: white; font-weight: 900; padding: 10px; border-radius: 10px;"
+							style="background-color: #2b0444; color: white; font-weight: 700; padding: 10px; border-radius: 10px;"
 							class="transaction-item mb-3">
-							<p class="tid" style="width: 10%; font-size: larger;">ID</p>
-							<p class="tacc" style="width: 19%;">Account</p>
+							<p class="tid"
+								style="font-family: 'sans-serif'; width: 10%; font-size: larger;">ID</p>
+							<p class="tacc" style="font-family: 'sans-serif'; width: 19%;">Account</p>
 							<p class="tamount"
-								style="width: 10%; font-size: larger; color: white;">Amount</p>
+								style="font-family: 'sans-serif'; width: 10%; font-size: larger; color: white;">Amount</p>
 							<p class="ttimestamp"
-								style="width: 20%; padding-left: 37px; font-size: larger;">Date</p>
+								style="font-family: 'sans-serif'; width: 20%; padding-left: 37px; font-size: larger;">Date</p>
 							<p class="tstatus"
-								style="width: 10%; padding-left: 10px; font-size: larger;">Status</p>
-							<p class="ttype" style="width: 15%;">Type</p>
-							<p class="tfrom" style="width: 20%;">Recipient Account</p>
+								style="font-family: 'sans-serif'; width: 10%; padding-left: 10px; font-size: larger;">Status</p>
+							<p class="ttype" style="font-family: 'sans-serif'; width: 15%;">Type</p>
+							<p class="tfrom" style="font-family: 'sans-serif'; width: 20%;">Recipient
+								Account</p>
 						</div>
 						<div class="transaction-data"></div>
 
@@ -246,8 +254,7 @@
 							style="background-color: #2b0444; font-weight: 500; padding: 10px 20px; border-radius: 5px;"
 							onclick="prevPage()" disabled>Back</button>
 						<div id="pageNumbers" class="d-flex align-items-center"
-							style="color: black; font-weight: 700; font-size: 17px;">
-						</div>
+							style="color: black; font-weight: 700; font-size: 17px;"></div>
 						<button id="nextButton" class="btn btn-dark"
 							style="background-color: #2b0444; font-weight: 500; padding: 10px 20px; border-radius: 5px;"
 							onclick="nextPage()">Next</button>

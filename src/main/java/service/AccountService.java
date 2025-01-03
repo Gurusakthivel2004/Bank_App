@@ -6,12 +6,15 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.math.BigDecimal;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import com.fasterxml.jackson.core.type.TypeReference;
 import dblayer.dao.AccountDAO;
 import dblayer.model.Account;
+import dblayer.model.Branch;
 import dblayer.model.ColumnCriteria;
 import util.CustomException;
 import util.Helper;
@@ -22,23 +25,14 @@ public class AccountService {
 	private AccountDAO accountDAO = new AccountDAO();
 	private CacheService cacheService = new CacheService();
 
-	/**
-	 * Fetches account details based on input parameters.
-	 * 
-	 * @param customerId     The ID of the customer.
-	 * @param accountNumber  The account number (0 if not used).
-	 * @param branchId       The ID of the branch (0 if not used).
-	 * @param accountCreated Timestamp representing when the account was created.
-	 * @return List of accounts matching the search criteria.
-	 * @throws CustomException If an error occurs during account retrieval.
-	 */
-
 	@SuppressWarnings("unchecked")
 	public Map<String, Object> getAccountDetails(Map<String, Object> accountMap) throws CustomException {
 
 		try {
-			Long customerId = (Long) accountMap.getOrDefault("userId", 0l), branchId = (Long) accountMap.getOrDefault("branchId", 0l);
-			if (!(accountMap.containsKey("accountNumber") || branchId > 0)) {
+			Long customerId = Helper.parseLong(accountMap.getOrDefault("userId", "0"));
+			Long branchId = Helper.parseLong(accountMap.getOrDefault("branchId", "0"));
+			if (!(accountMap.containsKey("accountNumber")
+					|| branchId > 0 && Helper.getThreadLocalValue().get("role").equals("Manager"))) {
 				if (customerId == null || customerId == -1) {
 					accountMap.put("userId", (Long) Helper.getThreadLocalValue().get("id"));
 				}
@@ -50,17 +44,19 @@ public class AccountService {
 			Map<Long, List<Account>> cachedAccounts = cacheService.get(key,
 					new TypeReference<Map<Long, List<Account>>>() {
 					});
-			// Return cached accounts if available
+			
 			Long cachedKey = extractLongFromString(key);
 			if (cachedAccounts != null && cachedAccounts.containsKey(cachedKey)) {
 				return (Map<String, Object>) cachedAccounts.get(cachedKey);
 			}
-			// Fetch accounts from database
+			
+			
 			Map<String, Object> accountsResult = fetchAccounts(accountMap);
-			List<Account> accounts = (List<Account>) accountsResult.get("accounts");
-			if (accounts != null && !accounts.isEmpty()) {
-				// Filter based on branch ID if needed
-				List<Account> filteredAccounts = filterAccountsByBranch(accounts);
+			List<Object> accounts = (List<Object>) accountsResult.get("accounts");
+			String role = (String) Helper.getThreadLocalValue().get("role");
+			if (accounts != null && !accounts.isEmpty() && role.equals("Employee")) {
+
+				List<Object> filteredAccounts = filterAccountsByBranch(accounts);
 				if (!key.isEmpty()) {
 					saveToCache(key, cachedKey, accountsResult);
 				}
@@ -77,9 +73,9 @@ public class AccountService {
 		if (accountMap == null) {
 			return "";
 		}
-		Long userId = (Long) accountMap.getOrDefault("userId", 0L);
-		Long accountNumber = (Long) accountMap.getOrDefault("accountNumber", 0L);
-		Long branchId = (Long) accountMap.getOrDefault("branchId", 0L);
+		Long userId = Helper.parseLong(accountMap.getOrDefault("userId", "0"));
+		Long accountNumber = Helper.parseLong(accountMap.getOrDefault("accountNumber", "0"));
+		Long branchId = Helper.parseLong(accountMap.getOrDefault("branchId", "0"));
 		if (accountNumber == 0L && branchId == 0L) {
 			return "customerIdAccounts:" + userId;
 		} else if (userId == 0L && accountNumber == 0L) {
@@ -109,7 +105,7 @@ public class AccountService {
 		return accountDAO.getAccounts(accountMap);
 	}
 
-	private List<Account> filterAccountsByBranch(List<Account> accounts) throws CustomException {
+	private List<Object> filterAccountsByBranch(List<Object> accounts) throws CustomException {
 		if (Helper.getThreadLocalValue().get("branchId") != null) {
 			logger.debug("Filtering accounts based on branch ID");
 			return checkAccountBranchId(accounts);
@@ -117,20 +113,36 @@ public class AccountService {
 		return accounts;
 	}
 
-	public List<Account> checkAccountBranchId(List<Account> accounts) throws CustomException {
-		logger.info("Checking accounts against branchId in ThreadLocal.");
+	public List<Object> checkAccountBranchId(List<Object> objects) throws CustomException {
+		logger.info("Checking accounts and branches against branchId in ThreadLocal.");
 		try {
-			long branchId = (Long) Helper.getThreadLocalValue().get("branchId");
+			long branchId = (Long) Helper.getThreadLocalValue().getOrDefault("branchId", -1L);
+			if (branchId == -1L) {
+				throw new CustomException("Branch ID not found in ThreadLocal");
+			}
 			logger.debug("Branch ID retrieved from ThreadLocal: {}", branchId);
 
-			List<Account> filteredAccounts = accounts.stream().filter(account -> account.getBranchId() == branchId)
-					.collect(Collectors.toList());
+			// Validate the list of objects
+			if (objects == null || objects.isEmpty()) {
+				logger.warn("List of objects is null or empty");
+				return Collections.emptyList();
+			}
 
-			logger.info("{} accounts matched the branchId: {}", filteredAccounts.size(), branchId);
-			return filteredAccounts;
+			// Filter based on the object type and branchId
+			List<Object> filteredObjects = objects.stream().filter(obj -> {
+				if (obj instanceof Account) {
+					return ((Account) obj).getBranchId() == branchId;
+				} else if (obj instanceof Branch) {
+					return true;
+				}
+				return false;
+			}).collect(Collectors.toList());
+
+			logger.info("{} objects matched the branchId: {}", filteredObjects.size(), branchId);
+			return filteredObjects;
 		} catch (Exception e) {
-			logger.error("Error checking accounts against branchId.", e);
-			throw new CustomException("Failed to check accounts");
+			logger.error("Error checking accounts and branches against branchId.", e);
+			throw new CustomException("Failed to check accounts and branches");
 		}
 	}
 
@@ -150,17 +162,20 @@ public class AccountService {
 	public void createAccount(Map<String, Object> accountMap) throws CustomException {
 		logger.info("Creating a new account with data: {}", accountMap);
 		try {
+			Map<String, Object> accountFetchMap = new HashMap<>();
+			accountFetchMap.put("userId", Helper.parseLong(accountMap.get("userId")));
+			List<Account> accounts = (List<Account>) getAccountDetails(accountFetchMap).get("accounts");
+
 			accountMap.put("minBalance", new BigDecimal(500));
 			accountMap.put("branchId", Helper.getThreadLocalValue().get("branchId"));
 			accountMap.put("accountNumber", 7018120L);
 			accountMap.put("status", "Active");
 			accountMap.put("performedBy", Helper.getThreadLocalValue().get("id"));
 
-			List<Account> accounts = (List<Account>) getAccountDetails(accountMap);
-			boolean isPrimary = accounts.isEmpty();
-			accountMap.put("isPrimary", isPrimary);
-			accountMap.put("isPrimary", isPrimary);
-
+			if (accountMap.get("accountType").equals("Operational") && accounts.size() > 0) {
+				throw new CustomException("Operational account already exists for the id");
+			}
+			accountMap.put("isPrimary", accounts.isEmpty());
 			logger.debug("Populated accountMap with additional data: {}", accountMap);
 
 			Account account = Helper.createPojoFromMap(accountMap, Account.class);
@@ -169,11 +184,11 @@ public class AccountService {
 			accountDAO.createAccount(account);
 			logger.info("Account successfully created with accountNumber: {}", account.getAccountNumber());
 		} catch (CustomException e) {
-			logger.error("Error creating account: {}", e.getMessage());
-			throw e;
+			logger.error("Error creating account: {}", e);
+			throw new CustomException("Error occured while creating the account.");
 		} catch (Exception e) {
-			logger.error("Unexpected error during account creation: {}", e.getMessage());
-			throw new CustomException("Account creation failed. Please contact support.", e);
+			logger.error("Unexpected error during account creation: {}", e);
+			throw new CustomException("Account creation failed. Please try again later.");
 		}
 	}
 

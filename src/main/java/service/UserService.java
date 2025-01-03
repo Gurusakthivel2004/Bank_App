@@ -35,12 +35,12 @@ public class UserService {
 		logger.info("Attempting login for username: {}", username);
 
 		try {
-			List<User> users = checkPassword(username, password);
+			List<Object> users = checkPassword(username, password);
 			if (users == null || users.isEmpty() || users.size() > 1) {
 				logger.warn("User not found or invalid credentials for username: {}", username);
 				throw new CustomException("Invalid username or password.");
 			}
-			User user = users.get(0);
+			User user = (User) users.get(0);
 			Map<String, Object> userDetails = Stream
 					.of(new Object[][] { { "id", user.getId() }, { "fullname", user.getFullname() },
 							{ "username", user.getUsername() }, { "status", user.getStatus() },
@@ -48,11 +48,11 @@ public class UserService {
 					.collect(Collectors.toMap(data -> (String) data[0], data -> data[1]));
 
 			// Add additional staff details for employee role
-			if ("Employee".equals(user.getRole())) {
+			if (!"Customer".equals(user.getRole())) {
 				logger.debug("Fetching additional staff details for employee user.");
-				List<Staff> staffDetails = userDAO.getStaff(user.getId());
+				List<Object> staffDetails = userDAO.getStaff(user.getId());
 				if (!staffDetails.isEmpty()) {
-					userDetails.put("branchId", staffDetails.get(0).getBranchId());
+					userDetails.put("branchId", ((Staff) staffDetails.get(0)).getBranchId());
 				} else {
 					logger.warn("No staff details found for user with ID: {}", user.getId());
 				}
@@ -63,8 +63,7 @@ public class UserService {
 			logger.error("User login failed for username: {}. Error: {}", username, e.getMessage());
 			throw e;
 		} catch (Exception e) {
-			logger.error("Unexpected error occurred during login for username: {}. Error: {}", username,
-					e.getMessage());
+			logger.error("Unexpected error occurred during login for username: {}. Error: {}", username, e);
 			throw new CustomException("An unexpected error occurred. Please try again later.", e);
 		}
 	}
@@ -78,38 +77,38 @@ public class UserService {
 	 * @return the User object if validation succeeds.
 	 * @throws CustomException if the password is invalid.
 	 */
-	private List<User> checkPassword(String username, String password) throws CustomException {
+	private List<Object> checkPassword(String username, String password) throws CustomException {
 		logger.info("Validating password for user: {}", username);
 		try {
 			logger.debug("Fetching user for column: username and value: {}", username);
 			String key = "userDetails";
-			List<User> users = null;
-			Map<String, List<User>> cachedUserDetails = cacheService.get(key,
-					new TypeReference<Map<String, List<User>>>() {
+			List<Object> users = null;
+			Map<String, List<Object>> cachedUserDetails = cacheService.get(key,
+					new TypeReference<Map<String, List<Object>>>() {
 					});
 			if (cachedUserDetails != null && cachedUserDetails.containsKey(username)) {
 				logger.info("Fetching cached user details for username: {}", username);
 				users = cachedUserDetails.get(username);
 			} else {
 				if (cachedUserDetails == null) {
-					cachedUserDetails = new HashMap<String, List<User>>();
+					cachedUserDetails = new HashMap<String, List<Object>>();
 				}
-				users = userDAO.getUser("username", username, false);
+				users = userDAO.getUser(Arrays.asList("username"), username, false);
 				cachedUserDetails.put(username, users);
 				cacheService.save(key, cachedUserDetails);
 				logger.debug("User details cached for username: {}", username);
 			}
 			logger.debug("Checking password match.");
-			User user = users.get(0);
+			System.out.println("users: " + users);
+			User user = (User) users.get(0);
 			if (!Helper.checkPassword(password, user.getPassword())) {
 				logger.warn("Password mismatch for user: {}", username);
 				throw new CustomException("Password does not match");
 			}
-
 			logger.info("Password validation successful for user: {}", username);
 			return users;
 		} catch (CustomException e) {
-			logger.error("Password validation failed for user: {}. Error: {}", username, e.getMessage());
+			logger.error("Password validation failed for user: {}. Error: ", username, e);
 			throw e;
 		}
 	}
@@ -155,40 +154,41 @@ public class UserService {
 	 * @return user details as an Object.
 	 * @throws CustomException if retrieval fails.
 	 */
-	@SuppressWarnings("unchecked")
-	public <T extends User> List<T> getUserDetails(Long userId, String role, boolean notExact) throws CustomException {
+	public <T extends User> List<Object> getUserDetails(Long userId, String role, boolean notExact)
+			throws CustomException {
 		logger.info("Fetching user details.");
 		try {
-			String key = role + "Details";
+			String key = role + "Details of id: " + userId;
 
 			logger.debug("User role determined as: {}", role);
 
-			Map<Long, List<T>> cachedUserDetails = cacheService.get(key, new TypeReference<Map<Long, List<T>>>() {
-			});
+			Map<Long, List<Object>> cachedUserDetails = cacheService.get(key,
+					new TypeReference<Map<Long, List<Object>>>() {
+					});
 
 			if (cachedUserDetails != null && cachedUserDetails.containsKey(userId)) {
 				logger.info("Fetching cached user details for userId: {}", userId);
-				return (List<T>) cachedUserDetails.get(userId);
+				return (List<Object>) cachedUserDetails.get(userId);
 			} else {
 				if (cachedUserDetails == null) {
 					cachedUserDetails = new HashMap<>();
 				}
-				List<T> user;
+				List<Object> user;
 				if (notExact) {
 					logger.info("Fetching details for customer.");
-					user = (List<T>) userDAO.getUser("*", userId, notExact);
+					user = userDAO.getUser(Arrays.asList("id", "fullname"), userId, notExact);
 				} else if ("Customer".equals(role)) {
 					logger.info("Fetching details for customer.");
-					user = (List<T>) userDAO.getCustomers(userId);
+					user = userDAO.getCustomers(userId);
 				} else {
 					logger.info("Fetching details for staff.");
-					user = (List<T>) userDAO.getStaff(userId);
+					user = userDAO.getStaff(userId);
 				}
 				cachedUserDetails.put(userId, user);
 				cacheService.save(key, cachedUserDetails);
 				logger.debug("{} details cached for userId: {}", role, userId);
 
-				return (List<T>) user;
+				return user;
 			}
 		} catch (CustomException e) {
 			logger.error("Error fetching user details. Error: {}", e.getMessage());

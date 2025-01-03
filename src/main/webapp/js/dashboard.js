@@ -16,7 +16,7 @@ document.addEventListener("DOMContentLoaded", async _ => {
 		});
 		const result = await response.json();
 		console.log(result)
-		const userDetails = result.customerDetail;
+		const userDetails = result.customerDetail[0];
 		try {
 			if (result.account.length == 0) {
 				localStorage.clear();

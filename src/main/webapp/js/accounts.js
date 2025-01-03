@@ -14,27 +14,29 @@ const token = localStorage.getItem('token');
 async function fetchAccounts() {
 	try {
 		if (!cachedAccounts[currentPageIndex]) {
-			if (role == "Employee") {
-				filterBranch = localStorage.getItem('branchId');
+
+			const accountData = {
+				offset: filterOffset,
+				get: true,
+				limit: accountsPerPage,
 			}
-			console.log(filterId);
-			let url = `http://localhost:8080/Bank_Application/api/Account?offset=${filterOffset}&limit=${accountsPerPage}`;
-			if (filterId) url += `&userId=${filterId}`;
-			if (filterAccount) url += `&accountNumber=${filterAccount}`;
-			if (filterBranch) url += `&branchId=${filterBranch}`;
-			if (filterType) url += `&accountType=${filterType}`;
-			if (filterStatus) url += `&status=${filterStatus}`;
-			console.log(url);
-			const response = await fetch(url, {
-				method: 'GET',
+			if (filterId && filterId != '-1') accountData.userId = Number(filterId);
+			if (filterBranch) accountData.branchId = Number(filterBranch);
+			if (filterAccount && Number.isFinite(Number(filterAccount))) accountData.accountNumber = Number(filterAccount);
+			if (filterType) accountData.accountType = filterType;
+			if (filterStatus) accountData.status = filterStatus;
+			const token = localStorage.getItem('token')
+			const response = await fetch('http://localhost:8080/Bank_Application/api/Account', {
+				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json',
 					'Authorization': `Bearer ${token}`
 				},
+				body: JSON.stringify(accountData)
 			});
-			console.log(response);
+
 			const accountsResult = await response.json();
-			const accounts = accountsResult["accounts"];
+			const accounts = accountsResult["joinedAccounts"];
 			console.log(accountsResult);
 
 			accountsCount = filterOffset == 0 ? accountsResult["count"] : accountsCount;
@@ -168,7 +170,8 @@ const updateBranch = async _ => {
 }
 
 const accountClick = async account => {
-	const userDetailsResponse = await fetch(`http://localhost:8080/Bank_Application/api/User?accountNumber=${account.accountNumber}`, {
+	const userRole = account.accountType == "Operational" ? "Employee" : "Customer";
+	const userDetailsResponse = await fetch(`http://localhost:8080/Bank_Application/api/User?userId=${account.userId}&role=${userRole}`, {
 		method: 'GET',
 		headers: {
 			'Content-Type': 'application/json',
@@ -178,8 +181,8 @@ const accountClick = async account => {
 	const userResult = await userDetailsResponse.json();
 	console.log(userResult);
 	document.getElementById('accountbranchId').value = account.branchId;
-	document.getElementById('accountfullname').innerText = userResult.fullname;
-	document.getElementById('accountphone').innerText = userResult.phone;
+	document.getElementById('accountfullname').innerText = userResult[0].fullname;
+	document.getElementById('accountphone').innerText = userResult[0].phone;
 	document.getElementById('accountNumber2').innerText = account.accountNumber;
 	document.getElementById('accountStatus').value = account.status
 	toggleModal('accountDetailsModal');
@@ -189,7 +192,6 @@ const accountClick = async account => {
 function renderAccounts(accounts) {
 	const accountHistory = document.querySelector(".account-data");
 	accountHistory.innerHTML = '';
-	console.log(accounts);
 	if (accounts == null || accounts.length === 0) {
 		document.getElementById('buttons').style.display = "none";
 		const accountDiv = document.createElement("div");
@@ -201,33 +203,33 @@ function renderAccounts(accounts) {
 		accountHistory.appendChild(accountDiv);
 		return;
 	}
+	for (let i = 0; i < accounts.length; i++) {
+		let account = accounts[i].instance;
+		let branch = accounts[i].joinedFields;
+		if (role == "Employee" && account.accountType == "Operational") continue;
+		document.getElementById('buttons').style.display = "flex";
+		const accountDiv = document.createElement("div");
+		accountDiv.onclick = () => accountClick(account);
+		accountDiv.className = "account-item d-flex align-items-center my-2";
+		accountDiv.style = "background-color: white; padding: 10px; border-bottom: 1px solid #ddd; border-radius: 10px;cursor: pointer;";
+		accountDiv.innerHTML = `
+							<p class="userId"
+								style="width: 5%; margin-left:10px; font-weight: bold; color: #2b0444;">${account.userId}</p>
+							<p class="accountNumber" style="width: 15%; color: #2b0444;">${account.accountNumber}</p>
+							<p class="branchId"
+									style="width: 5%; font-weight: bold; color: #2b0444;">${account.branchId}</p>		
+							<p class="accbalance"
+								style="width: 10%; font-weight: bold; color: #28a745;">${account.balance.toLocaleString()}</p>
+								<p class="branchName" style="width: 5%; font-weight: bold; color: #2b0444;">${branch.branchName}</p>
 
-	accounts.forEach(account => {
-		if (role != "Customer" && (account.accountType != "Operational" && role == "Employee")) {
-			document.getElementById('buttons').style.display = "flex";
-			const accountDiv = document.createElement("div");
-			accountDiv.onclick = () => accountClick(account);
-			accountDiv.className = "account-item d-flex align-items-center my-2";
-			accountDiv.style = "background-color: white; padding: 10px; border-bottom: 1px solid #ddd; border-radius: 10px;cursor: pointer;";
-			accountDiv.innerHTML = `
-				<p class="userId"
-					style="width: 5%; margin-left:10px; font-weight: bold; color: #2b0444;">${account.userId}</p>
-				<p class="accountNumber" style="width: 15%; color: #2b0444;">${account.accountNumber}</p>
-				<p class="branchId"
-						style="width: 5%; font-weight: bold; color: #2b0444;">${account.branchId}</p>		
-				<p class="accbalance"
-					style="width: 10%; font-weight: bold; color: #28a745;">${account.balance.toLocaleString()}</p>
-					<p class="branchName" style="width: 5%; font-weight: bold; color: #2b0444;">Madurai</p>
+								<p class="acctype" style="width: 15%; color: #2b0444;">${account.accountType}</p>
+								<p class="accstatus"
+								style="width: 15%; font-weight: bold; color: ${account.status === 'Active' ? 'blue' : 'red'};">${account.status}</p>
+							<p class="accountcreatedat" style="width: 15%; color: #2b0444;">${getDate(account.createdAt, false)}</p>
+						</div>`;
 
-					<p class="acctype" style="width: 15%; color: #2b0444;">${account.accountType}</p>
-					<p class="accstatus"
-					style="width: 15%; font-weight: bold; color: ${account.status === 'Active' ? 'blue' : 'red'};">${account.status}</p>
-				<p class="accountcreatedat" style="width: 15%; color: #2b0444;">${getDate(account.createdAt, false)}</p>
-			</div>`;
-
-			accountHistory.appendChild(accountDiv);
-		}
-	});
+		accountHistory.appendChild(accountDiv);
+	}
 }
 
 
@@ -312,18 +314,15 @@ const updateAccount = async accountUpdateData => {
 	}, 3000);
 }
 
-let validUserIds = []; // Declare this globally or in the appropriate scope
+let validUserIds = [];
 
-function saveAccount() {
+async function saveAccount() {
 	const userIdInput = document.getElementById('newUserId');
 	const balanceInput = document.getElementById('newbalance');
 	const accountTypeSelect = document.getElementById('newAccountType');
 	const message = document.getElementById('accountMessage');
 	message.style.display = 'none';
 
-	console.log(validUserIds)
-	console.log(userIdInput.value.trim());
-	console.log(validUserIds.includes(userIdInput.value.trim()));
 	if (!userIdInput.value.trim()) {
 		message.textContent = "User ID is required.";
 		message.style.display = 'block';
@@ -338,7 +337,6 @@ function saveAccount() {
 		return;
 	}
 
-	// Check if the balance is valid
 	if (!balanceInput.value.trim() || isNaN(balanceInput.value) || parseFloat(balanceInput.value) < 0) {
 		message.textContent = "Balance must be a valid positive number.";
 		message.style.display = 'block';
@@ -346,7 +344,6 @@ function saveAccount() {
 		return;
 	}
 
-	// Check if account type is selected
 	if (!accountTypeSelect.value) {
 		message.textContent = "Please select an account type.";
 		message.style.display = 'block';
@@ -354,7 +351,6 @@ function saveAccount() {
 		return;
 	}
 
-	// Prepare account details
 	const accountDetails = {
 		userId: userIdInput.value.trim(),
 		balance: parseFloat(balanceInput.value),
@@ -363,33 +359,56 @@ function saveAccount() {
 
 	console.log("Account Details Saved:", accountDetails);
 
-	// Show success popup
-	const successPopup = document.getElementById('successPopup');
-	successPopup.textContent = "Account details saved successfully!";
-	successPopup.style.display = 'block';
-
+	const response = await fetch('http://localhost:8080/Bank_Application/api/Account', {
+		method: 'POST',
+		headers: {
+			'Content-Type': 'application/json',
+			'Authorization': `Bearer ${token}`
+		},
+		body: JSON.stringify(accountDetails)
+	});
+	const result = await response.json();
+	console.log(result);
+	const successPop = document.getElementById('successPopup');
+	if (result.message == 'success') {
+		successPop.textContent = "Account created!";
+		successPop.style.backgroundColor = '#4CAF50';
+		successPop.style.color = 'white';
+		successPop.style.display = 'block';
+	} else {
+		successPop.textContent = result.message;
+		successPop.style.backgroundColor = 'red';
+		successPop.style.color = 'white';
+		successPop.style.display = 'block';
+	}
 	setTimeout(() => {
-		successPopup.style.display = 'none';
+		successPop.style.display = 'none';
 	}, 3000);
 
-	// Reset form fields
 	userIdInput.value = '';
 	balanceInput.value = '0.0';
 	accountTypeSelect.value = '';
 	toggleModal('newAccountModal');
 }
 
-
-
 function fetchUserIdDetails(query) {
-	const userDropdown = document.getElementById('dropdown');
+	const userDropdown = document.getElementById('userIddropdown');
 	userDropdown.innerHTML = '';
+	const accountTypeDropdown = document.getElementById('newAccountType');
+	const defaultAccountOptions = `
+		<option value="" selected>Select Type</option>
+		<option value="Current">Current</option>
+		<option value="Savings">Savings</option>
+	`;
+
+	// Reset account type dropdown to default
+	accountTypeDropdown.innerHTML = defaultAccountOptions;
+	accountTypeDropdown.disabled = true;
+	userDropdown.style.display = 'block';
 	if (!query) {
 		userDropdown.innerHTML = '<div class="dropdown-option" style="padding: 10px; color: grey;">Enter a user ID</div>';
-		userDropdown.style.display = 'block';
 		return;
 	}
-
 	fetch(`http://localhost:8080/Bank_Application/api/User?userId=${query}&notExact=true`, {
 		method: 'GET',
 		headers: {
@@ -405,29 +424,50 @@ function fetchUserIdDetails(query) {
 				userDropdown.style.display = 'block';
 				return;
 			}
+			validUserIds = [];
 			data.forEach((user, index) => {
+				if (role == "Employee" && user.role == "Manager") return;
+				if (localStorage.getItem('email') == user.email) return;
 				const option = document.createElement('div');
 				option.className = 'dropdown-option py-2 px-3';
 				option.style = `
-				       cursor: pointer;
-				       ${index === data.length - 1 ? '' : 'border-bottom: 1px solid #cdc2c2;'}
-				   `;
+					cursor: pointer;
+					${validUserIds.length > 0 ? 'border-top: 1px solid #cdc2c2;' : ''}
+				`;
 				option.innerHTML = `
-                    <div style="font-weight: bold; color: #2c3e50;">
-                        ID: ${user.id}
-                    </div>
-                    <div style="font-size: 12px; color: grey;">
-                        NAME: ${user.fullname} <br>
-                    </div>
-                `;
+					<div style="font-weight: bold; color: #2c3e50;">
+						ID: ${user.id}
+					</div>
+					<div style="font-size: 12px; color: grey;">
+						NAME: ${user.fullname} <br>
+					</div>
+				`;
 				validUserIds.push(user.id);
 				option.onclick = () => {
 					document.getElementById('newUserId').value = user.id;
 					userDropdown.style.display = 'none';
+
+					// Update account type options based on role
+					if (user.role !== "Customer") {
+						accountTypeDropdown.innerHTML = `
+							<option value="Operational" selected>Operational</option>
+						`;
+						accountTypeDropdown.disabled = true;
+					} else {
+						accountTypeDropdown.innerHTML = `
+							<option value="" selected>Select Type</option>
+							<option value="Current">Current</option>
+							<option value="Savings">Savings</option>
+						`;
+						accountTypeDropdown.disabled = false;
+					}
 				};
 				userDropdown.appendChild(option);
 			});
-			userDropdown.style.display = 'block';
+			if (validUserIds.length == 0) {
+				userDropdown.innerHTML = '<div class="dropdown-option" style="padding: 10px; color: grey;">User ID not found</div>';
+				userDropdown.style.display = 'block';
+			}
 		})
 		.catch(err => {
 			console.error('Error fetching user details:', err);
@@ -435,8 +475,6 @@ function fetchUserIdDetails(query) {
 			userDropdown.style.display = 'block';
 		});
 }
-
-
 
 
 populateDropdown();
@@ -460,6 +498,7 @@ function fetchDropdownOptions(query) {
 	})
 		.then(response => response.json())
 		.then(data => {
+			console.log(data);
 			if (!data || data.length === 0) {
 				dropdown.innerHTML = '<div class="dropdown-option" style="padding: 10px; color: grey;">Branch ID not found</div>';
 				dropdown.style.display = 'block';

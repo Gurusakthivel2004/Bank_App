@@ -24,17 +24,17 @@ public class BranchService {
 	 * @return A list of matching branches.
 	 * @throws CustomException If an error occurs during branch retrieval.
 	 */
-	public List<Branch> getBranchDetails(Long branchId, boolean notExact) throws CustomException {
+	public List<Object> getBranchDetails(Long branchId, boolean notExact) throws CustomException {
 		logger.info("Fetching branch details for branchId: {}", branchId);
 
 		try {
 			String key = "branchInfo";
-			Map<Long, List<Branch>> cachedBranch = cacheService.get(key, new TypeReference<Map<Long, List<Branch>>>() {
+			Map<Long, List<Object>> cachedBranch = cacheService.get(key, new TypeReference<Map<Long, List<Object>>>() {
 			});
 			if (cachedBranch != null) {
 				if (cachedBranch.containsKey(branchId)) {
 					logger.info("Branch details for branchId: {} found in cache", branchId);
-					return (List<Branch>) cachedBranch.get(branchId);
+					return (List<Object>) cachedBranch.get(branchId);
 				}
 				logger.info("Adding branchId: {} to existing cachedBranch map", branchId);
 			} else {
@@ -42,7 +42,7 @@ public class BranchService {
 				cachedBranch = new HashMap<>();
 			}
 
-			List<Branch> branches = branchDAO.getBranch(branchId, notExact);
+			List<Object> branches = branchDAO.getBranch(branchId, notExact);
 			if (branches.isEmpty()) {
 				logger.warn("No branch details found for branchId: {}", branchId);
 				return null;

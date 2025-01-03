@@ -12,30 +12,28 @@ import org.apache.logging.log4j.Logger;
 public class UserDAO {
 	private static final Logger logger = LogManager.getLogger(UserDAO.class);
 
-	public List<User> getUser(String selectColumn, Object selectValue, boolean notExact) throws CustomException {
+	public List<Object> getUser(List<String> selectColumn, Object selectValue, boolean notExact) throws CustomException {
 		logger.info("Fetching user with column: {}, value: {}", selectColumn, selectValue);
 		Helper.checkNullValues(selectColumn);
 		Criteria criteria = new Criteria();
 		if (notExact) {
 			criteria.setClazz(User.class);
-			criteria.setSelectColumn(Arrays.asList(selectColumn));
+			criteria.setSelectColumn(selectColumn);
 			criteria.setColumn(Arrays.asList("id", "id"));
 			criteria.setOperator(Arrays.asList("=", "LIKE"));
 			criteria.setValue(Arrays.asList(selectValue, "%" + selectValue + "%"));
 			criteria.setLimitValue(5);
 			criteria.setLogicalOperator("OR");
 		} else {
-			criteria = Helper.buildCriteria(User.class, Arrays.asList(selectColumn), Arrays.asList("="),
+			criteria = Helper.buildCriteria(User.class, selectColumn, Arrays.asList("="),
 					Arrays.asList(selectValue));
 			criteria.setSelectColumn(Arrays.asList("*"));
 		}
-		List<User> users = SQLHelper.get(criteria);
-		System.out.println(users);
+		List<Object> users = SQLHelper.get(criteria);
 		if (users == null) {
 			logger.error("User does not exist for column: {}, value: {}", selectColumn, selectValue);
 			throw new CustomException("User does not exist.");
 		}
-
 		logger.info("User fetched successfully.");
 		return users;
 	}
@@ -62,14 +60,14 @@ public class UserDAO {
 		logger.info("Customer updated successfully.");
 	}
 
-	public List<CustomerDetail> getCustomers(Long customerId) throws CustomException {
+	public List<Object> getCustomers(Long customerId) throws CustomException {
 		logger.info("Fetching customers.");
 		Criteria customerJoinCriteria = Helper.buildJoinCriteria(CustomerDetail.class,
 				Arrays.asList("customer", "user"), Arrays.asList("customerDetail.user_id", "customer.user_id"),
 				Arrays.asList("=", "="), Arrays.asList("customer.user_id", "user.id"),
 				Arrays.asList("customerDetail.user_id"), Arrays.asList("="), Arrays.asList(customerId));
 
-		List<CustomerDetail> customers = SQLHelper.get(customerJoinCriteria);
+		List<Object> customers = SQLHelper.get(customerJoinCriteria);
 		logger.info("Fetched {} customers successfully.", customers.size());
 		return customers;
 	}
@@ -113,7 +111,7 @@ public class UserDAO {
 		logger.info("Staff updated successfully.");
 	}
 
-	public List<Staff> getStaff(Long id) throws CustomException {
+	public List<Object> getStaff(Long id) throws CustomException {
 		if (id == -1) {
 			id = (Long) Helper.getThreadLocalValue().get("id");
 		}
@@ -123,7 +121,7 @@ public class UserDAO {
 				Arrays.asList("staff.user_id"), Arrays.asList("="), Arrays.asList("user.id"),
 				Arrays.asList("staff.user_id"), Arrays.asList("="), Arrays.asList(id));
 
-		List<Staff> staffList = SQLHelper.get(staffJoinCriteria);
+		List<Object> staffList = SQLHelper.get(staffJoinCriteria);
 		logger.info("Fetched {} staff members successfully.", staffList.size());
 		return staffList;
 	}

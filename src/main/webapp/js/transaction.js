@@ -1,9 +1,10 @@
 let newfilterTo = false;
 let role = localStorage.getItem("role");
-// Filter values
+
 let filterId = -1;
 let filterAccount = '';
 let filterFromDate = '';
+let filterBranch = '';
 let filterToDate = '';
 let filterType = '', filterOffset = 0;
 
@@ -15,21 +16,27 @@ let isrecursed = false;
 async function fetchTransactions() {
 	try {
 		if (!cachedTransactions[currentPageIndex]) {
-			let url = `http://localhost:8080/Bank_Application/api/Transaction?id=${filterId}&limit=8&offset=${filterOffset}`;
-			if (filterAccount && Number.isFinite(Number(filterAccount))) url += `&accountNumber=${filterAccount}`;
-			if (filterType) url += `&transactionType=${filterType}`;
-			if (filterFromDate) url += `&from=${filterFromDate}`;
-			if (filterToDate) url += `&to=${filterToDate}`;
-			console.log(url);
+			const transactionData = {
+				offset: filterOffset,
+				get: true,
+				limit: 8,
+			}
+			if (filterId) transactionData.customerId = Number(filterId);
+			if (filterBranch) transactionData.branchId = Number(filterBranch);
+			if (filterAccount && Number.isFinite(Number(filterAccount))) transactionData.accountNumber = Number(filterAccount);
+			if (filterType) transactionData.transactionType = filterType;
+			if (filterFromDate) transactionData.from = filterFromDate;
+			if (filterToDate) transactionData.to = filterToDate;
 			const token = localStorage.getItem('token')
-			const response = await fetch(url, {
-				method: 'GET',
+			const response = await fetch('http://localhost:8080/Bank_Application/api/Transaction', {
+				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json',
 					'Authorization': `Bearer ${token}`
 				},
+				body: JSON.stringify(transactionData)
 			});
-			console.log(response);
+
 			const transactionsMap = await response.json();
 			console.log(transactionsMap)
 			const transactions = transactionsMap["transactions"];
@@ -82,23 +89,25 @@ function prevPage() {
 	}
 }
 
-let previousId = '', previousFrom = '', previousAccount = '', previousTo = '', previousType = '';
+let previousId = '', previousBranch = '', previousFrom = '', previousAccount = '', previousTo = '', previousType = '';
 
 function applyFilters() {
 	const idInput = document.getElementById("IdsearchInput").value.trim();
+	const branchInput = document.getElementById("branchIdsearchInput").value.trim();
 	const accountInput = document.getElementById("AccountsearchInput").value.trim();
 	const fromDateInput = document.getElementById("FromDatesearchInput").value.trim();
 	const toDateInput = document.getElementById("ToDatesearchInput").value.trim();
 	filterType = document.getElementById("typesearchInput").value.trim();
-	if (accountInput == '') {
+	if (accountInput == '' && branchInput == '') {
 		filterId = idInput ? idInput : -1;
 	} else {
-		filterId = idInput ? idInput : role != "Customer" ? 0 : -1;
+		filterId = idInput ? idInput : role != "Customer" ? '' : -1;
 	}
 	filterAccount = accountInput;
 	filterFromDate = fromDateInput;
+	filterBranch = branchInput;
 	filterToDate = toDateInput;
-	if (previousAccount != accountInput || previousId != idInput || previousFrom != fromDateInput || previousTo != toDateInput || previousType != filterType) {
+	if (previousAccount != accountInput || previousBranch != branchInput || previousId != idInput || previousFrom != fromDateInput || previousTo != toDateInput || previousType != filterType) {
 		if (!(filterAccount.length > 0 && filterAccount.length < 4) && Number.isFinite(Number(filterAccount))) {
 			cachedTransactions = [];
 			currentPageIndex = 0;
@@ -110,12 +119,12 @@ function applyFilters() {
 		previousAccount = filterAccount;
 	}
 	previousId = idInput;
+	previousBranch = filterBranch;
 	previousFrom = filterFromDate;
 	previousTo = filterToDate
 	previousType = filterType;
 }
 
-// Initial load
 document.addEventListener("DOMContentLoaded", () => {
 	const transactionHistory = document.querySelector(".transaction-data");
 	if (!transactionHistory) {
@@ -126,8 +135,11 @@ document.addEventListener("DOMContentLoaded", () => {
 	if (role === 'Customer') {
 		document.getElementById('accounts-tree').style.display = 'none';
 		document.getElementById("idfilter").style.display = 'none';
+	} else if (role == 'Manager') {
+		document.getElementById('branchidfilter').style.display = 'flex';
 	}
 	document.getElementById("IdsearchInput").addEventListener("input", applyFilters);
+	document.getElementById("branchIdsearchInput").addEventListener("input", applyFilters);
 	document.getElementById("AccountsearchInput").addEventListener("input", applyFilters);
 	document.getElementById("FromDatesearchInput").addEventListener("input", applyFilters);
 	document.getElementById("ToDatesearchInput").addEventListener("input", applyFilters);
@@ -158,7 +170,7 @@ const getDate = (millis, time) => {
 function renderTransactions(transactions) {
 	const transactionHistory = document.querySelector(".transaction-data");
 	transactionHistory.innerHTML = '';
-
+	console.log(transactions);
 	if (transactions == null || transactions.length == 0) {
 		const transactionDiv = document.createElement("div");
 		transactionDiv.className = "transaction-item d-flex align-items-center mb-1";
@@ -183,7 +195,6 @@ function renderTransactions(transactions) {
             <p class="ttype" style="width: 10%; margin-left: 0px; color: ${tx.transactionType == 'Debit' ? 'red' : 'green'};">${tx.transactionType}</p>
             <p class="tfrom" style="width: 20%; margin-left: 40px; color: #2b0444;">${tx.transactionAccountNumber}</p>
         `;
-
 		transactionHistory.appendChild(transactionDiv);
 	});
 }

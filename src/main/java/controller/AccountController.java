@@ -17,14 +17,12 @@ public class AccountController {
 
 	AccountService accountService = new AccountService();
 
-	public void handleGet(HttpServletRequest request, HttpServletResponse response) throws IOException {
+	public void handleGet(HttpServletRequest request, HttpServletResponse response, Map<String, Object> accountMap)
+			throws IOException {
 		response.setContentType("application/json");
 		PrintWriter out = response.getWriter();
-
 		try {
-			Map<String, Object> accountMap = Helper.getParametersAsMap(request);
 			Object accounts = accountService.getAccountDetails(accountMap);
-			System.out.println(accounts);
 			ObjectMapper mapper = new ObjectMapper();
 			String jsonResponse = mapper.writeValueAsString(accounts);
 			out.write(jsonResponse);
@@ -46,8 +44,11 @@ public class AccountController {
 		try (BufferedReader reader = request.getReader()) {
 			JsonObject jsonObject = JsonParser.parseReader(reader).getAsJsonObject();
 			Map<String, Object> accountMap = Helper.mapJsonObject(jsonObject);
+			if (accountMap.containsKey("get")) {
+				handleGet(request, response, accountMap);
+				return;
+			}
 			accountService.createAccount(accountMap);
-
 			responseJson.addProperty("message", "success");
 			response.setStatus(HttpServletResponse.SC_OK);
 		} catch (CustomException exception) {

@@ -4,6 +4,7 @@ import java.lang.reflect.Field;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.SQLSyntaxErrorException;
 import java.sql.Statement;
@@ -16,6 +17,7 @@ import org.apache.logging.log4j.Logger;
 import dblayer.connect.DBConnection;
 import dblayer.model.ColumnCriteria;
 import dblayer.model.Criteria;
+import dblayer.model.JoinObject;
 import util.ColumnYamlUtil.ClassMapping;
 import util.ColumnYamlUtil.FieldMapping;
 
@@ -23,10 +25,9 @@ public class SQLHelper {
 
 	private static final Logger logger = LogManager.getLogger(SQLHelper.class);
 
-	// map the column name to field name of the pojo class
 	@SuppressWarnings("unchecked")
 	private static <T> T mapResultSetToObject(ResultSet resultSet, Class<? extends T> clazz, T instance,
-			String tableName) throws CustomException {
+			String tableName, List<String> modifiedFields) throws CustomException {
 		try {
 			if (instance == null) {
 				instance = clazz.getDeclaredConstructor().newInstance();
@@ -48,6 +49,7 @@ public class SQLHelper {
 					String columnName = fieldMapping.getColumnName();
 					Object columnValue = resultSet.getObject(columnName);
 					field.set(instance, columnValue);
+					modifiedFields.add(columnName);
 				} catch (SQLSyntaxErrorException exception) {
 					logger.warn("SQL Syntax error while setting field: " + field.getName(), exception);
 					continue;
@@ -60,7 +62,7 @@ public class SQLHelper {
 			Class<?> superclass = clazz.getSuperclass();
 			if (superclass != null && !superclass.getName().equals("dblayer.model.MarkedClass")) {
 				classMapping = ColumnYamlUtil.getMapping(superclass.getName());
-				mapResultSetToObject(resultSet, (Class<? extends T>) superclass, instance, tableName);
+				mapResultSetToObject(resultSet, (Class<? extends T>) superclass, instance, tableName, modifiedFields);
 			}
 
 			return instance;
@@ -109,7 +111,7 @@ public class SQLHelper {
 			logger.error("Error executing non-select query: " + query, e);
 			try {
 				if (connection != null && !connection.isClosed()) {
-					connection.rollback(); // Roll back if any insert fails
+					connection.rollback();
 					logger.info("Transaction rolled back due to error.");
 				}
 			} catch (SQLException rollbackException) {
@@ -156,12 +158,12 @@ public class SQLHelper {
 			throw new CustomException("Join columns and join values must have the same size.");
 		}
 
-		List<String> joinColumn = condition.getJoinColumn(), joinValue = condition.getJoinValue(),
-				joinOperator = condition.getJoinOperator();
-		List<Object> joinTable = condition.getJoinTable();
+		List<String> joinColumn = condition.getJoinColumn(), joinOperator = condition.getJoinOperator();
+		List<Object> joinTable = condition.getJoinTable(), joinValue = condition.getJoinValue();
 
 		if (joinColumn != null && !joinColumn.isEmpty()) {
 			for (int i = 0; i < joinColumn.size(); i++) {
+				System.out.println(sql);
 				sql.append(" JOIN ").append(joinTable.get(i)).append(" ON ").append(joinColumn.get(i)).append(" ")
 						.append(joinOperator.get(i)).append(" ").append(joinValue.get(i));
 			}
@@ -306,7 +308,7 @@ public class SQLHelper {
 	// conditions : It contains the criteria that has to be included in that query
 	// (WHERE clause).
 	@SuppressWarnings("unchecked")
-	public static <T> List<T> get(Criteria condition) throws CustomException {
+	public static <T> List<Object> get(Criteria condition) throws CustomException {
 		try {
 			Helper.checkNullValues(condition);
 			Class<?> clazz = condition.getClazz();
@@ -322,10 +324,15 @@ public class SQLHelper {
 
 			StringBuilder selectSql = new StringBuilder("SELECT ");
 			if (condition.getOffsetValue() != null && condition.getOffsetValue() == -1) {
-				selectSql.append("COUNT(" + selectColumns.get(0) + ")");
+				selectSql.append("COUNT(*)");
 			} else {
+				List<String> aliasStrings = condition.getAlias();
 				for (int i = 0; i < selectColumns.size(); i++) {
 					selectSql.append(selectColumns.get(i));
+					if (aliasStrings != null && aliasStrings.get(i) != null
+							&& aliasStrings.size() == selectColumns.size()) {
+						selectSql.append(" AS " + aliasStrings.get(i));
+					}
 					if (i < selectColumns.size() - 1) {
 						selectSql.append(", ");
 					}
@@ -337,7 +344,7 @@ public class SQLHelper {
 			if (condition.getColumn() != null) {
 				QueryBuilder(selectSql, condition, conditionValues);
 			}
-			List<T> list = new ArrayList<>();
+			List<Object> list = new ArrayList<>();
 			try (Connection connection = DBConnection.getConnection();
 					PreparedStatement preparedStatement = getPreparedStatement(connection, selectSql.toString(),
 							conditionValues.toArray());
@@ -345,20 +352,46 @@ public class SQLHelper {
 				while (resultSet.next()) {
 					if (condition.getOffsetValue() != null && condition.getOffsetValue() == -1) {
 						Object count = resultSet.getObject("COUNT(*)");
-						List<Long> counts = new ArrayList<Long>();
+						List<Object> counts = new ArrayList<Object>();
 						counts.add((Long) count);
-						return (List<T>) counts;
+						return (List<Object>) counts;
 					}
-					list.add((T) mapResultSetToObject(resultSet, clazz, null, table));
+					List<String> modifiedFields = new ArrayList<>();
+					T instance = (T) mapResultSetToObject(resultSet, clazz, null, table, modifiedFields);
+					list.add(mapLeftOverResultSet(resultSet, modifiedFields, instance));
 				}
 				return list;
 			} catch (SQLException e) {
 				Helper.handleSQLException(e);
+				return new ArrayList<>();
 			}
 		} catch (Exception e) {
 			Helper.handleGeneralException(e, "Error occurred while fetching data.");
 		}
 		return null;
+	}
+
+	private static Object mapLeftOverResultSet(ResultSet resultSet, List<String> modifiedFields, Object instance)
+			throws CustomException {
+		try {
+			ResultSetMetaData metaData = resultSet.getMetaData();
+			int columnCount = metaData.getColumnCount();
+			if (columnCount == modifiedFields.size()) {
+				return instance;
+			}
+			JoinObject joininstance = new JoinObject(instance);
+			for (int i = 1; i <= columnCount; i++) {
+				String columnName = metaData.getColumnLabel(i);
+				if (modifiedFields.contains(columnName)) {
+					continue;
+				}
+				joininstance.addjoinedField(columnName, resultSet.getObject(columnName));
+			}
+			return joininstance;
+		} catch (Exception e) {
+			logger.error("Error mapping leftover result set: ", e);
+			throw new CustomException("Error mapping leftover result set: " + e.getMessage());
+		}
 	}
 
 	// @Insert method
