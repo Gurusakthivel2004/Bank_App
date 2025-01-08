@@ -14,17 +14,18 @@ const token = localStorage.getItem('token');
 async function fetchAccounts() {
 	try {
 		if (!cachedAccounts[currentPageIndex]) {
-
 			const accountData = {
 				offset: filterOffset,
 				get: true,
 				limit: accountsPerPage,
 			}
 			if (filterId && filterId != '-1') accountData.userId = Number(filterId);
-			if (filterBranch) accountData.branchId = Number(filterBranch);
+			if (filterBranch && filterBranch != '-1') accountData.branchId = Number(filterBranch);
 			if (filterAccount && Number.isFinite(Number(filterAccount))) accountData.accountNumber = Number(filterAccount);
 			if (filterType) accountData.accountType = filterType;
 			if (filterStatus) accountData.status = filterStatus;
+
+			console.log(accountData);
 			const token = localStorage.getItem('token')
 			const response = await fetch('http://localhost:8080/Bank_Application/api/Account', {
 				method: 'POST',
@@ -178,8 +179,10 @@ const accountClick = async account => {
 			'Authorization': `Bearer ${token}`
 		},
 	});
-	const userResult = await userDetailsResponse.json();
-	console.log(userResult);
+	const result = await userDetailsResponse.json();
+	console.log(result);
+	const resultKey = userRole == "Customer" ? "customerDetail" : "staff";
+	const userResult = result[resultKey];
 	document.getElementById('accountbranchId').value = account.branchId;
 	document.getElementById('accountfullname').innerText = userResult[0].fullname;
 	document.getElementById('accountphone').innerText = userResult[0].phone;
@@ -220,7 +223,7 @@ function renderAccounts(accounts) {
 									style="width: 5%; font-weight: bold; color: #2b0444;">${account.branchId}</p>		
 							<p class="accbalance"
 								style="width: 10%; font-weight: bold; color: #28a745;">${account.balance.toLocaleString()}</p>
-								<p class="branchName" style="width: 5%; font-weight: bold; color: #2b0444;">${branch.branchName}</p>
+								<p class="branchName" style="width: 5%; font-weight: bold; color: #2b0444;">${branch.name}</p>
 
 								<p class="acctype" style="width: 15%; color: #2b0444;">${account.accountType}</p>
 								<p class="accstatus"
@@ -425,7 +428,7 @@ function fetchUserIdDetails(query) {
 				return;
 			}
 			validUserIds = [];
-			data.forEach((user, index) => {
+			data["users"].forEach((user, index) => {
 				if (role == "Employee" && user.role == "Manager") return;
 				if (localStorage.getItem('email') == user.email) return;
 				const option = document.createElement('div');

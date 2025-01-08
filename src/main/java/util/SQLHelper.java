@@ -159,12 +159,12 @@ public class SQLHelper {
 		}
 
 		List<String> joinColumn = condition.getJoinColumn(), joinOperator = condition.getJoinOperator();
-		List<Object> joinTable = condition.getJoinTable(), joinValue = condition.getJoinValue();
+		List<String> joinTable = condition.getJoinTable();
+		List<Object> joinValue = condition.getJoinValue();
 
 		if (joinColumn != null && !joinColumn.isEmpty()) {
 			for (int i = 0; i < joinColumn.size(); i++) {
-				System.out.println(sql);
-				sql.append(" JOIN ").append(joinTable.get(i)).append(" ON ").append(joinColumn.get(i)).append(" ")
+				sql.append(condition.getJoin()).append(joinTable.get(i)).append(" ON ").append(joinColumn.get(i)).append(" ")
 						.append(joinOperator.get(i)).append(" ").append(joinValue.get(i));
 			}
 		}

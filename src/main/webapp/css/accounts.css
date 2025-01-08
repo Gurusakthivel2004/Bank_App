@@ -1,6 +1,6 @@
 body {
-	background-color: #f0f1f1;
-	font-family: 'Roboto', sans-serif;
+	background: url('../images/bg.svg') no-repeat center center;
+	background-size: 100%;
 }
 
 .full-container {
@@ -16,7 +16,7 @@ body {
 	text-align: center;
 	border-right: 1px solid #f0f1f1;
 	margin-top: auto;
-	margin-bottom: 350px;
+	margin-bottom: 225px;
 }
 
 .left-section a {

@@ -14,10 +14,11 @@ public class Criteria {
 	private String logicalOperator;
 	// values is for BETWEEN IN operations..
 	private List<Object> values;
+	private String join;
 	private List<String> joinColumn;
 	private List<String> joinOperator;
 	private List<Object> joinValue;
-	private List<Object> joinTable;
+	private List<String> joinTable;
 	private String orderBy;
 	private List<String>  Alias;
 	private String orderByField;
@@ -133,11 +134,11 @@ public class Criteria {
 		this.joinValue = joinValue;
 	}
 
-	public List<Object> getJoinTable() {
+	public List<String> getJoinTable() {
 		return joinTable;
 	}
 
-	public void setJoinTable(List<Object> joinTable) {
+	public void setJoinTable(List<String> joinTable) {
 		this.joinTable = joinTable;
 	}
 
@@ -180,6 +181,14 @@ public class Criteria {
 
 	public void setAlias(List<String> alias) {
 		Alias = alias;
+	}
+
+	public String getJoin() {
+		return join;
+	}
+
+	public void setJoin(String join) {
+		this.join = join;
 	}
 
 }

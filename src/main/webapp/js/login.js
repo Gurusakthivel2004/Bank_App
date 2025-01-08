@@ -27,6 +27,7 @@ async function login(event) {
 			localStorage.setItem('phone', result.phone);
 			localStorage.setItem('status', result.status);
 			localStorage.setItem('role', result.role);
+			localStorage.setItem('id', result.id);
 			if(result.branchId !== null) {
 				localStorage.setItem('branchId', result.branchId);
 			} 

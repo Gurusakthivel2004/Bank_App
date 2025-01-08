@@ -20,14 +20,6 @@ public class FacadeHandler {
 	private UserService userService = new UserService();
 	private AccountService accountService = new AccountService();
 
-	/**
-	 * Fetches the dashboard details for the user based on their role.
-	 * 
-	 * @return A map containing dashboard details including transactions, accounts,
-	 *         user details, and branches.
-	 * @throws CustomException If there is any error while fetching the dashboard
-	 *                         details.
-	 */
 	@SuppressWarnings("unchecked")
 	public Map<String, Object> dashBoardDetails() throws CustomException {
 		long id = (Long) Helper.getThreadLocalValue().get("id");
@@ -61,7 +53,10 @@ public class FacadeHandler {
 			String role = (String) Helper.getThreadLocalValue().get("role");
 			String key = "Customer".equals(role) ? "customerDetail" : "staff";
 			logger.debug("Fetching {} details for user ID: {}", key, id);
-			map.put(key, userService.getUserDetails(id, role, false));
+			Map<String, Object> userMap = new HashMap<>();
+			userMap.put("role", role);
+			userMap.put("userId", id);
+			map.put(key, userService.getUserDetails(userMap, false).get(key));
 
 			// Fetch branch details for the accounts
 			logger.debug("Fetching branch details for user ID: {}", id);
@@ -91,15 +86,6 @@ public class FacadeHandler {
 		return map;
 	}
 
-	/**
-	 * Adds monthly finance details to the provided map.
-	 * 
-	 * @param map        The map to which monthly finance data will be added.
-	 * @param customerId The ID of the customer for whom the finance details are
-	 *                   fetched.
-	 * @throws CustomException If there is an error while fetching the monthly
-	 *                         finance details.
-	 */
 	@SuppressWarnings("unchecked")
 	private void addMonthlyFinance(Map<String, Object> map, Long customerId, int monthLength) throws CustomException {
 		int currentMonth = LocalDate.now().getMonthValue();

@@ -22,6 +22,8 @@ public class AccountController {
 		response.setContentType("application/json");
 		PrintWriter out = response.getWriter();
 		try {
+			System.out.println(accountMap.keySet());
+			System.out.println(accountMap.values());
 			Object accounts = accountService.getAccountDetails(accountMap);
 			ObjectMapper mapper = new ObjectMapper();
 			String jsonResponse = mapper.writeValueAsString(accounts);

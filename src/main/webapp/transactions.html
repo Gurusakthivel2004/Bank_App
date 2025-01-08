@@ -80,6 +80,11 @@
 						src="./images/home.svg" alt="" /></a> <a class="mt-2 text-white"
 						href="dashboard.html">Home</a>
 				</div>
+				<div class="tree-item" id="users-tree" onclick="toggleItem(this)">
+					<a href="user-details.html"><img width="34px" height="30px"
+						src="./images/users.svg" alt="" /></a> <a class="text-white"
+						href="user-details.html">Users</a>
+				</div>
 				<div id="accounts-tree" class="tree-item" onclick="toggleItem(this)">
 					<a href="accounts.html"><img width="34px" height="30px"
 						src="./images/accounts.svg" alt="" /></a> <a class="text-white"
@@ -194,7 +199,8 @@
 								class="id-dropdown align-items-baseline me-3 mb-3">
 								<label class="fw-bold  me-2 text-dark">Branch Id:</label> <input
 									class="form-control" type="text" style="width: 150px"
-									id="branchIdsearchInput" placeholder="BranchId" aria-expanded="false">
+									id="branchIdsearchInput" placeholder="BranchId"
+									aria-expanded="false">
 							</div>
 							<div class="id-dropdown d-flex align-items-baseline me-3 mb-3">
 								<label class="fw-bold me-2 text-dark">Account:</label> <input

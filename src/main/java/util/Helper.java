@@ -57,6 +57,8 @@ public class Helper {
 	}
 
 	public static boolean checkPassword(String password, String hashed) {
+		System.out.println(password + " " + hashed);
+		System.out.println(BCrypt.checkpw(password, hashed));
 		return BCrypt.checkpw(password, hashed);
 	}
 
@@ -147,16 +149,19 @@ public class Helper {
 			criteria.getOperator().add(operator);
 			criteria.getValue().add(value);
 		}
-		if(criteria.getColumn().size() > 0) {
+		if (criteria.getColumn().size() > 0) {
 			criteria.setLogicalOperator("AND");
 		}
 	}
 
 	public static void addConditionIfPresent(Criteria criteria, Map<String, Object> map, String mapKey, String column,
-			String operator, Long defaultValue) {
-		Long value = (Long) map.getOrDefault(mapKey, defaultValue);
-		if (value > defaultValue) {
+			String operator, Object defaultValue) {
+		Object value = map.getOrDefault(mapKey, defaultValue);
+		if (value != defaultValue) {
 			Helper.addCondition(criteria, true, column, operator, value);
+		}
+		if (criteria.getColumn().size() > 0) {
+			criteria.setLogicalOperator("AND");
 		}
 	}
 
@@ -373,6 +378,7 @@ public class Helper {
 	// Helper method for comparison operators (=, <>, >, <, >=, <=)
 	public static void appendComparisonOperator(StringBuilder sql, String operator, Object value,
 			List<Object> conditionValues) {
+		System.out.println(value);
 		if (value.getClass() == String.class && ((String) value).contains("SELECT")) {
 			sql.append(operator).append(" ").append(value);
 		} else {
@@ -398,6 +404,13 @@ public class Helper {
 		columnCriteria.setFields(fields);
 		columnCriteria.setValues(values);
 		return columnCriteria;
+	}
+
+	public static <T> Criteria initializeCriteria(Class<T> clazz) {
+		Criteria criteria = new Criteria();
+		criteria.setClazz(clazz);
+		criteria.setSelectColumn(new ArrayList<>(Arrays.asList("*")));
+		return criteria;
 	}
 
 	public static <T> void validateModel(T instance) throws CustomException {
@@ -435,7 +448,7 @@ public class Helper {
 		return criteria;
 	}
 
-	public static Criteria buildJoinCriteria(Class<? extends MarkedClass> clazz, List<Object> joinTable,
+	public static Criteria buildJoinCriteria(Class<? extends MarkedClass> clazz, List<String> joinTable,
 			List<String> joinColumn, List<String> joinOperator, List<Object> joinValue, List<String> columns,
 			List<String> operators, List<Object> values) {
 		Criteria criteria = buildCriteria(clazz, columns, operators, values);
@@ -447,12 +460,13 @@ public class Helper {
 		return criteria;
 	}
 
-	public static Criteria buildJoinCriteria(Class<? extends MarkedClass> clazz, List<Object> joinTable,
+	public static Criteria buildJoinCriteria(Class<? extends MarkedClass> clazz, List<String> joinTable,
 			List<String> joinColumn, List<String> joinOperator, List<Object> joinValue, List<String> columns,
-			List<String> operators, List<Object> values, boolean joinCondition) {
+			List<String> operators, List<Object> values, String join, boolean joinCondition) {
 		Criteria criteria = buildCriteria(clazz, columns, operators, values);
 
 		if (joinCondition) {
+			criteria.setJoin(join);
 			criteria.setJoinTable(joinTable);
 			criteria.setJoinColumn(joinColumn);
 			criteria.setJoinOperator(joinOperator);
@@ -467,6 +481,17 @@ public class Helper {
 			criteria.getJoinColumn().add(joinColumn);
 			criteria.getJoinOperator().add(joinOperator);
 			criteria.getJoinValue().add(joinValue);
+		}
+	}
+
+	public static void applyAccountNumberFilter(Criteria criteria, Map<String, Object> map) {
+		Long accountNumber = (Long) map.get("accountNumber");
+		if (accountNumber != null && accountNumber > 0) {
+			if (accountNumber <= 9999) {
+				Helper.addCondition(criteria, true, "RIGHT(account_number, 4)", "=", accountNumber);
+			} else {
+				Helper.addConditionIfPresent(criteria, map, "accountNumber", "account_number", "=", 0L);
+			}
 		}
 	}
 

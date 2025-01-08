@@ -64,12 +64,6 @@ public class TransactionService {
 				.orElseThrow(() -> new CustomException("No primary account found for user " + customerId));
 	}
 
-	/**
-	 * Creates a new transaction.
-	 * 
-	 * @param transactionMap A map containing transaction details.
-	 * @throws CustomException If the transaction creation process fails.
-	 */
 	@SuppressWarnings("unchecked")
 	public void prepareTransaction(Map<String, Object> transactionMap) throws CustomException {
 		logger.info("Initiating transaction creation...");

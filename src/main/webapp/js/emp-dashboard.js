@@ -10,6 +10,7 @@ document.addEventListener("DOMContentLoaded", async _ => {
 			},
 		});
 		const result = await response.json();
+		console.log(result);
 		const userDetails = result.staff[0];
 		console.log(result)
 		try {

@@ -3,10 +3,8 @@ package service;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 import java.math.BigDecimal;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import org.apache.logging.log4j.LogManager;
@@ -14,7 +12,6 @@ import org.apache.logging.log4j.Logger;
 import com.fasterxml.jackson.core.type.TypeReference;
 import dblayer.dao.AccountDAO;
 import dblayer.model.Account;
-import dblayer.model.Branch;
 import dblayer.model.ColumnCriteria;
 import util.CustomException;
 import util.Helper;
@@ -24,139 +21,6 @@ public class AccountService {
 	private final Logger logger = LogManager.getLogger(AccountService.class);
 	private AccountDAO accountDAO = new AccountDAO();
 	private CacheService cacheService = new CacheService();
-
-	@SuppressWarnings("unchecked")
-	public Map<String, Object> getAccountDetails(Map<String, Object> accountMap) throws CustomException {
-
-		try {
-			Long customerId = Helper.parseLong(accountMap.getOrDefault("userId", "0"));
-			Long branchId = Helper.parseLong(accountMap.getOrDefault("branchId", "0"));
-			if (!(accountMap.containsKey("accountNumber")
-					|| branchId > 0 && Helper.getThreadLocalValue().get("role").equals("Manager"))) {
-				if (customerId == null || customerId == -1) {
-					accountMap.put("userId", (Long) Helper.getThreadLocalValue().get("id"));
-				}
-				if (branchId == null || branchId == -1) {
-					accountMap.put("branchId", (Long) Helper.getThreadLocalValue().get("branchId"));
-				}
-			}
-			String key = generateCacheKey(accountMap);
-			Map<Long, List<Account>> cachedAccounts = cacheService.get(key,
-					new TypeReference<Map<Long, List<Account>>>() {
-					});
-			
-			Long cachedKey = extractLongFromString(key);
-			if (cachedAccounts != null && cachedAccounts.containsKey(cachedKey)) {
-				return (Map<String, Object>) cachedAccounts.get(cachedKey);
-			}
-			
-			
-			Map<String, Object> accountsResult = fetchAccounts(accountMap);
-			List<Object> accounts = (List<Object>) accountsResult.get("accounts");
-			String role = (String) Helper.getThreadLocalValue().get("role");
-			if (accounts != null && !accounts.isEmpty() && role.equals("Employee")) {
-
-				List<Object> filteredAccounts = filterAccountsByBranch(accounts);
-				if (!key.isEmpty()) {
-					saveToCache(key, cachedKey, accountsResult);
-				}
-				accountsResult.put("accounts", filteredAccounts);
-			}
-			return accountsResult;
-		} catch (Exception e) {
-			logger.error("Error fetching account details: {}", e);
-			throw new CustomException("Unable to fetch account details. Please try again later.", e);
-		}
-	}
-
-	private String generateCacheKey(Map<String, Object> accountMap) {
-		if (accountMap == null) {
-			return "";
-		}
-		Long userId = Helper.parseLong(accountMap.getOrDefault("userId", "0"));
-		Long accountNumber = Helper.parseLong(accountMap.getOrDefault("accountNumber", "0"));
-		Long branchId = Helper.parseLong(accountMap.getOrDefault("branchId", "0"));
-		if (accountNumber == 0L && branchId == 0L) {
-			return "customerIdAccounts:" + userId;
-		} else if (userId == 0L && accountNumber == 0L) {
-			return "branchIdAccounts:" + branchId;
-		}
-		return "";
-	}
-
-	private Long extractLongFromString(String str) {
-		if (str == null || str.isEmpty()) {
-			return null;
-		}
-		Pattern pattern = Pattern.compile("\\d+");
-		Matcher matcher = pattern.matcher(str);
-		if (matcher.find()) {
-			try {
-				return Long.parseLong(matcher.group());
-			} catch (NumberFormatException e) {
-				logger.error("Number exceeds Long range.", e);
-				return null;
-			}
-		}
-		return null;
-	}
-
-	private Map<String, Object> fetchAccounts(Map<String, Object> accountMap) throws CustomException {
-		return accountDAO.getAccounts(accountMap);
-	}
-
-	private List<Object> filterAccountsByBranch(List<Object> accounts) throws CustomException {
-		if (Helper.getThreadLocalValue().get("branchId") != null) {
-			logger.debug("Filtering accounts based on branch ID");
-			return checkAccountBranchId(accounts);
-		}
-		return accounts;
-	}
-
-	public List<Object> checkAccountBranchId(List<Object> objects) throws CustomException {
-		logger.info("Checking accounts and branches against branchId in ThreadLocal.");
-		try {
-			long branchId = (Long) Helper.getThreadLocalValue().getOrDefault("branchId", -1L);
-			if (branchId == -1L) {
-				throw new CustomException("Branch ID not found in ThreadLocal");
-			}
-			logger.debug("Branch ID retrieved from ThreadLocal: {}", branchId);
-
-			// Validate the list of objects
-			if (objects == null || objects.isEmpty()) {
-				logger.warn("List of objects is null or empty");
-				return Collections.emptyList();
-			}
-
-			// Filter based on the object type and branchId
-			List<Object> filteredObjects = objects.stream().filter(obj -> {
-				if (obj instanceof Account) {
-					return ((Account) obj).getBranchId() == branchId;
-				} else if (obj instanceof Branch) {
-					return true;
-				}
-				return false;
-			}).collect(Collectors.toList());
-
-			logger.info("{} objects matched the branchId: {}", filteredObjects.size(), branchId);
-			return filteredObjects;
-		} catch (Exception e) {
-			logger.error("Error checking accounts and branches against branchId.", e);
-			throw new CustomException("Failed to check accounts and branches");
-		}
-	}
-
-	private void saveToCache(String key, Long accountCreated, Map<String, Object> accountMap) {
-		cacheService.save(key, accountMap);
-		logger.debug("Saved accounts to cache with key '{}'", key);
-	}
-
-	/**
-	 * Creates a new account using the provided account data.
-	 * 
-	 * @param accountMap A map containing the account details.
-	 * @throws CustomException If the account creation process fails.
-	 */
 
 	@SuppressWarnings("unchecked")
 	public void createAccount(Map<String, Object> accountMap) throws CustomException {
@@ -208,13 +72,6 @@ public class AccountService {
 		}
 	}
 
-	/**
-	 * Deletes an account based on the provided account ID.
-	 * 
-	 * @param accountId The ID of the account to be deleted.
-	 * @throws CustomException If the account cannot be found or deletion fails.
-	 */
-
 	public void deleteAccount(Map<String, Object> accountMap) throws CustomException {
 		logger.info("Attempting to delete account");
 
@@ -233,4 +90,81 @@ public class AccountService {
 			throw new CustomException("Account deletion failed. Please contact support.", e);
 		}
 	}
+
+	@SuppressWarnings("unchecked")
+	public Map<String, Object> getAccountDetails(Map<String, Object> accountMap) throws CustomException {
+		try {
+			Long customerId = Helper.parseLong(accountMap.getOrDefault("userId", "0"));
+			Long branchId = Helper.parseLong(accountMap.getOrDefault("branchId", "0"));
+			String role = (String) Helper.getThreadLocalValue().get("role");
+
+			if (!(accountMap.containsKey("accountNumber") || branchId > 0 && role.equals("Manager"))) {
+				if (customerId == null || customerId == -1) {
+					accountMap.put("userId", (Long) Helper.getThreadLocalValue().get("id"));
+				}
+				if (branchId == null || branchId == -1) {
+					accountMap.put("branchId", (Long) Helper.getThreadLocalValue().get("branchId"));
+				}
+			}
+
+			String key = generateCacheKey(accountMap);
+			Map<Long, Map<String, Object>> cachedAccounts = cacheService.get(key,
+					new TypeReference<Map<Long, Map<String, Object>>>() {
+					});
+
+			Long cachedKey = extractLongFromString(key);
+			if (cachedAccounts != null && cachedAccounts.containsKey(cachedKey)) {
+				return cachedAccounts.get(cachedKey);
+			}
+			if (role.equals("Employee") && !accountMap.containsKey("branchId")) {
+				accountMap.put("branchId", (Long) Helper.getThreadLocalValue().get("branchId"));
+			}
+			Map<String, Object> accountsResult = accountDAO.getAccounts(accountMap);
+			if (!key.isEmpty()) {
+				saveToCache(key, cachedKey, accountsResult);
+			}
+			return accountsResult;
+		} catch (Exception e) {
+			logger.error("Error fetching account details: {}", e);
+			throw new CustomException("Unable to fetch account details. Please try again later.", e);
+		}
+	}
+
+	private String generateCacheKey(Map<String, Object> accountMap) {
+		if (accountMap == null) {
+			return "";
+		}
+		Long userId = Helper.parseLong(accountMap.getOrDefault("userId", "0"));
+		Long accountNumber = Helper.parseLong(accountMap.getOrDefault("accountNumber", "0"));
+		Long branchId = Helper.parseLong(accountMap.getOrDefault("branchId", "0"));
+		if (accountNumber == 0L && branchId == 0L) {
+			return "customerIdAccounts:" + userId;
+		} else if (userId == 0L && accountNumber == 0L) {
+			return "branchIdAccounts:" + branchId;
+		}
+		return "";
+	}
+
+	private Long extractLongFromString(String str) {
+		if (str == null || str.isEmpty()) {
+			return null;
+		}
+		Pattern pattern = Pattern.compile("\\d+");
+		Matcher matcher = pattern.matcher(str);
+		if (matcher.find()) {
+			try {
+				return Long.parseLong(matcher.group());
+			} catch (NumberFormatException e) {
+				logger.error("Number exceeds Long range.", e);
+				return null;
+			}
+		}
+		return null;
+	}
+
+	private void saveToCache(String key, Long accountCreated, Map<String, Object> accountMap) {
+		cacheService.save(key, accountMap);
+		logger.debug("Saved accounts to cache with key '{}'", key);
+	}
+
 }

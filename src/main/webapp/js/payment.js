@@ -117,6 +117,7 @@ document.addEventListener("DOMContentLoaded", async _ => {
 	if (role === "Customer") {
 		document.getElementById('customerAccount').style.display = 'flex';
 		document.getElementById('accounts-tree').style.display = 'none';
+		document.getElementById('users-tree').style.display = 'none';
 	} else {
 		document.getElementById('paymentmode').style.display = 'flex';
 	}

@@ -17,13 +17,6 @@ public class BranchService {
 	private CacheService cacheService = new CacheService();
 	private static BranchDAO branchDAO = new BranchDAO();
 
-	/**
-	 * Retrieves a list of branches based on the provided parameters.
-	 * 
-	 * @param branchId The unique identifier of the branch (0 if not used).
-	 * @return A list of matching branches.
-	 * @throws CustomException If an error occurs during branch retrieval.
-	 */
 	public List<Object> getBranchDetails(Long branchId, boolean notExact) throws CustomException {
 		logger.info("Fetching branch details for branchId: {}", branchId);
 
@@ -57,12 +50,6 @@ public class BranchService {
 		}
 	}
 
-	/**
-	 * Creates a new branch with the provided branch data.
-	 * 
-	 * @param branchMap A map containing the details of the branch to be created.
-	 * @throws CustomException If the branch creation process fails.
-	 */
 	public void createBranch(Map<String, Object> branchMap) throws CustomException {
 		logger.info("Creating a new branch with data: {}", branchMap);
 

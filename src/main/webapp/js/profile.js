@@ -55,7 +55,7 @@ const toggleModal = modalId => {
 		document.getElementById('branchSave').style.display = "none";
 		document.getElementById('statusSave').style.display = "none";
 		if (role == "Manager") {
-			if(modal.style.display === "flex") {
+			if (modal.style.display === "flex") {
 				document.getElementById('branchEdit').style.display = "block";
 				document.getElementById('statusEdit').style.display = "block";
 			}
@@ -63,6 +63,10 @@ const toggleModal = modalId => {
 		document.getElementById('accountbranchId').disabled = true;
 		document.getElementById('dropdown').style.display = "none";
 		document.getElementById('dropdownStatus').style.display = "none";
+	}
+	if (modalId == "newUserModal") {
+		document.getElementById('saveButton').style.display = 'none';
+		document.getElementById('editButton').style.display = 'block';
 	}
 }
 

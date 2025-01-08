@@ -37,7 +37,6 @@ public class BranchDAO {
 
 		String ifscCode = "HORI000" + String.format("%04d", branchId);
 		ColumnCriteria columnCriteria = Helper.createColumnCriteria(Arrays.asList("ifscCode"), Arrays.asList(ifscCode));
-
 		Criteria criteria = Helper.createCriteria(Branch.class, "id", "=", branchId);
 
 		try {

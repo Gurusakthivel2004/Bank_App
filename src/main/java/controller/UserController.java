@@ -8,6 +8,7 @@ import java.util.Map;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -17,21 +18,18 @@ import util.CustomException;
 import util.Helper;
 
 public class UserController {
-	
+
 	private final UserService userService = new UserService();
 
-	public void handleGet(HttpServletRequest request, HttpServletResponse response) throws IOException {
+	public void handleGet(HttpServletRequest request, HttpServletResponse response, Map<String, Object> userMap)
+			throws IOException {
 		PrintWriter out = response.getWriter();
 		response.setContentType("application/json");
+
 		try {
-			long userId = Helper.parseLongOrDefault(request.getParameter("userId"),
-					(long) Helper.getThreadLocalValue().get("id"));
-			String role = request.getParameter("role");
-			String notExact = request.getParameter("notExact");
-			if(role == null) {
-				role = (String) Helper.getThreadLocalValue().get("role");
-			}
-			Object userDetails = userService.getUserDetails(userId, role,  notExact != null);
+			boolean notExact = userMap != null && userMap.containsKey("notExact");
+
+			Object userDetails = userService.getUserDetails(userMap, notExact);
 			ObjectMapper mapper = new ObjectMapper();
 			String jsonResponse = mapper.writeValueAsString(userDetails);
 
@@ -45,6 +43,10 @@ public class UserController {
 		}
 	}
 
+	public void handleGet(HttpServletRequest request, HttpServletResponse response) throws IOException {
+		handleGet(request, response, Helper.getParametersAsMap(request));
+	}
+
 	public void handlePost(HttpServletRequest request, HttpServletResponse response) throws IOException {
 		response.setContentType("application/json");
 		PrintWriter out = response.getWriter();
@@ -53,12 +55,14 @@ public class UserController {
 		try (BufferedReader reader = request.getReader()) {
 			JsonObject jsonObject = JsonParser.parseReader(reader).getAsJsonObject();
 			Map<String, Object> userMap = Helper.mapJsonObject(jsonObject);
-
+			if (userMap.containsKey("get")) {
+				handleGet(request, response, userMap);
+				return;
+			}
 			userService.createUser(userMap);
 			responseJson.addProperty("message", "success");
 			response.setStatus(HttpServletResponse.SC_OK);
 		} catch (CustomException exception) {
-			// Handle custom exception for failed account creation
 			responseJson.addProperty("message", exception.getMessage());
 			response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
 		} finally {
@@ -67,25 +71,23 @@ public class UserController {
 		}
 	}
 
+	@SuppressWarnings("unchecked")
 	public void handlePut(HttpServletRequest request, HttpServletResponse response) throws IOException {
 		response.setContentType("application/json");
 		PrintWriter out = response.getWriter();
 		JsonObject responseJson = new JsonObject();
 
 		try (BufferedReader reader = request.getReader()) {
-			JsonArray jsonArray = JsonParser.parseReader(reader).getAsJsonArray();
-			Map<String, Object> userMap = new HashMap<>();
-			for (JsonElement element : jsonArray) {
-				String field = element.getAsJsonObject().get("name").getAsString();
-				JsonElement elementValue = element.getAsJsonObject().get("value");
-				Object value = Helper.convertJsonElement(elementValue);
-				userMap.put(field, value);
-			}
+			JsonObject jsonObject = JsonParser.parseReader(reader).getAsJsonObject();
+			Gson gson = new Gson();
+			Map<String, Object> userMap = gson.fromJson(jsonObject, Map.class);
+
+			System.out.println(userMap.keySet());
+			System.out.println(userMap.values());
 			userService.updateUserDetails(userMap);
 			responseJson.addProperty("message", "success");
 			response.setStatus(HttpServletResponse.SC_OK);
 		} catch (CustomException exception) {
-			// Handle custom exception for failed account creation
 			responseJson.addProperty("message", exception.getMessage());
 			response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
 		} finally {

@@ -3,7 +3,9 @@ package dblayer.dao;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -17,103 +19,6 @@ import util.SQLHelper;
 public class AccountDAO {
 
 	private static final Logger logger = LogManager.getLogger(AccountDAO.class);
-
-	public void createAccount(Account account) throws CustomException {
-		logger.info("Creating account: {}", account);
-		try {
-			account.setCreatedAt(System.currentTimeMillis());
-			logger.debug("Account creation timestamp set: {}", account.getCreatedAt());
-
-			Long accountId = ((BigInteger) SQLHelper.insert(account)).longValue();
-			logger.debug("Account ID generated: {}", accountId);
-
-			ColumnCriteria columnCriteria = new ColumnCriteria();
-			columnCriteria.setFields(Arrays.asList("accountNumber"));
-			String accountNumber = "701" + String.format("%04d", account.getBranchId())
-					+ String.format("%04d", accountId);
-			columnCriteria.setValues(Arrays.asList(Long.parseLong(accountNumber)));
-
-			logger.debug("Account number generated: {}", accountNumber);
-
-			Criteria criteria = new Criteria();
-			criteria.setClazz(Account.class);
-			criteria.getColumn().add("account_id");
-			criteria.getOperator().add("=");
-			criteria.getValue().add(accountId);
-
-			updateAccount(columnCriteria, "account_id", accountId);
-			logger.info("Account created successfully: {}", account);
-		} catch (Exception e) {
-			logger.error("Error creating account: {}", account, e);
-			throw new CustomException("Failed to create account");
-		}
-	}
-
-	public Map<String, Object> getAccounts(Map<String, Object> accountMap) throws CustomException {
-		logger.info("Fetching accounts with parameters: {}", accountMap);
-		try {
-			// Initialize criteria
-			Criteria criteria = new Criteria();
-			criteria.setClazz(Account.class);
-			criteria.setSelectColumn(new ArrayList<>(Arrays.asList("*")));
-
-			// Extract filter values from the input map
-			Long userId = (Long) accountMap.getOrDefault("userId", 0L);
-			Long accountNumber = (Long) accountMap.getOrDefault("accountNumber", 0L);
-			Long branchId = (Long) accountMap.getOrDefault("branchId", 0L);
-			Long accountCreated = (Long) accountMap.getOrDefault("accountCreated", 0L);
-			Long limitValue = (Long) accountMap.getOrDefault("limit", 0L);
-			Long offset = (Long) accountMap.getOrDefault("offset", -1L);
-			String type = (String) accountMap.getOrDefault("accountType", "");
-			String status = (String) accountMap.getOrDefault("status", "");
-
-			// Dynamically add conditions to criteria
-			Helper.addCondition(criteria, userId > 0, "user_id", "=", userId);
-			Helper.addCondition(criteria, accountNumber > 0, "account_number", "LIKE", "%" + accountNumber + "%");
-			Helper.addCondition(criteria, branchId > 0, "branch_id", "=", branchId);
-			Helper.addCondition(criteria, accountCreated > 0, "created_at", "=", accountCreated);
-			Helper.addCondition(criteria, !type.isEmpty(), "account_type", "=", type);
-			Helper.addCondition(criteria, !status.isEmpty(), "status", "=", status);
-
-			// Set limit and logical operator
-			if (limitValue > 0) {
-				criteria.setLimitValue(limitValue);
-			}
-			if (criteria.getColumn().size() > 1) {
-				criteria.setLogicalOperator("AND");
-			}
-
-			Map<String, Object> txResult = new HashMap<>();
-			if (offset >= 0) {
-				if (offset == 0) {
-					criteria.setOffsetValue(-1L);
-					txResult.put("count", SQLHelper.get(criteria).get(0));
-				}
-				Criteria staffJoinCriteria = Helper.buildJoinCriteria(Account.class, Arrays.asList("branch"),
-						new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), new ArrayList<>(),
-						new ArrayList<>(), true);
-
-				staffJoinCriteria.setSelectColumn(Arrays.asList("account.*", "branch.name"));
-				Helper.addJoinCondition(staffJoinCriteria, true, "account.branch_id", "=", "branch.id");
-				Helper.addCondition(staffJoinCriteria, userId > 0, "user_id", "=", userId);
-				Helper.addCondition(staffJoinCriteria, accountNumber > 0, "account_number", "LIKE",
-						"%" + accountNumber + "%");
-				Helper.addCondition(staffJoinCriteria, branchId > 0, "branch_id", "=", branchId);
-				Helper.addCondition(staffJoinCriteria, !type.isEmpty(), "account_type", "=", type);
-				Helper.addCondition(staffJoinCriteria, !status.isEmpty(), "status", "=", status);
-
-				staffJoinCriteria.setAlias(Arrays.asList(null, "branchName"));
-				txResult.put("joinedAccounts", SQLHelper.get(staffJoinCriteria));
-			}
-
-			logger.debug("Criteria for fetching accounts: {}", criteria);
-			txResult.put("accounts", SQLHelper.get(criteria));
-			return txResult;
-		} catch (Exception e) {
-			logger.error("Error fetching accounts.", e);
-			throw new CustomException("Failed to fetch accounts");
-		}
-	}
 
 	public <T> void updateAccount(ColumnCriteria columnCriteria, String column, Object value) throws CustomException {
 		logger.info("Updating account with ColumnCriteria: {}", columnCriteria);
@@ -155,4 +60,107 @@ public class AccountDAO {
 			throw new CustomException("Failed to remove account.");
 		}
 	}
+
+	public void createAccount(Account account) throws CustomException {
+		logger.info("Creating account: {}", account);
+		try {
+			account.setCreatedAt(System.currentTimeMillis());
+			logger.debug("Account creation timestamp set: {}", account.getCreatedAt());
+
+			Long accountId = ((BigInteger) SQLHelper.insert(account)).longValue();
+			logger.debug("Account ID generated: {}", accountId);
+
+			ColumnCriteria columnCriteria = new ColumnCriteria();
+			columnCriteria.setFields(Arrays.asList("accountNumber"));
+			String accountNumber = "701" + String.format("%04d", account.getBranchId())
+					+ String.format("%04d", accountId);
+			columnCriteria.setValues(Arrays.asList(Long.parseLong(accountNumber)));
+
+			logger.debug("Account number generated: {}", accountNumber);
+
+			Criteria criteria = new Criteria();
+			criteria.setClazz(Account.class);
+			criteria.getColumn().add("account_id");
+			criteria.getOperator().add("=");
+			criteria.getValue().add(accountId);
+
+			updateAccount(columnCriteria, "account_id", accountId);
+			logger.info("Account created successfully: {}", account);
+		} catch (Exception e) {
+			logger.error("Error creating account: {}", account, e);
+			throw new CustomException("Failed to create account");
+		}
+	}
+
+	public Map<String, Object> getAccounts(Map<String, Object> accountMap) throws CustomException {
+		logger.info("Fetching accounts with parameters: {}", accountMap);
+		try {
+			Criteria criteria = Helper.initializeCriteria(Account.class);
+			criteria = applyBranchFilter(criteria, accountMap);
+			applyAccountFilters(criteria, accountMap);
+			applyPagination(criteria, accountMap);
+
+			Map<String, Object> result = new HashMap<>();
+
+			Long offset = (Long) accountMap.getOrDefault("offset", -1L);
+			if (offset == 0) {
+				criteria.setOffsetValue(-1L);
+				result.put("count", SQLHelper.get(criteria).get(0));
+				criteria.setOffsetValue(offset);
+				result.put("joinedAccounts", fetchJoinedAccounts(accountMap));
+			} else {
+				result.put("accounts", SQLHelper.get(criteria));
+			}
+			return result;
+		} catch (Exception e) {
+			logger.error("Error fetching accounts.", e);
+			throw new CustomException("Failed to fetch accounts");
+		}
+	}
+
+	private void applyAccountFilters(Criteria criteria, Map<String, Object> accountMap) {
+		Helper.addConditionIfPresent(criteria, accountMap, "userId", "user_id", "=", 0L);
+		Helper.addConditionIfPresent(criteria, accountMap, "branchId", "branch_id", "=", 0L);
+		Helper.addConditionIfPresent(criteria, accountMap, "accountCreated", "created_at", "=", 0L);
+		Helper.addCondition(criteria, accountMap.get("accountType") != null, "account_type", "=",
+				accountMap.get("accountType"));
+		Helper.addCondition(criteria, accountMap.get("status") != null, "status", "=", accountMap.get("status"));
+		Helper.applyAccountNumberFilter(criteria, accountMap);
+	}
+
+	private Criteria applyBranchFilter(Criteria criteria, Map<String, Object> accountMap) {
+		if (!accountMap.containsKey("branchId")) {
+			return criteria;
+		}
+		criteria = Helper.buildJoinCriteria(Account.class, Arrays.asList("branch"), new ArrayList<>(),
+				new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), " JOIN ",
+				true);
+		criteria.setSelectColumn(Collections.singletonList("account.*"));
+		Helper.addJoinCondition(criteria, true, "account.branch_id", "=", "branch.id");
+		return criteria;
+	}
+
+	private void applyPagination(Criteria criteria, Map<String, Object> accountMap) {
+		Long limit = (Long) accountMap.getOrDefault("limit", 0L);
+		Long offset = (Long) accountMap.getOrDefault("offset", -1L);
+		if (limit > 0) {
+			criteria.setLimitValue(limit);
+		}
+		if (offset >= 0) {
+			criteria.setOffsetValue(offset == 0 ? -1L : offset);
+		}
+	}
+
+	private List<Object> fetchJoinedAccounts(Map<String, Object> accountMap) throws CustomException {
+		Criteria staffJoinCriteria = Helper.buildJoinCriteria(Account.class, Arrays.asList("branch"), new ArrayList<>(),
+				new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), " JOIN ",
+				true);
+		staffJoinCriteria.setSelectColumn(Arrays.asList("account.*", "branch.name"));
+
+		Helper.addJoinCondition(staffJoinCriteria, true, "account.branch_id", "=", "branch.id");
+		applyAccountFilters(staffJoinCriteria, accountMap);
+
+		return SQLHelper.get(staffJoinCriteria);
+	}
+
 }

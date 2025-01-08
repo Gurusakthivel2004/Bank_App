@@ -134,6 +134,7 @@ document.addEventListener("DOMContentLoaded", () => {
 	fetchTransactions();
 	if (role === 'Customer') {
 		document.getElementById('accounts-tree').style.display = 'none';
+		document.getElementById('users-tree').style.display = 'none';
 		document.getElementById("idfilter").style.display = 'none';
 	} else if (role == 'Manager') {
 		document.getElementById('branchidfilter').style.display = 'flex';

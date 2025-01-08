@@ -51,8 +51,7 @@ public class TransactionDAO {
 		Criteria criteria = initializeCriteria();
 		criteria = applyBranchFilter(criteria, txMap);
 		applyTransactionFilters(criteria, txMap);
-		applyAccountNumberFilter(criteria, txMap);
-		
+		Helper.applyAccountNumberFilter(criteria, txMap);
 		applyPagination(criteria, txMap);
 
 		return executeQuery(criteria, txMap);
@@ -75,23 +74,13 @@ public class TransactionDAO {
 				txMap.get("transactionType"));
 	}
 
-	private void applyAccountNumberFilter(Criteria criteria, Map<String, Object> txMap) {
-		Long accountNumber = (Long) txMap.get("accountNumber");
-		if (accountNumber != null && accountNumber > 0) {
-			if (accountNumber <= 9999) {
-				Helper.addCondition(criteria, true, "RIGHT(account_number, 4)", "=", accountNumber);
-			} else {
-				Helper.addConditionIfPresent(criteria, txMap, "accountNumber", "account_number", "=", 0L);
-			}
-		}
-	}
-
 	private Criteria applyBranchFilter(Criteria criteria, Map<String, Object> txMap) {
 		if (!txMap.containsKey("branchId")) {
 			return criteria;
 		}
 		criteria = Helper.buildJoinCriteria(Transaction.class, Arrays.asList("branch"), new ArrayList<>(),
-				new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), true);
+				new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), " JOIN ",
+				true);
 		criteria.setSelectColumn(Collections.singletonList("transaction.*"));
 		Helper.addJoinCondition(criteria, true, "transaction.ifsc", "=", "branch.ifsc_code");
 		Helper.addCondition(criteria, true, "branch.id", "=", txMap.get("branchId"));
