@@ -1,7 +1,6 @@
 package util;
 
 import java.lang.reflect.Field;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -12,13 +11,12 @@ public class ValidationUtil {
 
 	private static final Logger logger = LogManager.getLogger(ValidationUtil.class);
 
-	private static final List<String> USER_UPDATE_ALLOWED_FIELDS = new ArrayList<>(Arrays.asList("phone", "email",
-			"role", "status", "password", "branchId", "fatherName", "motherName", "maritalStatus", "address"));
+	private static final List<String> USER_UPDATE_ALLOWED_FIELDS = Arrays.asList("phone", "email", "role", "status",
+			"password", "branchId", "fatherName", "motherName", "maritalStatus", "address");
 
-	private static final List<String> ACCOUNT_UPDATE_ALLOWED_FIELDS = new ArrayList<>(
-			Arrays.asList("branchId", "status"));
+	private static final List<String> ACCOUNT_UPDATE_ALLOWED_FIELDS = Arrays.asList("branchId", "status");
 
-	private static final List<String> BRANCH_UPDATE_ALLOWED_FIELDS = new ArrayList<>(Arrays.asList("contactNumber"));
+	private static final List<String> BRANCH_UPDATE_ALLOWED_FIELDS = Arrays.asList("contactNumber");
 
 	public static void validateUpdateFields(Map<String, Object> inputMap, Class<?> targetClass) {
 		logger.info("Starting field validation for class: {}", targetClass.getSimpleName());
@@ -44,7 +42,6 @@ public class ValidationUtil {
 	private static List<String> getAllowedFieldsForClass(Class<?> targetClass) {
 		String className = targetClass.getSimpleName().toLowerCase();
 		logger.debug("Determining allowed fields for class: {}", className);
-
 		if (className.contains("user")) {
 			return USER_UPDATE_ALLOWED_FIELDS;
 		} else if (className.contains("account")) {

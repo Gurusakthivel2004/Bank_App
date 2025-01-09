@@ -1,16 +1,19 @@
 package controller;
 
-import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.PrintWriter;
+
 import java.util.Map;
+
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
+
 import service.UserService;
+
 import util.CustomException;
 import util.Helper;
 
@@ -45,51 +48,37 @@ public class UserController {
 	}
 
 	public void handlePost(HttpServletRequest request, HttpServletResponse response) throws IOException {
-		response.setContentType("application/json");
-		PrintWriter out = response.getWriter();
-		JsonObject responseJson = new JsonObject();
-
-		try (BufferedReader reader = request.getReader()) {
-			JsonObject jsonObject = JsonParser.parseReader(reader).getAsJsonObject();
+		try {
+			JsonObject jsonObject = Helper.parseRequestBody(request);
 			Map<String, Object> userMap = Helper.mapJsonObject(jsonObject);
+
 			if (userMap.containsKey("get")) {
 				handleGet(request, response, userMap);
 				return;
 			}
+
 			userService.createUser(userMap);
-			responseJson.addProperty("message", "success");
-			response.setStatus(HttpServletResponse.SC_OK);
+			Helper.sendSuccessResponse(response, "success");
 		} catch (CustomException exception) {
-			responseJson.addProperty("message", exception.getMessage());
-			response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-		} finally {
-			out.print(responseJson.toString());
-			out.close();
+			Helper.sendErrorResponse(response, exception.getMessage());
 		}
 	}
 
 	@SuppressWarnings("unchecked")
 	public void handlePut(HttpServletRequest request, HttpServletResponse response) throws IOException {
-		response.setContentType("application/json");
-		PrintWriter out = response.getWriter();
-		JsonObject responseJson = new JsonObject();
-
-		try (BufferedReader reader = request.getReader()) {
-			JsonObject jsonObject = JsonParser.parseReader(reader).getAsJsonObject();
+		try {
+			JsonObject jsonObject = Helper.parseRequestBody(request);
 			Gson gson = new Gson();
 			Map<String, Object> userMap = gson.fromJson(jsonObject, Map.class);
 
 			System.out.println(userMap.keySet());
 			System.out.println(userMap.values());
+
 			userService.updateUserDetails(userMap);
-			responseJson.addProperty("message", "success");
-			response.setStatus(HttpServletResponse.SC_OK);
+			Helper.sendSuccessResponse(response, "success");
 		} catch (CustomException exception) {
-			responseJson.addProperty("message", exception.getMessage());
-			response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-		} finally {
-			out.print(responseJson.toString());
-			out.close();
+			Helper.sendErrorResponse(response, exception.getMessage());
 		}
 	}
+
 }

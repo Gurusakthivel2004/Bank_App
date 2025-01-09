@@ -2,6 +2,7 @@ package util;
 
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.lang.reflect.Field;
 import java.math.BigDecimal;
 import java.sql.Date;
@@ -25,6 +26,8 @@ import org.apache.logging.log4j.Logger;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.mindrot.jbcrypt.BCrypt;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -170,10 +173,79 @@ public class Helper {
 		}
 	}
 
+	public static void convertMapValuesToLong(Map<String, Object> map) {
+		for (Map.Entry<String, Object> entry : map.entrySet()) {
+			Object value = entry.getValue();
+
+			if (value instanceof Number) {
+				entry.setValue(((Number) value).longValue());
+			} else if (value instanceof String) {
+				String strValue = (String) value;
+				if (isNumeric(strValue)) {
+					entry.setValue(Long.parseLong(strValue));
+				}
+			}
+		}
+	}
+
+	public static boolean isNumeric(String str) {
+		try {
+			Long.parseLong(str);
+			return true;
+		} catch (NumberFormatException e) {
+			return false;
+		}
+	}
+
 	public static String getHandler(HttpServletRequest request) {
 		String handler = request.getRequestURI();
 		handler = handler.substring(handler.lastIndexOf("/") + 1);
 		return handler != null ? handler : "";
+	}
+
+	public static JsonObject parseRequestBody(HttpServletRequest request) throws IOException {
+		try (BufferedReader reader = request.getReader()) {
+			return JsonParser.parseReader(reader).getAsJsonObject();
+		}
+	}
+
+	public static void sendSuccessResponse(HttpServletResponse response, String message) throws IOException {
+		JsonObject responseJson = new JsonObject();
+		responseJson.addProperty("message", message);
+		response.setStatus(HttpServletResponse.SC_OK);
+
+		try (PrintWriter out = response.getWriter()) {
+			out.print(responseJson.toString());
+		}
+	}
+
+	public static void sendErrorResponse(HttpServletResponse response, String errorMessage) throws IOException {
+		JsonObject responseJson = new JsonObject();
+		responseJson.addProperty("message", errorMessage);
+		response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+
+		try (PrintWriter out = response.getWriter()) {
+			out.print(responseJson.toString());
+		}
+	}
+
+	public static void sendSuccessResponse(HttpServletResponse response, Object responseData) throws IOException {
+		response.setContentType("application/json");
+		response.setStatus(HttpServletResponse.SC_OK);
+		String jsonResponse = new ObjectMapper().writeValueAsString(responseData);
+		try (PrintWriter out = response.getWriter()) {
+			out.write(jsonResponse);
+		}
+	}
+
+	public static void sendErrorResponse(HttpServletResponse response, CustomException exception) throws IOException {
+		response.setContentType("application/json");
+		response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+		JsonObject responseJson = new JsonObject();
+		responseJson.addProperty("message", exception.getMessage());
+		try (PrintWriter out = response.getWriter()) {
+			out.write(responseJson.toString());
+		}
 	}
 
 	public static long convertDateToMillis(String dateString) {

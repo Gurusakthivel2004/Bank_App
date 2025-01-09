@@ -162,24 +162,33 @@ public class UserService {
 		}
 	}
 
+	@SuppressWarnings("unchecked")
 	public void updateUserDetails(Map<String, Object> userMap) throws CustomException {
 		logger.info("Attempting to update user details.");
 		try {
-			ValidationUtil.validateUpdateFields(userMap, Account.class);
+			if (!userMap.containsKey("updatedValues")) {
+				throw new CustomException("Provide the values to update");
+			}
+			Map<String, Object> criteriaMap = new HashMap<>(),
+					updatedValues = (Map<String, Object>) userMap.get("updatedValues");
+			Helper.convertMapValuesToLong(updatedValues);
+
+			ValidationUtil.validateUpdateFields(updatedValues, User.class);
+
 			List<String> fields = new ArrayList<>();
 			List<Object> values = new ArrayList<>();
+
 			String role = (String) userMap.get("role");
 			userMap.remove("role");
 			logger.debug("User role determined as: {}", role);
-			Map<String, Object> criteriaMap = new HashMap<>();
-			for (String key : userMap.keySet()) {
-				logger.debug("Processing field: {}", key);
-				if (key.equals("userId")) {
-					criteriaMap.put(key, userMap.get(key));
-					continue;
-				}
+
+			for (String key : updatedValues.keySet()) {
 				fields.add(key);
 				values.add(userMap.get(key));
+			}
+			userMap.remove("updatedValues");
+			for (String key : userMap.keySet()) {
+				criteriaMap.put(key, userMap.get(key));
 			}
 
 			ColumnCriteria columnCriteria = new ColumnCriteria();

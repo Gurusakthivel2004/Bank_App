@@ -184,6 +184,7 @@ function renderUsers(users) {
 
 let originalValues = {};
 let updatedValues = {};
+let userFields = {};
 
 const userClick = async user => {
 	const userDetailsResponse = await fetch(`http://localhost:8080/Bank_Application/api/User?userId=${user.id}&role=${user.role}`, {
@@ -210,8 +211,8 @@ const userClick = async user => {
 	}
 	toggleModal('newUserModal');
 	if (!userResult) return;
-	updatedValues['userId'] = Number(userResult.id);
-	updatedValues['role'] = userResult.role;
+	userFields['userId'] = Number(userResult.id);
+	userFields['role'] = userResult.role;
 	Object.keys(userResult).forEach(key => {
 		const inputField = document.getElementById(key);
 		if (inputField) {
@@ -364,33 +365,32 @@ const toggleSaveAll = () => {
 			inputField.style.border = "1px solid red";
 			borderSet++;
 		}
-		if (id === "customerEmail" && newValue && !validateEmail(newValue)) {
+		else if (id === "email" && newValue && !validateEmail(newValue)) {
 			isValid = false;
 			inputField.style.border = '1px solid red';
 			borderSet++;
 		}
-		else if (id === "customerPhone" && newValue && !validatePhone(newValue)) {
+		else if (id === "phone" && newValue && !validatePhone(newValue)) {
 			isValid = false;
 			inputField.style.border = '1px solid red';
 			borderSet++;
 		}
-		if (id === "branchId" && !validBranchIds.includes(parseInt(newValue))) {
+		else if (id === "branchId" && !validBranchIds.includes(parseInt(newValue))) {
 			isValid = false;
 			inputField.style.border = '1px solid red';
 			borderSet++;
 			return;
 		}
 		else if (newValue && newValue !== originalValues[id]) {
-			if(key == "phone") updatedValues[id] = Number(newValue);
-			else updatedValues[id] = newValue;
+			updatedValues[id] = newValue;
 			inputField.style.border = "0";
 		} else {
 			inputField.style.border = "0";
-			isValid = false;
 		}
 	});
 	console.log(updatedValues);
-	if (!isValid && borderSet > 0) return;
+	console.log(isValid, borderSet);
+	if (!isValid && borderSet > 0 && updatedValues.size == 0) return;
 	document.getElementById('saveButton').style.display = 'none';
 	document.getElementById('editButton').style.display = 'block';
 	inputFieldsIds.forEach(id => {
@@ -398,7 +398,8 @@ const toggleSaveAll = () => {
 		inputField.disabled = true;
 		inputField.style.border = "0px";
 	});
-	sendToServer(updatedValues);
+	userFields.updatedValues = updatedValues;
+	sendToServer(userFields);
 	toggleModal('newUserModal');
 };
 
