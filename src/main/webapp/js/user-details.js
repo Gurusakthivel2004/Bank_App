@@ -201,14 +201,16 @@ const userClick = async user => {
 		document.getElementById('customerDetails').style.display = 'none';
 		document.getElementById('addressDiv').style.display = 'none';
 		document.getElementById('roleDiv').style.display = 'flex';
+		document.getElementById('branchIdDiv').style.display = 'flex';
 	} else {
 		document.getElementById('customerDetails').style.display = 'block';
 		document.getElementById('addressDiv').style.display = 'flex';
 		document.getElementById('roleDiv').style.display = 'none';
+		document.getElementById('branchIdDiv').style.display = 'none';
 	}
 	toggleModal('newUserModal');
 	if (!userResult) return;
-	updatedValues['userId'] = userResult.id;
+	updatedValues['userId'] = Number(userResult.id);
 	updatedValues['role'] = userResult.role;
 	Object.keys(userResult).forEach(key => {
 		const inputField = document.getElementById(key);
@@ -257,9 +259,90 @@ document.querySelectorAll('.dropdown-item').forEach(item => {
 		this.classList.add('active');
 	});
 });
-const inputFieldsIds = ["email", "phone", "address", "maritalStatus", "status", "role"];
-const toggleEditUser = () => {
 
+function fetchDropdownOptions(query) {
+	const dropdown = document.getElementById('dropdown');
+	dropdown.innerHTML = '';
+
+	if (!query.trim()) {
+		dropdown.innerHTML = '<div class="dropdown-option" style="padding: 10px; color: grey;">Enter a branch ID</div>';
+		dropdown.style.display = 'block';
+		return;
+	}
+
+	fetch(`http://localhost:8080/Bank_Application/api/Branch?branchId=${query}&notExact=true`, {
+		method: 'GET',
+		headers: {
+			'Content-Type': 'application/json',
+			'Authorization': `Bearer ${token}`,
+		},
+	})
+		.then(response => response.json())
+		.then(data => {
+			console.log(data);
+
+			if (!data || data.length === 0) {
+				dropdown.innerHTML = '<div class="dropdown-option" style="padding: 10px; color: grey;">Branch ID not found</div>';
+				dropdown.style.display = 'block';
+				return;
+			}
+
+			validBranchIds = [];
+			data.forEach(branch => {
+				const option = document.createElement('div');
+				option.className = 'dropdown-option';
+				option.style = `
+                    padding: 10px;
+                    cursor: pointer;
+                    border-bottom: 1px solid #ddd;
+                `;
+				option.innerHTML = `
+                    <div style="font-weight: bold; color: #2c3e50;">
+                        ID: ${branch.id}
+                    </div>
+                    <div style="font-size: 12px; color: grey;">
+                        Name: ${branch.name} <br>
+                        IFSC: ${branch.ifscCode} <br>
+                        Address: ${branch.address}
+                    </div>
+                `;
+				validBranchIds.push(branch.id);
+
+				option.onclick = () => {
+					const input = document.getElementById('branchId');
+					input.value = branch.id;
+					dropdown.style.display = 'none';
+				};
+				dropdown.appendChild(option);
+			});
+
+			dropdown.style.display = 'block';
+		})
+		.catch(err => {
+			console.error('Error fetching dropdown options:', err);
+			dropdown.innerHTML = '<div class="dropdown-option" style="padding: 10px; color: red;">Error fetching data</div>';
+			dropdown.style.display = 'block';
+		});
+}
+
+document.addEventListener('click', (event) => {
+	const dropdown = document.getElementById('dropdown');
+	const input = document.getElementById('branchId');
+	if (!dropdown || !input) {
+		return;
+	}
+	if (!dropdown.contains(event.target) &&
+		!input.contains(event.target)) {
+		console.log('Clicked outside');
+		dropdown.style.display = 'none';
+	}
+});
+
+
+const inputFieldsIds = ["email", "phone", "address", "maritalStatus", "status", "role", "branchId"];
+let validBranchIds = [];
+
+const toggleEditUser = () => {
 	inputFieldsIds.forEach(id => {
 		const inputField = document.getElementById(id);
 		inputField.disabled = false;
@@ -268,6 +351,7 @@ const toggleEditUser = () => {
 	})
 	document.getElementById('saveButton').style.display = 'block';
 	document.getElementById('editButton').style.display = 'none';
+	validBranchIds.push(parseInt(document.getElementById('branchId').value));
 }
 const toggleSaveAll = () => {
 	let isValid = true;
@@ -290,14 +374,22 @@ const toggleSaveAll = () => {
 			inputField.style.border = '1px solid red';
 			borderSet++;
 		}
+		if (id === "branchId" && !validBranchIds.includes(parseInt(newValue))) {
+			isValid = false;
+			inputField.style.border = '1px solid red';
+			borderSet++;
+			return;
+		}
 		else if (newValue && newValue !== originalValues[id]) {
-			updatedValues[id] = newValue;
+			if(key == "phone") updatedValues[id] = Number(newValue);
+			else updatedValues[id] = newValue;
 			inputField.style.border = "0";
 		} else {
 			inputField.style.border = "0";
 			isValid = false;
 		}
 	});
+	console.log(updatedValues);
 	if (!isValid && borderSet > 0) return;
 	document.getElementById('saveButton').style.display = 'none';
 	document.getElementById('editButton').style.display = 'block';

@@ -44,7 +44,7 @@ public class CacheService {
 		}
 		try (Jedis jedis = RedisCache.getConnection()) {
 			String jsonValue = objectMapper.writeValueAsString(value);
-			jedis.setex(key, ttlSeconds, jsonValue); // Set key with expiration time
+			jedis.setex(key, ttlSeconds, jsonValue); 
 			logger.info("Successfully saved key '{}' in Redis with TTL {} seconds.", key, ttlSeconds);
 		} catch (JsonProcessingException e) {
 			logger.error("Failed to serialize value for key '{}': {}", key, e.getMessage());

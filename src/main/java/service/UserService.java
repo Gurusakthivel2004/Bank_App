@@ -11,11 +11,13 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import com.fasterxml.jackson.core.type.TypeReference;
 import dblayer.dao.UserDAO;
+import dblayer.model.Account;
 import dblayer.model.ColumnCriteria;
 import dblayer.model.Staff;
 import dblayer.model.User;
 import util.CustomException;
 import util.Helper;
+import util.ValidationUtil;
 
 public class UserService {
 
@@ -163,6 +165,7 @@ public class UserService {
 	public void updateUserDetails(Map<String, Object> userMap) throws CustomException {
 		logger.info("Attempting to update user details.");
 		try {
+			ValidationUtil.validateUpdateFields(userMap, Account.class);
 			List<String> fields = new ArrayList<>();
 			List<Object> values = new ArrayList<>();
 			String role = (String) userMap.get("role");
@@ -182,7 +185,7 @@ public class UserService {
 			ColumnCriteria columnCriteria = new ColumnCriteria();
 			columnCriteria.setFields(fields);
 			columnCriteria.setValues(values);
-			
+
 			if ("Customer".equals(role)) {
 				logger.debug("Updating details for customer.");
 				userDAO.updateCustomer(columnCriteria, criteriaMap);

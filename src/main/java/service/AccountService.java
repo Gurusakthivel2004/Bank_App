@@ -91,7 +91,6 @@ public class AccountService {
 		}
 	}
 
-	@SuppressWarnings("unchecked")
 	public Map<String, Object> getAccountDetails(Map<String, Object> accountMap) throws CustomException {
 		try {
 			Long customerId = Helper.parseLong(accountMap.getOrDefault("userId", "0"));

@@ -29,7 +29,7 @@ public class TransactionDAO {
 		Criteria criteria = new Criteria();
 		criteria.setClazz(Account.class);
 		criteria.getColumn().add("account_number");
-		criteria.getOperator().add("=");
+		criteria.getOperator().add("EQUAL_TO");
 		criteria.getValue().add(accountNumber);
 
 		SQLHelper.update(columnCriteria, criteria);
@@ -67,10 +67,10 @@ public class TransactionDAO {
 	}
 
 	private void applyTransactionFilters(Criteria criteria, Map<String, Object> txMap) {
-		Helper.addConditionIfPresent(criteria, txMap, "customerId", "customer_id", "=", 0L);
-		Helper.addConditionIfPresent(criteria, txMap, "from", "transaction_time", ">", 0L);
-		Helper.addConditionIfPresent(criteria, txMap, "to", "transaction_time", "<", 0L);
-		Helper.addCondition(criteria, txMap.get("transactionType") != null, "transaction_type", "=",
+		Helper.addConditionIfPresent(criteria, txMap, "customerId", "customer_id", "EQUAL_TO", 0L);
+		Helper.addConditionIfPresent(criteria, txMap, "from", "transaction_time", "GREATER_THAN", 0L);
+		Helper.addConditionIfPresent(criteria, txMap, "to", "transaction_time", "LESS_THAN", 0L);
+		Helper.addCondition(criteria, txMap.get("transactionType") != null, "transaction_type", "EQUAL_TO",
 				txMap.get("transactionType"));
 	}
 
@@ -82,8 +82,8 @@ public class TransactionDAO {
 				new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), " JOIN ",
 				true);
 		criteria.setSelectColumn(Collections.singletonList("transaction.*"));
-		Helper.addJoinCondition(criteria, true, "transaction.ifsc", "=", "branch.ifsc_code");
-		Helper.addCondition(criteria, true, "branch.id", "=", txMap.get("branchId"));
+		Helper.addJoinCondition(criteria, true, "transaction.ifsc", "EQUAL_TO", "branch.ifsc_code");
+		Helper.addCondition(criteria, true, "branch.id", "EQUAL_TO", txMap.get("branchId"));
 		return criteria;
 	}
 
@@ -104,6 +104,8 @@ public class TransactionDAO {
 		Long offset = (Long) txMap.getOrDefault("offset", -1L);
 		if (offset == 0) {
 			criteria.setOffsetValue(-1L);
+			criteria.setAggregateFunction("COUNT");
+			criteria.setAggregateOperator("*");
 			txResult.put("count", SQLHelper.get(criteria).get(0));
 			criteria.setOffsetValue(offset);
 		}

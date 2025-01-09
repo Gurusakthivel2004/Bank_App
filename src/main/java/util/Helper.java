@@ -22,11 +22,16 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.json.JSONArray;
+import org.json.JSONObject;
 import org.mindrot.jbcrypt.BCrypt;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.JsonPrimitive;
+
+import Enum.Constants.HttpStatusCodes;
+import Enum.Constants.ValidQueryParams;
 import dblayer.model.ColumnCriteria;
 import dblayer.model.Criteria;
 import dblayer.model.MarkedClass;
@@ -167,7 +172,7 @@ public class Helper {
 
 	public static String getHandler(HttpServletRequest request) {
 		String handler = request.getRequestURI();
-		handler = handler.substring(handler.lastIndexOf("/") + 1); // Extract the part after last '/'
+		handler = handler.substring(handler.lastIndexOf("/") + 1);
 		return handler != null ? handler : "";
 	}
 
@@ -190,6 +195,25 @@ public class Helper {
 
 	public static Long parseDateToMillisOrDefault(String param, Long defaultValue) {
 		return (param != null) ? Helper.convertDateToMillis(param) : defaultValue;
+	}
+
+	public static String generateJwtToken(Map<String, Object> userDetails) {
+		Map<String, Object> jwtClaims = new HashMap<>();
+		jwtClaims.put("id", userDetails.get("id"));
+		jwtClaims.put("role", userDetails.get("role"));
+		jwtClaims.put("username", userDetails.get("username"));
+		if (userDetails.containsKey("branchId")) {
+			jwtClaims.put("branchId", userDetails.get("branchId"));
+		}
+		return JwtUtil.generateToken(jwtClaims);
+	}
+
+	public static Map<String, Object> prepareResponseData(Map<String, Object> userDetails, String jwtToken) {
+		Map<String, Object> responseData = new HashMap<>();
+		responseData.put("token", jwtToken);
+		responseData.putAll(userDetails);
+		responseData.put("message", "success");
+		return responseData;
 	}
 
 	public static <T> T createPojoFromMap(Map<String, Object> map, Class<T> clazz) throws CustomException {
@@ -323,15 +347,34 @@ public class Helper {
 		Map<String, Object> parameterMap = new HashMap<>();
 
 		request.getParameterMap().forEach((key, value) -> {
-			String paramValue = value != null && value.length > 0 ? value[0] : null;
+			if (ValidQueryParams.isValidParam(key)) {
+				Object validValue = ValidQueryParams.getValidField(key);
+				if (validValue != null) {
+					parameterMap.put(key, validValue);
+				}
+				String paramValue = value != null && value.length > 0 ? value[0] : null;
 
-			if (paramValue != null) {
-				Object processedValue = processDynamicKey(key, paramValue);
-				parameterMap.put(key, processedValue);
+				if (paramValue != null) {
+					Object processedValue = processDynamicKey(key, paramValue);
+					parameterMap.put(key, processedValue);
+				}
 			}
 		});
 
 		return parameterMap;
+	}
+
+	public static void sendJsonResponse(HttpServletResponse response, HttpStatusCodes statusCode, String message,
+			JSONArray jsonArray) throws IOException {
+		response.setContentType("application/json");
+		response.setCharacterEncoding("UTF-8");
+		response.setStatus(statusCode.getCode());
+		JSONObject responseObject = new JSONObject();
+		responseObject.put("status", statusCode.getCode());
+		responseObject.put("message", message);
+		responseObject.put("data", jsonArray != null ? jsonArray : new JSONArray());
+		response.getWriter().write(responseObject.toString());
+		response.getWriter().flush();
 	}
 
 	private static Object processDynamicKey(String key, String paramValue) {
@@ -488,9 +531,9 @@ public class Helper {
 		Long accountNumber = (Long) map.get("accountNumber");
 		if (accountNumber != null && accountNumber > 0) {
 			if (accountNumber <= 9999) {
-				Helper.addCondition(criteria, true, "RIGHT(account_number, 4)", "=", accountNumber);
+				Helper.addCondition(criteria, true, "RIGHT(account_number, 4)", "EQUAL_TO", accountNumber);
 			} else {
-				Helper.addConditionIfPresent(criteria, map, "accountNumber", "account_number", "=", 0L);
+				Helper.addConditionIfPresent(criteria, map, "accountNumber", "account_number", "EQUAL_TO", 0L);
 			}
 		}
 	}

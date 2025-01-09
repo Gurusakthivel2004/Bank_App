@@ -14,6 +14,9 @@ import java.util.List;
 import java.util.Map;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+
+import Enum.Constants.AggregateFunction;
+import Enum.Constants.Operators;
 import dblayer.connect.DBConnection;
 import dblayer.model.ColumnCriteria;
 import dblayer.model.Criteria;
@@ -164,8 +167,9 @@ public class SQLHelper {
 
 		if (joinColumn != null && !joinColumn.isEmpty()) {
 			for (int i = 0; i < joinColumn.size(); i++) {
-				sql.append(condition.getJoin()).append(joinTable.get(i)).append(" ON ").append(joinColumn.get(i)).append(" ")
-						.append(joinOperator.get(i)).append(" ").append(joinValue.get(i));
+				Operators opEnum = Operators.valueOf(joinOperator.get(i).toUpperCase());
+				sql.append(condition.getJoin()).append(joinTable.get(i)).append(" ON ").append(joinColumn.get(i))
+						.append(" ").append(opEnum.getSymbol()).append(" ").append(joinValue.get(i));
 			}
 		}
 		List<String> columns = condition.getColumn(), operators = condition.getOperator();
@@ -174,37 +178,48 @@ public class SQLHelper {
 			sql.append(" WHERE ");
 		}
 		for (int i = 0; i < columns.size(); i++) {
-			String column = columns.get(i), operator = operators.get(i);
+			String column = columns.get(i);
+			String operator = operators.get(i);
 			Object value = columnvalues.get(i);
 			sql.append(column).append(" ");
-			switch (operator.toUpperCase()) {
-			case "IN":
-				Helper.appendInClause(sql, condition, conditionValues);
-				break;
-			case "BETWEEN":
-				Helper.appendBetweenClause(sql, condition, conditionValues);
-				break;
-			case "LIKE":
-				sql.append("LIKE ?");
-				conditionValues.add(value);
-				break;
-			case "NOT":
-				sql.append("NOT ");
-				break;
-			case "=":
-			case ">":
-			case "<":
-			case ">=":
-			case "<=":
-				Helper.appendComparisonOperator(sql, operator, value, conditionValues);
-				break;
-			default:
-				throw new CustomException("Unsupported operator: " + operator);
+
+			try {
+				Operators opEnum = Operators.valueOf(operator.toUpperCase());
+			
+				switch (opEnum) {
+				case IN:
+					Helper.appendInClause(sql, condition, conditionValues);
+					break;
+				case BETWEEN:
+					Helper.appendBetweenClause(sql, condition, conditionValues);
+					break;
+				case LIKE:
+					sql.append("LIKE ?");
+					conditionValues.add(value);
+					break;
+				case NOT:
+					sql.append("NOT ");
+					break;
+				case LESS_THAN:
+				case GREATER_THAN:
+				case LESS_THAN_OR_EQUAL_TO:
+				case GREATER_THAN_OR_EQUAL_TO:
+				case EQUAL_TO:
+				case NOT_EQUAL_TO:
+					Helper.appendComparisonOperator(sql, opEnum.getSymbol(), value, conditionValues);
+					break;
+				default:
+					throw new CustomException("Unsupported operator: " + operator);
+				}
+			} catch (IllegalArgumentException e) {
+				throw new CustomException("Invalid operator: " + operator);
 			}
+
 			if (condition.getLogicalOperator() != null && i < columns.size() - 1) {
 				sql.append(" ").append(condition.getLogicalOperator()).append(" ");
 			}
 		}
+
 		if (condition.getOrderBy() != null) {
 			sql.append(" ORDER BY ").append(condition.getOrderByField()).append(" ").append(condition.getOrderBy());
 		}
@@ -324,7 +339,10 @@ public class SQLHelper {
 
 			StringBuilder selectSql = new StringBuilder("SELECT ");
 			if (condition.getOffsetValue() != null && condition.getOffsetValue() == -1) {
-				selectSql.append("COUNT(*)");
+				String aggregateFunction = condition.getAggregateFunction();
+				String aggregateOperator = condition.getAggregateOperator();
+
+				selectSql.append(AggregateFunction.get(aggregateFunction, aggregateOperator));
 			} else {
 				List<String> aliasStrings = condition.getAlias();
 				for (int i = 0; i < selectColumns.size(); i++) {

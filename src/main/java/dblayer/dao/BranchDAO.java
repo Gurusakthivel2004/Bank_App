@@ -37,7 +37,7 @@ public class BranchDAO {
 
 		String ifscCode = "HORI000" + String.format("%04d", branchId);
 		ColumnCriteria columnCriteria = Helper.createColumnCriteria(Arrays.asList("ifscCode"), Arrays.asList(ifscCode));
-		Criteria criteria = Helper.createCriteria(Branch.class, "id", "=", branchId);
+		Criteria criteria = Helper.createCriteria(Branch.class, "id", "EQUAL_TO", branchId);
 
 		try {
 			logger.info("Updating IFSC code for branch with ID: " + branchId);
@@ -51,12 +51,12 @@ public class BranchDAO {
 
 	public List<Object> getBranch(Long branchId, boolean notExact) throws CustomException {
 		logger.info("Fetching branch details for ID: " + branchId);
-		Criteria criteria = Helper.createCriteria(Branch.class, "id", "=", branchId);
+		Criteria criteria = Helper.createCriteria(Branch.class, "id", "EQUAL_TO", branchId);
 		criteria.setSelectColumn(Arrays.asList("*"));
 		try {
 			if (notExact) {
 				criteria.setColumn(Arrays.asList("id", "id"));
-				criteria.setOperator(Arrays.asList("=", "LIKE"));
+				criteria.setOperator(Arrays.asList("EQUAL_TO", "LIKE"));
 				criteria.setValue(Arrays.asList(branchId, "%" + branchId + "%"));
 				criteria.setLimitValue(1);
 				criteria.setLogicalOperator("OR");
@@ -72,7 +72,7 @@ public class BranchDAO {
 
 	public <T> void updateBranch(ColumnCriteria columnCriterias, Long branchId) throws CustomException {
 		logger.info("Updating branch details for ID: " + branchId);
-		Criteria criteria = Helper.createCriteria(Branch.class, "id", "=", branchId);
+		Criteria criteria = Helper.createCriteria(Branch.class, "id", "EQUAL_TO", branchId);
 		try {
 			SQLHelper.update(columnCriterias, criteria);
 			logger.info("Branch details updated successfully for ID: " + branchId);

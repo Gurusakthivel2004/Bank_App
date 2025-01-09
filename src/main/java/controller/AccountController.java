@@ -9,6 +9,8 @@ import javax.servlet.http.HttpServletResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+
+import Enum.Constants.HttpStatusCodes;
 import service.AccountService;
 import util.CustomException;
 import util.Helper;
@@ -22,17 +24,21 @@ public class AccountController {
 		response.setContentType("application/json");
 		PrintWriter out = response.getWriter();
 		try {
-			System.out.println(accountMap.keySet());
-			System.out.println(accountMap.values());
 			Object accounts = accountService.getAccountDetails(accountMap);
 			ObjectMapper mapper = new ObjectMapper();
 			String jsonResponse = mapper.writeValueAsString(accounts);
 			out.write(jsonResponse);
+			response.setStatus(HttpStatusCodes.OK.getCode());
 		} catch (CustomException e) {
 			JsonObject responseJson = new JsonObject();
 			responseJson.addProperty("message", e.getMessage());
 			out.write(responseJson.toString());
-			response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+			response.setStatus(HttpStatusCodes.INTERNAL_SERVER_ERROR.getCode());
+		} catch (Exception e) {
+			JsonObject responseJson = new JsonObject();
+			responseJson.addProperty("message", "An unexpected error occurred.");
+			out.write(responseJson.toString());
+			response.setStatus(HttpStatusCodes.INTERNAL_SERVER_ERROR.getCode());
 		} finally {
 			out.close();
 		}
@@ -52,10 +58,10 @@ public class AccountController {
 			}
 			accountService.createAccount(accountMap);
 			responseJson.addProperty("message", "success");
-			response.setStatus(HttpServletResponse.SC_OK);
+			response.setStatus(HttpStatusCodes.OK.getCode());
 		} catch (CustomException exception) {
 			responseJson.addProperty("message", exception.getMessage());
-			response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+			response.setStatus(HttpStatusCodes.BAD_REQUEST.getCode());
 		} finally {
 			out.print(responseJson.toString());
 			out.close();
@@ -81,7 +87,10 @@ public class AccountController {
 				accountService.updateAccount(accountNumber, "status", status);
 			}
 			responseJson.addProperty("message", "success");
-			response.setStatus(HttpServletResponse.SC_OK);
+			response.setStatus(HttpStatusCodes.OK.getCode());
+		} catch (CustomException e) {
+			responseJson.addProperty("message", e.getMessage());
+			response.setStatus(HttpStatusCodes.BAD_REQUEST.getCode());
 		} finally {
 			out.print(responseJson.toString());
 			out.close();

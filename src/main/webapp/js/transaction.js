@@ -63,7 +63,7 @@ function updatePagination() {
 	const pageNumbersContainer = document.getElementById("pageNumbers");
 	pageNumbersContainer.innerHTML = '';
 	console.log(transactionsCount, transactionsPerPage)
-	totalPages = Math.ceil(transactionsCount / transactionsPerPage) || 1; // Calculate total pages
+	totalPages = Math.ceil(transactionsCount / transactionsPerPage) || 1;
 	const currentPage = currentPageIndex + 1;
 
 	document.getElementById('nextButton').disabled = currentPageIndex == totalPages - 1;

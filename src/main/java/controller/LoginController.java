@@ -3,17 +3,22 @@ package controller;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.PrintWriter;
+
 import java.util.HashMap;
 import java.util.Map;
+
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+
 import service.CacheService;
 import service.UserService;
+
 import util.CustomException;
-import util.JwtUtil;
+import util.Helper;
 
 public class LoginController {
 
@@ -22,42 +27,32 @@ public class LoginController {
 	public void handlePost(HttpServletRequest request, HttpServletResponse response) throws IOException {
 		response.setContentType("application/json");
 		JsonObject responseJson = new JsonObject();
-		PrintWriter out = response.getWriter();
-		try (BufferedReader reader = request.getReader()) {
-			// Parse the request body
+
+		try (BufferedReader reader = request.getReader(); PrintWriter out = response.getWriter()) {
+
 			JsonObject jsonObject = JsonParser.parseReader(reader).getAsJsonObject();
 			String username = jsonObject.get("username").getAsString();
 			String password = jsonObject.get("password").getAsString();
 
 			cacheService.deleteAll();
-			// Authenticate user
-			UserService userService = new UserService();
-			Map<String, Object> userDetails = userService.userLogin(username, password);
 
-			// Prepare JWT claims dynamically
-			Map<String, Object> jwtClaims = new HashMap<>();
-			jwtClaims.put("id", userDetails.get("id"));
-			jwtClaims.put("role", userDetails.get("role"));
-			jwtClaims.put("username", userDetails.get("username"));
-			if (userDetails.containsKey("branchId")) {
-				jwtClaims.put("branchId", userDetails.get("branchId"));
+			Map<String, Object> userDetails;
+			try {
+				UserService userService = new UserService();
+				userDetails = userService.userLogin(username, password);
+			} catch (CustomException e) {
+				response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+				responseJson.addProperty("message", e.getMessage());
+				out.print(responseJson.toString());
+				return;
 			}
 
-			String jwtToken = JwtUtil.generateToken(jwtClaims);
-			Map<String, Object> responseData = new HashMap<>();
-			responseData.put("token", jwtToken);
-			responseData.putAll(userDetails); // Adds all user details from the map
-			responseData.put("message", "success");
+			String jwtToken = Helper.generateJwtToken(userDetails);
+			Map<String, Object> responseData = Helper.prepareResponseData(userDetails, jwtToken);
 
-			// Convert map to JSON
 			responseJson = new Gson().toJsonTree(responseData).getAsJsonObject();
 			response.setStatus(HttpServletResponse.SC_OK);
-		} catch (CustomException e) {
-			response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-			responseJson.addProperty("message", e.getMessage());
-		} finally {
 			out.print(responseJson.toString());
-			out.close();
 		}
 	}
 

@@ -479,7 +479,6 @@ function fetchUserIdDetails(query) {
 		});
 }
 
-
 populateDropdown();
 let validBranchIds = [];
 const dropdown = document.getElementById('dropdown');
@@ -575,8 +574,6 @@ document.addEventListener('click', (event) => {
 		event.target !== saveButton) {
 		console.log('Clicked outside');
 		dropdown.style.display = 'none';
-	} else {
-		console.log('Clicked inside or save button');
 	}
 });
 

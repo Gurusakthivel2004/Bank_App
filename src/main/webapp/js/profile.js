@@ -67,6 +67,7 @@ const toggleModal = modalId => {
 	if (modalId == "newUserModal") {
 		document.getElementById('saveButton').style.display = 'none';
 		document.getElementById('editButton').style.display = 'block';
+		document.getElementById('dropdown').style.display = 'none';
 	}
 }
 

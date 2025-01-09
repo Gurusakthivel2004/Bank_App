@@ -12,6 +12,8 @@ public class Criteria {
 	private List<Object> value;
 	private List<String> operator;
 	private String logicalOperator;
+	private String aggregateFunction;
+	private String aggregateOperator;
 	// values is for BETWEEN IN operations..
 	private List<Object> values;
 	private String join;
@@ -189,6 +191,22 @@ public class Criteria {
 
 	public void setJoin(String join) {
 		this.join = join;
+	}
+
+	public String getAggregateFunction() {
+		return aggregateFunction;
+	}
+
+	public void setAggregateFunction(String aggregateFunction) {
+		this.aggregateFunction = aggregateFunction;
+	}
+
+	public String getAggregateOperator() {
+		return aggregateOperator;
+	}
+
+	public void setAggregateOperator(String aggregateOperator) {
+		this.aggregateOperator = aggregateOperator;
 	}
 
 }

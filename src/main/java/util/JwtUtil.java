@@ -38,6 +38,22 @@ public class JwtUtil {
 		return blacklistEntry;
 	}
 
+	public static Map<String, Object> extractToken(String token) {
+		Long userId = JwtUtil.extractUserId(token);
+		String role = JwtUtil.extractRole(token);
+		String username = JwtUtil.extractUsername(token);
+		Long branchId = JwtUtil.extractBranchId(token);
+
+		Map<String, Object> claimsMap = new HashMap<>();
+		claimsMap.put("id", userId);
+		claimsMap.put("role", role);
+		claimsMap.put("username", username);
+		if (branchId != null) {
+			claimsMap.put("branchId", branchId);
+		}
+		return claimsMap;
+	}
+
 	public static Long extractUserId(String token) {
 		DecodedJWT jwt = verifyToken(token);
 		return jwt.getClaim("id").asLong();

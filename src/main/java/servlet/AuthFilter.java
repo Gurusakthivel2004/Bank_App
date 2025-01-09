@@ -2,7 +2,9 @@ package servlet;
 
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
 import javax.servlet.ServletException;
@@ -10,11 +12,19 @@ import javax.servlet.annotation.WebFilter;
 import javax.servlet.http.HttpFilter;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import com.auth0.jwt.exceptions.JWTVerificationException;
 import com.fasterxml.jackson.core.type.TypeReference;
+
+import Enum.Constants.HttpStatusCodes;
+import Enum.Constants.RolePermission;
+import Enum.Constants.ValidPaths;
+
+import service.AccountService;
 import service.CacheService;
+
+import util.CustomException;
 import util.Helper;
 import util.JwtUtil;
 
@@ -25,72 +35,97 @@ public class AuthFilter extends HttpFilter implements Filter {
 	private final Logger logger = LogManager.getLogger(AuthFilter.class);
 	CacheService cacheService = new CacheService();
 
+	@SuppressWarnings("unchecked")
 	@Override
 	public void doFilter(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
 			throws IOException, ServletException {
 
-		String path = request.getRequestURI();
+		String method = request.getMethod();
+		String path = request.getPathInfo();
+		String handler = Helper.getHandler(request);
+
 		response.setContentType("application/json");
 		response.setCharacterEncoding("UTF-8");
 
 		logger.info("Request path: {}", path);
 
-		if (path.equals("/Bank_Application/api/Login")) {
+		if (path.equals("/Login") || path.equals("/Logout")) {
 			logger.info("Skipping authentication for login endpoint.");
 			chain.doFilter(request, response);
+			return;
+		}
+		
+		if (!ValidPaths.isValidPath(path)) {
+			Helper.sendJsonResponse(response, HttpStatusCodes.NOT_FOUND, "Invalid URL path", null);
 			return;
 		}
 
 		String authorizationHeader = request.getHeader("Authorization");
 
-		if (authorizationHeader != null && authorizationHeader.startsWith("Bearer ")) {
-			String token = authorizationHeader.substring(7);
-			logger.info("Authorization token found. Verifying token...");
-
-			try {
-
-				Long userId = JwtUtil.extractUserId(token);
-
-				// Retrieve blacklist map from cache
-				Map<String, String> blacklist = cacheService.get("blacklist", new TypeReference<Map<String, String>>() {
-				});
-				if (blacklist != null && blacklist.containsKey(token)) {
-					logger.warn("Token is blacklisted. Denying access.");
-					response.getWriter().println("Blacklisted token");
-					return;
-				}
-
-				String role = JwtUtil.extractRole(token);
-				String username = JwtUtil.extractUsername(token);
-				Long branchId = JwtUtil.extractBranchId(token);
-
-				Map<String, Object> claimsMap = new HashMap<>();
-				claimsMap.put("id", userId);
-				claimsMap.put("role", role);
-				claimsMap.put("username", username);
-				claimsMap.put("branchId", branchId);
-
-				Helper.setThreadLocalValue(claimsMap);
-				logger.info("Token verified successfully. Claims: {}", claimsMap);
-
-			} catch (JWTVerificationException e) {
-				logger.error("Invalid or expired token: {}", e.getMessage());
-				response.getWriter().println("Invalid or expired token");
-				return;
-			}
-		} else {
+		if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
 			logger.warn("Authorization token not found in request.");
 			response.getWriter().println("Authorization token not found");
 			return;
 		}
 
+		String token = authorizationHeader.substring(7);
+		logger.info("Authorization token found. Verifying token...");
+
+		Long id = JwtUtil.extractUserId(token);
+		String role = JwtUtil.extractRole(token);
+		List<String> allowedMethods;
+
+		Map<String, String> blacklist = cacheService.get("blacklist", new TypeReference<Map<String, String>>() {
+		});
+		if (blacklist != null && blacklist.containsKey(token)) {
+			logger.warn("Token is blacklisted. Denying access.");
+			response.getWriter().println("Blacklisted token");
+			return;
+		}
+
+		Map<String, Object> claimsMap = JwtUtil.extractToken(token);
+
+		Helper.setThreadLocalValue(claimsMap);
+		logger.info("Token verified successfully. Claims: {}", claimsMap);
+
 		try {
-			// Proceed with the request chain
-			chain.doFilter(request, response);
+			// Account check
+			AccountService accountService = new AccountService();
+			Map<String, Object> accountMap = new HashMap<>();
+			accountMap.put("userId", id);
+			Map<String, Object> accountResult = accountService.getAccountDetails(accountMap);
+			if (!accountResult.containsKey("accounts") || ((List<Object>) accountResult.get("accounts")).isEmpty()) {
+				Helper.sendJsonResponse(response, HttpStatusCodes.FORBIDDEN, "You dont have a account ", null);
+				return;
+			}
+
+		} catch (CustomException exception) {
+			Helper.sendJsonResponse(response, HttpStatusCodes.FORBIDDEN, "Something wrong with fetching the account id",
+					null);
+			return;
+		}
+
+		allowedMethods = RolePermission.getPermissions(role, handler);
+
+		if (!allowedMethods.contains(request.getMethod())) {
+			logger.warn("User with role {} does not have permission to access {} with method {}", role, path,
+					request.getMethod());
+			response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+			response.getWriter().println("{\"message\": \"Permission denied\"}");
+			return;
+		}
+
+		try {
+			if (allowedMethods.contains(method)) {
+				chain.doFilter(request, response);
+			} else {
+				Helper.sendJsonResponse(response, HttpStatusCodes.FORBIDDEN,
+						"You are not authorized to perform this action", null);
+			}
 		} finally {
-			// Clear thread-local storage after request processing
 			Helper.clearThreadLocal();
 			logger.info("Cleared thread-local values.");
 		}
+
 	}
 }

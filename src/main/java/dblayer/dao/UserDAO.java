@@ -33,12 +33,12 @@ public class UserDAO {
 			criteria.setClazz(User.class);
 			criteria.setSelectColumn(Arrays.asList("*"));
 			criteria.setColumn(Arrays.asList("id", "id"));
-			criteria.setOperator(Arrays.asList("=", "LIKE"));
+			criteria.setOperator(Arrays.asList("EQUAL_TO", "LIKE"));
 			criteria.setValue(Arrays.asList(userId, "%" + userId + "%"));
 			criteria.setLimitValue(5);
 			criteria.setLogicalOperator("OR");
 		} else {
-			criteria = Helper.buildCriteria(User.class, Arrays.asList("username"), Arrays.asList("="),
+			criteria = Helper.buildCriteria(User.class, Arrays.asList("username"), Arrays.asList("EQUAL_TO"),
 					Arrays.asList(userMap.get("username")));
 			criteria.setSelectColumn(Arrays.asList("user.*"));
 			criteria.setColumn(new ArrayList<>());
@@ -56,6 +56,8 @@ public class UserDAO {
 		Long offset = (Long) userMap.getOrDefault("offset", -1L);
 		if (offset == 0) {
 			criteria.setOffsetValue(-1L);
+			criteria.setAggregateFunction("COUNT");
+			criteria.setAggregateOperator("*");
 			result.put("count", SQLHelper.get(criteria).get(0));
 		}
 		if (offset >= 0) {
@@ -74,16 +76,16 @@ public class UserDAO {
 		criteria = Helper.buildJoinCriteria(User.class, joinTable, new ArrayList<>(), new ArrayList<>(),
 				new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), " LEFT JOIN ", true);
 		criteria.setSelectColumn(Collections.singletonList("user.*"));
-		Helper.addJoinCondition(criteria, true, "account.user_id", "=", "user.id");
-		Helper.addConditionIfPresent(criteria, userMap, "branchId", "account.branch_id", "=", 0l);
+		Helper.addJoinCondition(criteria, true, "account.user_id", "EQUAL_TO", "user.id");
+		Helper.addConditionIfPresent(criteria, userMap, "branchId", "account.branch_id", "EQUAL_TO", 0l);
 		return criteria;
 	}
 
 	private void applyUserFilters(Criteria criteria, Map<String, Object> userMap) {
-		Helper.addConditionIfPresent(criteria, userMap, "userId", "user.id", "=", 0L);
-		Helper.addConditionIfPresent(criteria, userMap, "username", "user.username", "=", "");
-		Helper.addConditionIfPresent(criteria, userMap, "role", "user.role", "=", 0L);
-		Helper.addConditionIfPresent(criteria, userMap, "status", "user.status", "=", "");
+		Helper.addConditionIfPresent(criteria, userMap, "userId", "user.id", "EQUAL_TO", 0L);
+		Helper.addConditionIfPresent(criteria, userMap, "username", "user.username", "EQUAL_TO", "");
+		Helper.addConditionIfPresent(criteria, userMap, "role", "user.role", "EQUAL_TO", 0L);
+		Helper.addConditionIfPresent(criteria, userMap, "status", "user.status", "EQUAL_TO", "");
 	}
 
 	public void createCustomer(CustomerDetail customer) throws CustomException {
@@ -101,7 +103,7 @@ public class UserDAO {
 		Helper.checkNullValues(columnCriteria);
 		columnCriteria.getFields().add("modifiedAt");
 		columnCriteria.getValues().add(System.currentTimeMillis());
-		
+
 		Criteria criteria = new Criteria();
 		criteria.setClazz(CustomerDetail.class);
 		applyUserFilters(criteria, userMap);
@@ -113,8 +115,8 @@ public class UserDAO {
 		logger.info("Fetching customers.");
 		Criteria customerJoinCriteria = Helper.buildJoinCriteria(CustomerDetail.class,
 				Arrays.asList("customer", "user"), Arrays.asList("customerDetail.user_id", "customer.user_id"),
-				Arrays.asList("=", "="), Arrays.asList("customer.user_id", "user.id"),
-				Arrays.asList("customerDetail.user_id"), Arrays.asList("="), Arrays.asList(customerId));
+				Arrays.asList("EQUAL_TO", "EQUAL_TO"), Arrays.asList("customer.user_id", "user.id"),
+				Arrays.asList("customerDetail.user_id"), Arrays.asList("EQUAL_TO"), Arrays.asList(customerId));
 		customerJoinCriteria.setJoin(" JOIN ");
 		List<Object> customers = SQLHelper.get(customerJoinCriteria);
 
@@ -131,7 +133,7 @@ public class UserDAO {
 		columnCriteria.setFields(Arrays.asList("status"));
 		columnCriteria.setValues(Arrays.asList("Inactive"));
 
-		Criteria customerCriteria = Helper.buildCriteria(CustomerDetail.class, Arrays.asList("id"), Arrays.asList("="),
+		Criteria customerCriteria = Helper.buildCriteria(CustomerDetail.class, Arrays.asList("id"), Arrays.asList("EQUAL_TO"),
 				Arrays.asList(Helper.getThreadLocalValue().get("id")));
 		SQLHelper.update(columnCriteria, customerCriteria);
 
@@ -172,8 +174,8 @@ public class UserDAO {
 
 		logger.info("Fetching staff with id: {}", id);
 		Criteria staffJoinCriteria = Helper.buildJoinCriteria(Staff.class, Arrays.asList("user"),
-				Arrays.asList("staff.user_id"), Arrays.asList("="), Arrays.asList("user.id"),
-				Arrays.asList("staff.user_id"), Arrays.asList("="), Arrays.asList(id));
+				Arrays.asList("staff.user_id"), Arrays.asList("EQUAL_TO"), Arrays.asList("user.id"),
+				Arrays.asList("staff.user_id"), Arrays.asList("EQUAL_TO"), Arrays.asList(id));
 		staffJoinCriteria.setJoin(" JOIN ");
 		List<Object> staffList = SQLHelper.get(staffJoinCriteria);
 		logger.info("Fetched {} staff members successfully.", staffList.size());
@@ -188,7 +190,7 @@ public class UserDAO {
 		columnCriteria.setFields(Arrays.asList("status"));
 		columnCriteria.setValues(Arrays.asList("Inactive"));
 
-		Criteria staffCriteria = Helper.buildCriteria(Staff.class, Arrays.asList("user_id"), Arrays.asList("="),
+		Criteria staffCriteria = Helper.buildCriteria(Staff.class, Arrays.asList("user_id"), Arrays.asList("EQUAL_TO"),
 				Arrays.asList(Helper.getThreadLocalValue().get("id")));
 		SQLHelper.update(columnCriteria, staffCriteria);
 		logger.info("Staff removed successfully.");
