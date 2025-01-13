@@ -1,4 +1,4 @@
-package dblayer.model;
+package model;
 
 public class MarkedClass {
 

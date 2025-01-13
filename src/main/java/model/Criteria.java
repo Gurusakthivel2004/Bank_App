@@ -1,4 +1,4 @@
-package dblayer.model;
+package model;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -22,7 +22,7 @@ public class Criteria {
 	private List<Object> joinValue;
 	private List<String> joinTable;
 	private String orderBy;
-	private List<String>  Alias;
+	private List<String> Alias;
 	private String orderByField;
 	private Object limitValue;
 	private Long offsetValue;
@@ -37,56 +37,63 @@ public class Criteria {
 		return tableName;
 	}
 
-	public void setTableName(String tableName) {
+	public Criteria setTableName(String tableName) {
 		this.tableName = tableName;
+		return this;
 	}
 
 	public List<String> getColumn() {
 		return column;
 	}
 
-	public void setColumn(List<String> column) {
+	public Criteria setColumn(List<String> column) {
 		this.column = column;
+		return this;
 	}
 
 	public List<Object> getValue() {
 		return value;
 	}
 
-	public void setValue(List<Object> value) {
+	public Criteria setValue(List<Object> value) {
 		this.value = value;
+		return this;
 	}
 
 	public List<Object> getValues() {
 		return values;
 	}
 
-	public void setValues(List<Object> values) {
+	public Criteria setValues(List<Object> values) {
 		this.values = values;
+		return this;
 	}
 
 	public List<String> getOperator() {
 		return operator;
 	}
 
-	public void setOperator(List<String> operator) {
+	public Criteria setOperator(List<String> operator) {
 		this.operator = operator;
+		return this;
 	}
 
 	public String getOrderBy() {
 		return orderBy;
 	}
 
-	public void setOrderBy(String orderBy) {
+	public Criteria setOrderBy(String orderBy) {
 		this.orderBy = orderBy;
+		return this;
 	}
 
 	public List<String> getSelectColumn() {
 		return selectColumn;
 	}
 
-	public void setSelectColumn(List<String> selectColumn) {
+	public Criteria setSelectColumn(List<String> selectColumn) {
 		this.selectColumn = selectColumn;
+		return this;
 	}
 
 	public Class<?> getClazz() {
@@ -94,78 +101,87 @@ public class Criteria {
 	}
 
 	@SuppressWarnings("unchecked")
-	public <T> void setClazz(Class<T> clazz) {
-	    if (MarkedClass.class.isAssignableFrom(clazz)) {
-	        this.clazz = (Class<? extends MarkedClass>) clazz;
-	    } else if (clazz == Integer.class) {
-	        this.clazz = (Class<? extends MarkedClass>) clazz;
-	    } else {
-	        throw new IllegalArgumentException("Invalid class type: " + clazz.getName());
-	    }
+	public <T> Criteria setClazz(Class<T> clazz) {
+		if (MarkedClass.class.isAssignableFrom(clazz)) {
+			this.clazz = (Class<? extends MarkedClass>) clazz;
+		} else if (clazz == Integer.class) {
+			this.clazz = (Class<? extends MarkedClass>) clazz;
+		} else {
+			throw new IllegalArgumentException("Invalid class type: " + clazz.getName());
+		}
+		return this;
 	}
 
 	public Object getLimitValue() {
 		return limitValue;
 	}
 
-	public void setLimitValue(Object limitValue) {
+	public Criteria setLimitValue(Object limitValue) {
 		this.limitValue = limitValue;
+		return this;
 	}
 
 	public String getLogicalOperator() {
 		return logicalOperator;
 	}
 
-	public void setLogicalOperator(String logicalOperator) {
+	public Criteria setLogicalOperator(String logicalOperator) {
 		this.logicalOperator = logicalOperator;
+		return this;
 	}
 
 	public List<String> getJoinColumn() {
 		return joinColumn;
 	}
 
-	public void setJoinColumn(List<String> joinColumn) {
+	public Criteria setJoinColumn(List<String> joinColumn) {
 		this.joinColumn = joinColumn;
+		return this;
 	}
 
 	public List<Object> getJoinValue() {
 		return joinValue;
 	}
 
-	public void setJoinValue(List<Object> joinValue) {
+	public Criteria setJoinValue(List<Object> joinValue) {
 		this.joinValue = joinValue;
+		return this;
 	}
 
 	public List<String> getJoinTable() {
 		return joinTable;
 	}
 
-	public void setJoinTable(List<String> joinTable) {
+	public Criteria setJoinTable(List<String> joinTable) {
 		this.joinTable = joinTable;
+		return this;
 	}
 
 	public List<String> getJoinOperator() {
 		return joinOperator;
 	}
 
-	public void setJoinOperator(List<String> joinOperator) {
+	public Criteria setJoinOperator(List<String> joinOperator) {
 		this.joinOperator = joinOperator;
+		return this;
 	}
 
 	public String getOrderByField() {
 		return orderByField;
 	}
 
-	public void setOrderByField(String orderByField) {
+	public Criteria setOrderByField(String orderByField) {
 		this.orderByField = orderByField;
+		return this;
 	}
 
 	public Long getOffsetValue() {
 		return offsetValue;
 	}
 
-	public void setOffsetValue(Long offsetValue) {
+	public Criteria setOffsetValue(Long offsetValue) {
 		this.offsetValue = offsetValue;
+		return this;
 	}
 
 	@Override
@@ -181,32 +197,36 @@ public class Criteria {
 		return Alias;
 	}
 
-	public void setAlias(List<String> alias) {
+	public Criteria setAlias(List<String> alias) {
 		Alias = alias;
+		return this;
 	}
 
 	public String getJoin() {
 		return join;
 	}
 
-	public void setJoin(String join) {
+	public Criteria setJoin(String join) {
 		this.join = join;
+		return this;
 	}
 
 	public String getAggregateFunction() {
 		return aggregateFunction;
 	}
 
-	public void setAggregateFunction(String aggregateFunction) {
+	public Criteria setAggregateFunction(String aggregateFunction) {
 		this.aggregateFunction = aggregateFunction;
+		return this;
 	}
 
 	public String getAggregateOperator() {
 		return aggregateOperator;
 	}
 
-	public void setAggregateOperator(String aggregateOperator) {
+	public Criteria setAggregateOperator(String aggregateOperator) {
 		this.aggregateOperator = aggregateOperator;
+		return this;
 	}
 
 }

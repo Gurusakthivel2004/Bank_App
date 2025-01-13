@@ -1,4 +1,4 @@
-package dblayer.dao;
+package dao;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -7,27 +7,27 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.logging.Logger;
-import dblayer.model.Account;
-import dblayer.model.ColumnCriteria;
-import dblayer.model.Criteria;
-import dblayer.model.Transaction;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
+import model.Account;
+import model.ColumnCriteria;
+import model.Criteria;
+import model.Transaction;
 import util.CustomException;
-import util.Helper;
 import util.SQLHelper;
 
 public class TransactionDAO {
 
-	private static final Logger logger = Logger.getLogger(TransactionDAO.class.getName());
+	private final Logger logger = LogManager.getLogger(TransactionDAO.class);
 
 	public void updateAccountBalance(Long accountNumber, BigDecimal balance) throws CustomException {
 		logger.info("Updating account balance for account: " + accountNumber);
-		ColumnCriteria columnCriteria = new ColumnCriteria();
-		columnCriteria.setFields(Arrays.asList("balance"));
-		columnCriteria.setValues(Arrays.asList(balance));
+		ColumnCriteria columnCriteria = new ColumnCriteria().setFields(Arrays.asList("balance"))
+				.setValues(Arrays.asList(balance));
 
-		Criteria criteria = new Criteria();
-		criteria.setClazz(Account.class);
+		Criteria criteria = new Criteria().setClazz(Account.class);
 		criteria.getColumn().add("account_number");
 		criteria.getOperator().add("EQUAL_TO");
 		criteria.getValue().add(accountNumber);
@@ -37,7 +37,13 @@ public class TransactionDAO {
 	}
 
 	public Long createTransaction(Transaction transaction) throws CustomException {
-		Long txId = ((BigInteger) SQLHelper.insert(transaction)).longValue();
+		Long txId;
+		try {
+			txId = ((BigInteger) SQLHelper.insert(transaction)).longValue();
+		} catch (Exception e) {
+			logger.error("Error during inserting data: ", e);
+			throw new CustomException("Error during creating transaction: ", e);
+		} 
 		return txId;
 	}
 
@@ -51,26 +57,23 @@ public class TransactionDAO {
 		Criteria criteria = initializeCriteria();
 		criteria = applyBranchFilter(criteria, txMap);
 		applyTransactionFilters(criteria, txMap);
-		Helper.applyAccountNumberFilter(criteria, txMap);
+		DAOHelper.applyAccountNumberFilter(criteria, txMap);
 		applyPagination(criteria, txMap);
 
 		return executeQuery(criteria, txMap);
 	}
 
 	private Criteria initializeCriteria() {
-		Criteria criteria = new Criteria();
-		criteria.setClazz(Transaction.class);
-		criteria.setOrderBy("DESC");
-		criteria.setOrderByField("transaction_time");
-		criteria.setSelectColumn(Arrays.asList("*"));
+		Criteria criteria = new Criteria().setClazz(Transaction.class).setOrderBy("DESC")
+				.setOrderByField("transaction_time").setSelectColumn(Arrays.asList("*"));
 		return criteria;
 	}
 
 	private void applyTransactionFilters(Criteria criteria, Map<String, Object> txMap) {
-		Helper.addConditionIfPresent(criteria, txMap, "customerId", "customer_id", "EQUAL_TO", 0L);
-		Helper.addConditionIfPresent(criteria, txMap, "from", "transaction_time", "GREATER_THAN", 0L);
-		Helper.addConditionIfPresent(criteria, txMap, "to", "transaction_time", "LESS_THAN", 0L);
-		Helper.addCondition(criteria, txMap.get("transactionType") != null, "transaction_type", "EQUAL_TO",
+		DAOHelper.addConditionIfPresent(criteria, txMap, "customerId", "customer_id", "EQUAL_TO", 0L);
+		DAOHelper.addConditionIfPresent(criteria, txMap, "from", "transaction_time", "GREATER_THAN", 0L);
+		DAOHelper.addConditionIfPresent(criteria, txMap, "to", "transaction_time", "LESS_THAN", 0L);
+		DAOHelper.addCondition(criteria, txMap.get("transactionType") != null, "transaction_type", "EQUAL_TO",
 				txMap.get("transactionType"));
 	}
 
@@ -78,12 +81,12 @@ public class TransactionDAO {
 		if (!txMap.containsKey("branchId")) {
 			return criteria;
 		}
-		criteria = Helper.buildJoinCriteria(Transaction.class, Arrays.asList("branch"), new ArrayList<>(),
+		criteria = DAOHelper.buildJoinCriteria(Transaction.class, Arrays.asList("branch"), new ArrayList<>(),
 				new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), " JOIN ",
 				true);
 		criteria.setSelectColumn(Collections.singletonList("transaction.*"));
-		Helper.addJoinCondition(criteria, true, "transaction.ifsc", "EQUAL_TO", "branch.ifsc_code");
-		Helper.addCondition(criteria, true, "branch.id", "EQUAL_TO", txMap.get("branchId"));
+		DAOHelper.addJoinCondition(criteria, true, "transaction.ifsc", "EQUAL_TO", "branch.ifsc_code");
+		DAOHelper.addCondition(criteria, true, "branch.id", "EQUAL_TO", txMap.get("branchId"));
 		return criteria;
 	}
 
@@ -103,9 +106,7 @@ public class TransactionDAO {
 		Map<String, Object> txResult = new HashMap<>();
 		Long offset = (Long) txMap.getOrDefault("offset", -1L);
 		if (offset == 0) {
-			criteria.setOffsetValue(-1L);
-			criteria.setAggregateFunction("COUNT");
-			criteria.setAggregateOperator("*");
+			criteria.setOffsetValue(-1L).setAggregateFunction("COUNT").setAggregateOperator("*");
 			txResult.put("count", SQLHelper.get(criteria).get(0));
 			criteria.setOffsetValue(offset);
 		}

@@ -1,26 +1,33 @@
 package util;
 
 import java.lang.reflect.Field;
+
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
+import java.sql.SQLIntegrityConstraintViolationException;
 import java.sql.SQLSyntaxErrorException;
 import java.sql.Statement;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import Enum.Constants.AggregateFunction;
 import Enum.Constants.Operators;
-import dblayer.connect.DBConnection;
-import dblayer.model.ColumnCriteria;
-import dblayer.model.Criteria;
-import dblayer.model.JoinObject;
+
+import dao.DAOHelper;
+
+import model.ColumnCriteria;
+import model.Criteria;
+import model.JoinObject;
+
 import util.ColumnYamlUtil.ClassMapping;
 import util.ColumnYamlUtil.FieldMapping;
 
@@ -28,7 +35,7 @@ public class SQLHelper {
 
 	private static final Logger logger = LogManager.getLogger(SQLHelper.class);
 
-	@SuppressWarnings("unchecked")
+	@SuppressWarnings({ "unchecked", "rawtypes" })
 	private static <T> T mapResultSetToObject(ResultSet resultSet, Class<? extends T> clazz, T instance,
 			String tableName, List<String> modifiedFields) throws CustomException {
 		try {
@@ -51,7 +58,14 @@ public class SQLHelper {
 					field.setAccessible(true);
 					String columnName = fieldMapping.getColumnName();
 					Object columnValue = resultSet.getObject(columnName);
-					field.set(instance, columnValue);
+
+					if (field.getType().isEnum() && columnValue instanceof String) {
+						String enumValue = (String) columnValue;
+						Object enumConstant = Enum.valueOf((Class<Enum>) field.getType(), enumValue);
+						field.set(instance, enumConstant);
+					} else {
+						field.set(instance, columnValue);
+					}
 					modifiedFields.add(columnName);
 				} catch (SQLSyntaxErrorException exception) {
 					logger.warn("SQL Syntax error while setting field: " + field.getName(), exception);
@@ -63,7 +77,7 @@ public class SQLHelper {
 			}
 
 			Class<?> superclass = clazz.getSuperclass();
-			if (superclass != null && !superclass.getName().equals("dblayer.model.MarkedClass")) {
+			if (superclass != null && !superclass.getName().equals("model.MarkedClass")) {
 				classMapping = ColumnYamlUtil.getMapping(superclass.getName());
 				mapResultSetToObject(resultSet, (Class<? extends T>) superclass, instance, tableName, modifiedFields);
 			}
@@ -100,8 +114,7 @@ public class SQLHelper {
 	}
 
 	// Execute the preparedStatement for the insert queries
-	private static Object executeNonSelect(Connection connection, String query, Object[] values)
-			throws CustomException {
+	private static Object executeNonSelect(Connection connection, String query, Object[] values) throws Exception {
 		try (PreparedStatement preparedStatement = getPreparedStatement(connection, query, values)) {
 			preparedStatement.execute();
 			try (ResultSet generatedKeys = preparedStatement.getGeneratedKeys()) {
@@ -110,8 +123,8 @@ public class SQLHelper {
 				}
 			}
 			return null;
-		} catch (SQLException e) {
-			logger.error("Error executing non-select query: " + query, e);
+		} catch (SQLIntegrityConstraintViolationException e) {
+			String message = DAOHelper.parseDuplicateEntryMessage(e.getMessage());
 			try {
 				if (connection != null && !connection.isClosed()) {
 					connection.rollback();
@@ -121,7 +134,8 @@ public class SQLHelper {
 				logger.error("Rollback failed for query: " + query, rollbackException);
 				throw new CustomException("Rollback failed: " + rollbackException.getMessage());
 			}
-			throw new CustomException("Error executing query: " + e.getMessage(), e);
+			logger.info("Duplicate entry error: ", e);
+			throw new CustomException(message);
 		}
 	}
 
@@ -185,13 +199,13 @@ public class SQLHelper {
 
 			try {
 				Operators opEnum = Operators.valueOf(operator.toUpperCase());
-			
+
 				switch (opEnum) {
 				case IN:
-					Helper.appendInClause(sql, condition, conditionValues);
+					DAOHelper.appendInClause(sql, condition, conditionValues);
 					break;
 				case BETWEEN:
-					Helper.appendBetweenClause(sql, condition, conditionValues);
+					DAOHelper.appendBetweenClause(sql, condition, conditionValues);
 					break;
 				case LIKE:
 					sql.append("LIKE ?");
@@ -206,7 +220,7 @@ public class SQLHelper {
 				case GREATER_THAN_OR_EQUAL_TO:
 				case EQUAL_TO:
 				case NOT_EQUAL_TO:
-					Helper.appendComparisonOperator(sql, opEnum.getSymbol(), value, conditionValues);
+					DAOHelper.appendComparisonOperator(sql, opEnum.getSymbol(), value, conditionValues);
 					break;
 				default:
 					throw new CustomException("Unsupported operator: " + operator);
@@ -415,18 +429,20 @@ public class SQLHelper {
 	// @Insert method
 	// table : name of the table.
 	// pojo : pojo class
-	public static Object insert(Object pojo) throws CustomException {
+	public static Object insert(Object pojo) throws Exception {
 		Helper.checkNullValues(pojo);
+
 		try (Connection connection = DBConnection.getConnection()) {
 			if (connection == null || connection.isClosed()) {
 				throw new CustomException("Database connection is not established");
 			}
+
 			connection.setAutoCommit(false);
-			Class<?> clazz = pojo.getClass();
-			List<Class<?>> classList = getClassHierarchy(clazz);
+			List<Class<?>> classList = getClassHierarchy(pojo.getClass());
 			Object generatedValue = null;
+
 			for (int k = classList.size() - 1; k >= 0; k--) {
-				clazz = classList.get(k);
+				Class<?> clazz = classList.get(k);
 				ClassMapping classMapping = ColumnYamlUtil.getMapping(clazz.getName());
 				Map<String, FieldMapping> fieldMap = classMapping.getFields();
 				String tableName = classMapping.getTableName();
@@ -434,23 +450,24 @@ public class SQLHelper {
 				Field[] fields = clazz.getDeclaredFields();
 				StringBuilder insertSql = buildInsertSQL(fields, classMapping, tableName, pojo, fieldMap);
 				List<Object> values = collectFieldValues(fields, pojo, classMapping, fieldMap, generatedValue);
-
+				System.out.println(clazz.getSimpleName() + " " + generatedValue);
 				Object incrementValue = executeNonSelect(connection, insertSql.toString(), values.toArray());
 				if (k == classList.size() - 1) {
 					generatedValue = incrementValue;
 				}
 			}
+
 			connection.commit();
 			return generatedValue;
-		} catch (Exception e) {
-			logger.error("An error occurred while executing insert query", e);
-			throw new CustomException(e.getMessage());
+		} catch (SQLException e) {
+			Helper.handleSQLException(e);
 		}
+		return null;
 	}
 
 	private static List<Class<?>> getClassHierarchy(Class<?> clazz) {
 		List<Class<?>> classList = new ArrayList<>();
-		while (!clazz.getName().equals("dblayer.model.MarkedClass")) {
+		while (!clazz.getName().equals("model.MarkedClass")) {
 			classList.add(clazz);
 			clazz = clazz.getSuperclass();
 		}
@@ -501,7 +518,12 @@ public class SQLHelper {
 						&& classMapping.getReferenceField().equals(field.getName())) {
 					values.add(generatedValue);
 				} else {
-					values.add(field.get(pojo));
+					Object fieldValue = field.get(pojo);
+					if (field.getType().isEnum() && fieldValue != null) {
+						values.add(((Enum<?>) fieldValue).name());
+					} else {
+						values.add(fieldValue);
+					}
 				}
 			} catch (IllegalAccessException e) {
 				throw new CustomException("Error accessing field value: " + e.getMessage());

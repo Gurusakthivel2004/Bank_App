@@ -1,11 +1,17 @@
 package util;
 
 import java.lang.reflect.Field;
+
+import java.math.BigDecimal;
+
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+
+import model.MarkedClass;
 
 public class ValidationUtil {
 
@@ -83,4 +89,32 @@ public class ValidationUtil {
 		logger.error("Field '{}' not found in the class hierarchy.", key);
 		throw new NoSuchFieldException("Field '" + key + "' not found in the class hierarchy.");
 	}
+
+	public static <T> void validateModel(T instance, Class<? extends MarkedClass> clazz) throws CustomException {
+		if (instance == null) {
+			throw new CustomException("instance cannot be null.");
+		}
+		StringBuilder errorMessages = new StringBuilder();
+		for (Field field : clazz.getDeclaredFields()) {
+			field.setAccessible(true);
+			if (field.getName().equals("id")) {
+				continue;
+			}
+			try {
+				Object value = field.get(instance);
+				if (value == null || (value instanceof String && ((String) value).trim().isEmpty())
+						|| (value instanceof BigDecimal && ((BigDecimal) value).compareTo(BigDecimal.ZERO) < 0)) {
+					String formattedFieldName = Helper.formatFieldName(field.getName());
+					errorMessages.append("Invalid value for field: ").append(formattedFieldName).append("\n");
+				}
+
+			} catch (IllegalAccessException e) {
+				throw new CustomException("Error accessing field: " + field.getName(), e);
+			}
+		}
+		if (errorMessages.length() > 0) {
+			throw new CustomException("Validation failed:\n" + errorMessages.toString());
+		}
+	}
+
 }

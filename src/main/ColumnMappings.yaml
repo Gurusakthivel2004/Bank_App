@@ -1,5 +1,5 @@
 classes:
-  dblayer.model.Branch:
+  model.Branch:
     tableName: "branch"
     autoIncrementField: "id"
     fields:
@@ -20,7 +20,7 @@ classes:
       performedBy:
         columnName: "performed_by"
 
-  dblayer.model.User:
+  model.User:
     tableName: "user"
     autoIncrementField: "id"
     referedField: "id"
@@ -48,7 +48,7 @@ classes:
       performedBy:
         columnName: "performed_by"
 
-  dblayer.model.Customer:
+  model.Customer:
     tableName: "customer"
     referenceField: "userId"
     fields:
@@ -59,7 +59,7 @@ classes:
       aadharNumber:
         columnName: "aadhar_number"
 
-  dblayer.model.CustomerDetail:
+  model.CustomerDetail:
     tableName: "customerDetail"
     referenceField: "customerId"
     fields:
@@ -76,7 +76,7 @@ classes:
       maritalStatus:
         columnName: "marital_status"
 
-  dblayer.model.Account:
+  model.Account:
     tableName: "account"
     fields:
       accountId:
@@ -104,7 +104,7 @@ classes:
       performedBy:
         columnName: "performed_by"
 
-  dblayer.model.Staff:
+  model.Staff:
     tableName: "staff"
     referenceField: "userId"
     fields:
@@ -113,7 +113,7 @@ classes:
       branchId:
         columnName: "branch_id"
 
-  dblayer.model.Transaction:
+  model.Transaction:
     tableName: "transaction"
     fields:
       id:

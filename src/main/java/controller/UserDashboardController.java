@@ -17,7 +17,6 @@ public class UserDashboardController {
 		try {
 			FacadeHandler facadeHandler = new FacadeHandler();
 			Map<String, Object> data = facadeHandler.dashBoardDetails();
-			System.out.println(data);
 			ObjectMapper mapper = new ObjectMapper();
 			String jsonResponse = mapper.writeValueAsString(data);
 			response.setStatus(HttpServletResponse.SC_OK);

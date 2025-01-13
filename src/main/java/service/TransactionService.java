@@ -1,22 +1,30 @@
 package service;
 
-import java.util.Map;
 import java.math.BigDecimal;
+
+import java.util.Map;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import dblayer.dao.AccountDAO;
-import dblayer.dao.BranchDAO;
-import dblayer.dao.TransactionDAO;
-import dblayer.model.Account;
-import dblayer.model.Branch;
-import dblayer.model.Criteria;
-import dblayer.model.Transaction;
+
+import Enum.Constants.TransactionStatus;
+import Enum.Constants.TransactionType;
+import dao.AccountDAO;
+import dao.BranchDAO;
+import dao.TransactionDAO;
+
+import model.Account;
+import model.Branch;
+import model.Criteria;
+import model.Transaction;
+
 import util.CustomException;
 import util.Helper;
+import util.ValidationUtil;
 
 public class TransactionService {
 
@@ -153,7 +161,7 @@ public class TransactionService {
 				transaction.setId(txId);
 
 				if ("Debit".equals(transactionType)) {
-					transaction.setTransactionType("Credit");
+					transaction.setTransactionTypeEnum(TransactionType.Credit);
 				}
 
 				createTransaction(transaction);
@@ -175,7 +183,7 @@ public class TransactionService {
 		logger.info("Creating a new transaction...");
 
 		AccountDAO accountDAO = new AccountDAO();
-		transaction.setStatus("Completed");
+		transaction.setTransactionStatusEnum(TransactionStatus.Completed);
 		transaction.setTransactionTime(System.currentTimeMillis());
 		transaction.setPerformedBy((Long) Helper.getThreadLocalValue().get("id"));
 
@@ -207,7 +215,7 @@ public class TransactionService {
 
 		transaction.setClosingBalance(closingBalance);
 		logger.info("Transaction details: " + transaction);
-		Helper.validateModel(transaction);
+		ValidationUtil.validateModel(transaction, Transaction.class);
 		Long txId = transactionDAO.createTransaction(transaction);
 		logger.info("Transaction created with ID: " + txId);
 

@@ -1,4 +1,4 @@
-package dblayer.model;
+package model;
 
 import java.util.HashMap;
 import java.util.Map;

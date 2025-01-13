@@ -3,10 +3,13 @@ package util;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.PrintWriter;
+
 import java.lang.reflect.Field;
 import java.math.BigDecimal;
+
 import java.sql.Date;
 import java.sql.SQLException;
+
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -19,15 +22,19 @@ import java.util.List;
 import java.util.Map;
 import java.util.StringJoiner;
 import java.util.regex.Pattern;
+
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+
 import org.json.JSONArray;
 import org.json.JSONObject;
-import org.mindrot.jbcrypt.BCrypt;
 
+import org.mindrot.jbcrypt.BCrypt;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -35,10 +42,7 @@ import com.google.gson.JsonPrimitive;
 
 import Enum.Constants.HttpStatusCodes;
 import Enum.Constants.ValidQueryParams;
-import dblayer.model.ColumnCriteria;
-import dblayer.model.Criteria;
-import dblayer.model.MarkedClass;
-import dblayer.model.Transaction;
+
 import service.BranchService;
 import util.ColumnYamlUtil.ClassMapping;
 
@@ -65,8 +69,6 @@ public class Helper {
 	}
 
 	public static boolean checkPassword(String password, String hashed) {
-		System.out.println(password + " " + hashed);
-		System.out.println(BCrypt.checkpw(password, hashed));
 		return BCrypt.checkpw(password, hashed);
 	}
 
@@ -105,7 +107,7 @@ public class Helper {
 
 	public static void handleSQLException(SQLException e) throws CustomException {
 		logger.error("SQL error: " + e.getMessage(), e);
-		throw new CustomException("SQL error occurred.");
+		throw new CustomException("Error occurred. Please try later.");
 	}
 
 	public static void handleGeneralException(Exception e, String message) throws CustomException {
@@ -113,7 +115,12 @@ public class Helper {
 		throw new CustomException(message);
 	}
 
-	public static void checkNumber(String number) throws CustomException {
+	public static void handleGeneralException(Exception e, String logMessage, String message) throws CustomException {
+		logger.error("{} {}", logMessage, message, e);
+		throw new CustomException(message, e);
+	}
+
+	public static void checkPhoneNumber(String number) throws CustomException {
 		checkNullValues(number);
 		String patternString = "^\\d{10}$";
 		if (!Pattern.matches(patternString, number)) {
@@ -148,29 +155,6 @@ public class Helper {
 		LocalDateTime endOfMonth = LocalDateTime.of(year, month, 1, 23, 59, 59, 999999999)
 				.withDayOfMonth(LocalDateTime.of(year, month, 1, 0, 0).toLocalDate().lengthOfMonth());
 		return endOfMonth.toInstant(ZoneOffset.UTC).toEpochMilli();
-	}
-
-	public static void addCondition(Criteria criteria, boolean condition, String column, String operator,
-			Object value) {
-		if (condition) {
-			criteria.getColumn().add(column);
-			criteria.getOperator().add(operator);
-			criteria.getValue().add(value);
-		}
-		if (criteria.getColumn().size() > 0) {
-			criteria.setLogicalOperator("AND");
-		}
-	}
-
-	public static void addConditionIfPresent(Criteria criteria, Map<String, Object> map, String mapKey, String column,
-			String operator, Object defaultValue) {
-		Object value = map.getOrDefault(mapKey, defaultValue);
-		if (value != defaultValue) {
-			Helper.addCondition(criteria, true, column, operator, value);
-		}
-		if (criteria.getColumn().size() > 0) {
-			criteria.setLogicalOperator("AND");
-		}
 	}
 
 	public static void convertMapValuesToLong(Map<String, Object> map) {
@@ -288,6 +272,8 @@ public class Helper {
 		return responseData;
 	}
 
+	// Converts a map to a pojo instance.
+	@SuppressWarnings({ "unchecked", "rawtypes" })
 	public static <T> T createPojoFromMap(Map<String, Object> map, Class<T> clazz) throws CustomException {
 		try {
 			T pojo = clazz.getDeclaredConstructor().newInstance();
@@ -298,7 +284,6 @@ public class Helper {
 				Object value = entry.getValue();
 				Field field = null;
 				Class<?> currentClass = clazz;
-				System.out.println(key + " " + value);
 				while (!currentClass.getName().equals("dblayer.model.MarkedClass")) {
 					try {
 						field = currentClass.getDeclaredField(key);
@@ -307,25 +292,41 @@ public class Helper {
 						currentClass = currentClass.getSuperclass();
 					}
 				}
-				System.out.println(field.getName() + " " + field.getType());
 				field.setAccessible(true);
 				if (field.getType() == Long.class || field.getType() == long.class) {
+					if (field.getName().equals("phone") || field.getName().equals("contactNumber")) {
+						Helper.checkPhoneNumber((String) value);
+					}
 					field.set(pojo, value instanceof Long ? value : Long.parseLong(value.toString()));
 				} else if (field.getType() == String.class) {
+					if (field.getName().equals("email")) {
+						Helper.checkEmail((String) value);
+					}
 					field.set(pojo, value.toString());
 				} else if (field.getType() == BigDecimal.class) {
 					field.set(pojo, new BigDecimal(value.toString()));
 				} else if (field.getType() == Boolean.class) {
-					field.set(pojo, new Boolean(value.toString()));
+					field.set(pojo, Boolean.parseBoolean(value.toString()));
+				} else if (field.getType().isEnum()) {
+					Class<?> enumClass = field.getType();
+					Object enumValue = Enum.valueOf((Class<Enum>) enumClass, value.toString());
+					field.set(pojo, enumValue);
 				}
 			}
 			return pojo;
-		} catch (Exception e) {
-			logger.error("Error while creating POJO of type {} from map. Details: {}", clazz.getSimpleName(),
-					e.getMessage(), e);
+		} catch (CustomException e) {
+			throw e;
+		} catch (IllegalArgumentException e) {
+			logger.error("Invalid argument provided while mapping data to object. Please check the input values.", e);
+			throw new CustomException("Invalid data provided. Please check the values and try again.");
+		} catch (IllegalAccessException e) {
+			logger.error("Unable to access the field. Ensure the field is accessible and public.", e);
 			throw new CustomException(
-					"An unexpected error occurred while processing your request. Please try again later.");
-
+					"An unexpected error occurred while processing your request. Please contact support.");
+		} catch (Exception e) {
+			logger.error("Unexpected exception occurred.", e);
+			throw new CustomException(
+					"An unexpected error occurred while processing your request. Please contact support.");
 		}
 	}
 
@@ -401,6 +402,18 @@ public class Helper {
 		return null;
 	}
 
+	public static String formatFieldName(String fieldName) {
+		StringBuilder formattedName = new StringBuilder();
+		for (char c : fieldName.toCharArray()) {
+			if (Character.isUpperCase(c)) {
+				formattedName.append(" ");
+			}
+			formattedName.append(c);
+		}
+		return formattedName.toString().trim().substring(0, 1).toUpperCase()
+				+ formattedName.toString().trim().substring(1);
+	}
+
 	public static Long parseLong(Object value) {
 		if (value instanceof Long) {
 			return (Long) value;
@@ -458,156 +471,6 @@ public class Helper {
 			return Helper.parseDateToMillisOrDefault(paramValue, 0L);
 		}
 		return paramValue;
-	}
-
-	public static void appendInClause(StringBuilder sql, Criteria condition, List<Object> conditionValues)
-			throws CustomException {
-		List<Object> inValues = condition.getValues();
-		if (inValues == null || inValues.isEmpty()) {
-			throw new CustomException("IN clause requires at least one value.");
-		}
-
-		sql.append("IN (");
-		for (int j = 0; j < inValues.size(); j++) {
-			sql.append("?");
-			conditionValues.add(inValues.get(j));
-			if (j < inValues.size() - 1) {
-				sql.append(", ");
-			}
-		}
-		sql.append(")");
-	}
-
-	// Helper method for BETWEEN operator
-	public static void appendBetweenClause(StringBuilder sql, Criteria condition, List<Object> conditionValues)
-			throws CustomException {
-		List<Object> betweenValues = condition.getValues();
-		if (betweenValues == null || betweenValues.size() != 2) {
-			throw new CustomException("BETWEEN operator requires exactly two values.");
-		}
-
-		sql.append("BETWEEN ? AND ?");
-		conditionValues.addAll(betweenValues);
-	}
-
-	// Helper method for comparison operators (=, <>, >, <, >=, <=)
-	public static void appendComparisonOperator(StringBuilder sql, String operator, Object value,
-			List<Object> conditionValues) {
-		System.out.println(value);
-		if (value.getClass() == String.class && ((String) value).contains("SELECT")) {
-			sql.append(operator).append(" ").append(value);
-		} else {
-			sql.append(operator).append(" ?");
-			conditionValues.add(value);
-		}
-	}
-
-	public static Criteria createCriteria(Class<? extends MarkedClass> clazz, String column, String operator,
-			Object value) {
-		Criteria criteria = new Criteria();
-		criteria.setClazz(clazz);
-		if (column != null && operator != null && value != null) {
-			criteria.getColumn().add(column);
-			criteria.getOperator().add(operator);
-			criteria.getValue().add(value);
-		}
-		return criteria;
-	}
-
-	public static ColumnCriteria createColumnCriteria(List<String> fields, List<Object> values) {
-		ColumnCriteria columnCriteria = new ColumnCriteria();
-		columnCriteria.setFields(fields);
-		columnCriteria.setValues(values);
-		return columnCriteria;
-	}
-
-	public static <T> Criteria initializeCriteria(Class<T> clazz) {
-		Criteria criteria = new Criteria();
-		criteria.setClazz(clazz);
-		criteria.setSelectColumn(new ArrayList<>(Arrays.asList("*")));
-		return criteria;
-	}
-
-	public static <T> void validateModel(T instance) throws CustomException {
-		if (instance == null) {
-			throw new CustomException("instance cannot be null.");
-		}
-		StringBuilder errorMessages = new StringBuilder();
-		for (Field field : Transaction.class.getDeclaredFields()) {
-			field.setAccessible(true);
-			if (field.getName().equals("id")) {
-				continue;
-			}
-			try {
-				Object value = field.get(instance);
-				if (value == null || (value instanceof String && ((String) value).trim().isEmpty())
-						|| (value instanceof BigDecimal && ((BigDecimal) value).compareTo(BigDecimal.ZERO) <= 0)) {
-					errorMessages.append("Invalid value for field: ").append(field.getName()).append("\n");
-				}
-			} catch (IllegalAccessException e) {
-				throw new CustomException("Error accessing field: " + field.getName(), e);
-			}
-		}
-		if (errorMessages.length() > 0) {
-			throw new CustomException("Validation failed:\n" + errorMessages.toString());
-		}
-	}
-
-	public static Criteria buildCriteria(Class<? extends MarkedClass> clazz, List<String> columns,
-			List<String> operators, List<Object> values) {
-		Criteria criteria = new Criteria();
-		criteria.setClazz(clazz);
-		criteria.setColumn(columns);
-		criteria.setOperator(operators);
-		criteria.setValue(values);
-		return criteria;
-	}
-
-	public static Criteria buildJoinCriteria(Class<? extends MarkedClass> clazz, List<String> joinTable,
-			List<String> joinColumn, List<String> joinOperator, List<Object> joinValue, List<String> columns,
-			List<String> operators, List<Object> values) {
-		Criteria criteria = buildCriteria(clazz, columns, operators, values);
-		criteria.setJoinTable(joinTable);
-		criteria.setJoinColumn(joinColumn);
-		criteria.setJoinOperator(joinOperator);
-		criteria.setJoinValue(joinValue);
-		criteria.setSelectColumn(Arrays.asList("*"));
-		return criteria;
-	}
-
-	public static Criteria buildJoinCriteria(Class<? extends MarkedClass> clazz, List<String> joinTable,
-			List<String> joinColumn, List<String> joinOperator, List<Object> joinValue, List<String> columns,
-			List<String> operators, List<Object> values, String join, boolean joinCondition) {
-		Criteria criteria = buildCriteria(clazz, columns, operators, values);
-
-		if (joinCondition) {
-			criteria.setJoin(join);
-			criteria.setJoinTable(joinTable);
-			criteria.setJoinColumn(joinColumn);
-			criteria.setJoinOperator(joinOperator);
-			criteria.setJoinValue(joinValue);
-		}
-		return criteria;
-	}
-
-	public static void addJoinCondition(Criteria criteria, boolean condition, String joinColumn, String joinOperator,
-			Object joinValue) {
-		if (condition) {
-			criteria.getJoinColumn().add(joinColumn);
-			criteria.getJoinOperator().add(joinOperator);
-			criteria.getJoinValue().add(joinValue);
-		}
-	}
-
-	public static void applyAccountNumberFilter(Criteria criteria, Map<String, Object> map) {
-		Long accountNumber = (Long) map.get("accountNumber");
-		if (accountNumber != null && accountNumber > 0) {
-			if (accountNumber <= 9999) {
-				Helper.addCondition(criteria, true, "RIGHT(account_number, 4)", "EQUAL_TO", accountNumber);
-			} else {
-				Helper.addConditionIfPresent(criteria, map, "accountNumber", "account_number", "EQUAL_TO", 0L);
-			}
-		}
 	}
 
 }

@@ -7,14 +7,19 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+
 import com.fasterxml.jackson.core.type.TypeReference;
-import dblayer.dao.UserDAO;
-import dblayer.model.Account;
-import dblayer.model.ColumnCriteria;
-import dblayer.model.Staff;
-import dblayer.model.User;
+
+import dao.UserDAO;
+
+import model.ColumnCriteria;
+import model.CustomerDetail;
+import model.Staff;
+import model.User;
+
 import util.CustomException;
 import util.Helper;
 import util.ValidationUtil;
@@ -144,16 +149,18 @@ public class UserService {
 	}
 
 	public void createUser(Map<String, Object> userMap) throws CustomException {
-		logger.info("Attempting to create user: {}", userMap);
+		logger.info("Attempting to create user");
 		try {
 			String role = (String) userMap.get("role");
 			logger.debug("User role determined as: {}", role);
 			if ("Customer".equals(role)) {
 				logger.debug("Creating customer user.");
-				userDAO.createCustomer(Helper.createPojoFromMap(userMap, dblayer.model.CustomerDetail.class));
+				CustomerDetail customerDetail = Helper.createPojoFromMap(userMap, CustomerDetail.class);
+				userDAO.createCustomer(customerDetail);
 			} else {
 				logger.debug("Creating staff user.");
-				userDAO.createStaff(Helper.createPojoFromMap(userMap, Staff.class));
+				Staff staff = Helper.createPojoFromMap(userMap, Staff.class);
+				userDAO.createStaff(staff);
 			}
 			logger.info("User created successfully.");
 		} catch (CustomException e) {
@@ -169,8 +176,7 @@ public class UserService {
 			if (!userMap.containsKey("updatedValues")) {
 				throw new CustomException("Provide the values to update");
 			}
-			Map<String, Object> criteriaMap = new HashMap<>(),
-					updatedValues = (Map<String, Object>) userMap.get("updatedValues");
+			Map<String, Object> updatedValues = (Map<String, Object>) userMap.get("updatedValues");
 			Helper.convertMapValuesToLong(updatedValues);
 
 			ValidationUtil.validateUpdateFields(updatedValues, User.class);
@@ -179,28 +185,22 @@ public class UserService {
 			List<Object> values = new ArrayList<>();
 
 			String role = (String) userMap.get("role");
-			userMap.remove("role");
 			logger.debug("User role determined as: {}", role);
 
 			for (String key : updatedValues.keySet()) {
 				fields.add(key);
-				values.add(userMap.get(key));
+				values.add(updatedValues.get(key));
 			}
 			userMap.remove("updatedValues");
-			for (String key : userMap.keySet()) {
-				criteriaMap.put(key, userMap.get(key));
-			}
 
-			ColumnCriteria columnCriteria = new ColumnCriteria();
-			columnCriteria.setFields(fields);
-			columnCriteria.setValues(values);
+			ColumnCriteria columnCriteria = new ColumnCriteria().setFields(fields).setValues(values);
 
 			if ("Customer".equals(role)) {
 				logger.debug("Updating details for customer.");
-				userDAO.updateCustomer(columnCriteria, criteriaMap);
+				userDAO.updateCustomer(columnCriteria, userMap);
 			} else {
 				logger.debug("Updating details for staff.");
-				userDAO.updateStaff(columnCriteria, criteriaMap);
+				userDAO.updateStaff(columnCriteria, userMap);
 			}
 			cacheService.delete("userDetails");
 			logger.info("User details updated successfully.");

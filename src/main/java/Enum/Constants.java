@@ -228,4 +228,49 @@ public class Constants {
 		}
 	}
 
+	public enum Status {
+		Suspended, Active, Inactive;
+
+		@Override
+		public String toString() {
+			return name().toLowerCase();
+		}
+	}
+
+	public enum AccountType {
+		Savings, Current, Fixed_Deposit, Operational;
+
+		@Override
+		public String toString() {
+			return name().toLowerCase();
+		}
+	}
+
+	public enum Role {
+		Customer, Employee, Manager;
+
+		@Override
+		public String toString() {
+			return name().toLowerCase();
+		}
+	}
+
+	public enum TransactionType {
+		Credit, Debit, Deposit, Withdraw;
+
+		@Override
+		public String toString() {
+			return name().toLowerCase();
+		}
+	}
+
+	public enum TransactionStatus {
+		Completed, Pending, Cancelled, Active, Expired;
+
+		@Override
+		public String toString() {
+			return name().toLowerCase();
+		}
+	}
+
 }

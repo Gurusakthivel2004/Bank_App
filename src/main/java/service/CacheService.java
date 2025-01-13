@@ -1,6 +1,7 @@
 package service;
 
 import java.io.IOException;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -11,9 +12,12 @@ import java.util.stream.Collectors;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
 import redis.clients.jedis.Jedis;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+
 import util.RedisCache;
 
 public class CacheService {
@@ -44,7 +48,7 @@ public class CacheService {
 		}
 		try (Jedis jedis = RedisCache.getConnection()) {
 			String jsonValue = objectMapper.writeValueAsString(value);
-			jedis.setex(key, ttlSeconds, jsonValue); 
+			jedis.setex(key, ttlSeconds, jsonValue);
 			logger.info("Successfully saved key '{}' in Redis with TTL {} seconds.", key, ttlSeconds);
 		} catch (JsonProcessingException e) {
 			logger.error("Failed to serialize value for key '{}': {}", key, e.getMessage());
@@ -116,7 +120,7 @@ public class CacheService {
 			logger.error("Failed to delete key '{}' from Redis: {}", deleteKey, e.getMessage());
 		}
 	}
-	
+
 	public void deleteAll() {
 		try (Jedis jedis = RedisCache.getConnection()) {
 			List<String> allKeys = getAllKeys();

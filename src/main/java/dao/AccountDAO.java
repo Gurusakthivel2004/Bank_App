@@ -1,19 +1,22 @@
-package dblayer.dao;
+package dao;
 
 import java.math.BigInteger;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import dblayer.model.Account;
-import dblayer.model.ColumnCriteria;
-import dblayer.model.Criteria;
+
+import model.Account;
+import model.Criteria;
+import model.ColumnCriteria;
+
 import util.CustomException;
-import util.Helper;
 import util.SQLHelper;
 
 public class AccountDAO {
@@ -23,9 +26,8 @@ public class AccountDAO {
 	public <T> void updateAccount(ColumnCriteria columnCriteria, String column, Object value) throws CustomException {
 		logger.info("Updating account with ColumnCriteria: {}", columnCriteria);
 		try {
-			Criteria criteria = new Criteria();
-			criteria.setClazz(Account.class);
-			Helper.addCondition(criteria, value != null, column, "EQUAL_TO", value);
+			Criteria criteria = new Criteria().setClazz(Account.class);
+			DAOHelper.addCondition(criteria, value != null, column, "EQUAL_TO", value);
 
 			SQLHelper.update(columnCriteria, criteria);
 			logger.info("Account updated successfully.");
@@ -39,14 +41,12 @@ public class AccountDAO {
 		Long accountId = (Long) accountMap.get("accountId");
 		logger.info("Removing account with accoutnId: {}", accountId);
 		try {
-			ColumnCriteria columnCriteria = new ColumnCriteria();
-			columnCriteria.setFields(Arrays.asList("status"));
-			columnCriteria.setValues(Arrays.asList("Suspended"));
+			ColumnCriteria columnCriteria = new ColumnCriteria().setFields(Arrays.asList("status"))
+					.setValues(Arrays.asList("Suspended"));
 
-			Criteria criteria = new Criteria();
-			criteria.setClazz(Account.class);
+			Criteria criteria = new Criteria().setClazz(Account.class);
 
-			Helper.addCondition(criteria, accountId > 0, "account_id", "EQUAL_TO", accountId);
+			DAOHelper.addCondition(criteria, accountId > 0, "account_id", "EQUAL_TO", accountId);
 
 			logger.debug("Criteria for removing account: {}", criteria);
 			updateAccount(columnCriteria, "account_id", accountId);
@@ -67,16 +67,14 @@ public class AccountDAO {
 			Long accountId = ((BigInteger) SQLHelper.insert(account)).longValue();
 			logger.debug("Account ID generated: {}", accountId);
 
-			ColumnCriteria columnCriteria = new ColumnCriteria();
-			columnCriteria.setFields(Arrays.asList("accountNumber"));
+			ColumnCriteria columnCriteria = new ColumnCriteria().setFields(Arrays.asList("accountNumber"));
 			String accountNumber = "701" + String.format("%04d", account.getBranchId())
 					+ String.format("%04d", accountId);
 			columnCriteria.setValues(Arrays.asList(Long.parseLong(accountNumber)));
 
 			logger.debug("Account number generated: {}", accountNumber);
 
-			Criteria criteria = new Criteria();
-			criteria.setClazz(Account.class);
+			Criteria criteria = new Criteria().setClazz(Account.class);
 			criteria.getColumn().add("account_id");
 			criteria.getOperator().add("EQUAL_TO");
 			criteria.getValue().add(accountId);
@@ -92,7 +90,7 @@ public class AccountDAO {
 	public Map<String, Object> getAccounts(Map<String, Object> accountMap) throws CustomException {
 		logger.info("Fetching accounts with parameters: {}", accountMap);
 		try {
-			Criteria criteria = Helper.initializeCriteria(Account.class);
+			Criteria criteria = DAOHelper.initializeCriteria(Account.class);
 			criteria = applyBranchFilter(criteria, accountMap);
 			applyAccountFilters(criteria, accountMap);
 			applyPagination(criteria, accountMap);
@@ -101,9 +99,7 @@ public class AccountDAO {
 
 			Long offset = (Long) accountMap.getOrDefault("offset", -1L);
 			if (offset == 0) {
-				criteria.setOffsetValue(-1L);
-				criteria.setAggregateFunction("COUNT");
-				criteria.setAggregateOperator("*");
+				criteria.setOffsetValue(-1L).setAggregateFunction("COUNT").setAggregateOperator("*");
 				result.put("count", SQLHelper.get(criteria).get(0));
 				criteria.setOffsetValue(offset);
 				result.put("joinedAccounts", fetchJoinedAccounts(accountMap));
@@ -118,24 +114,25 @@ public class AccountDAO {
 	}
 
 	private void applyAccountFilters(Criteria criteria, Map<String, Object> accountMap) {
-		Helper.addConditionIfPresent(criteria, accountMap, "userId", "user_id", "EQUAL_TO", 0L);
-		Helper.addConditionIfPresent(criteria, accountMap, "branchId", "branch_id", "EQUAL_TO", 0L);
-		Helper.addConditionIfPresent(criteria, accountMap, "accountCreated", "created_at", "EQUAL_TO", 0L);
-		Helper.addCondition(criteria, accountMap.get("accountType") != null, "account_type", "EQUAL_TO",
+		DAOHelper.addConditionIfPresent(criteria, accountMap, "userId", "user_id", "EQUAL_TO", 0L);
+		DAOHelper.addConditionIfPresent(criteria, accountMap, "branchId", "branch_id", "EQUAL_TO", 0L);
+		DAOHelper.addConditionIfPresent(criteria, accountMap, "accountCreated", "created_at", "EQUAL_TO", 0L);
+		DAOHelper.addCondition(criteria, accountMap.get("accountType") != null, "account_type", "EQUAL_TO",
 				accountMap.get("accountType"));
-		Helper.addCondition(criteria, accountMap.get("status") != null, "status", "EQUAL_TO", accountMap.get("status"));
-		Helper.applyAccountNumberFilter(criteria, accountMap);
+		DAOHelper.addCondition(criteria, accountMap.get("status") != null, "status", "EQUAL_TO",
+				accountMap.get("status"));
+		DAOHelper.applyAccountNumberFilter(criteria, accountMap);
 	}
 
 	private Criteria applyBranchFilter(Criteria criteria, Map<String, Object> accountMap) {
 		if (!accountMap.containsKey("branchId")) {
 			return criteria;
 		}
-		criteria = Helper.buildJoinCriteria(Account.class, Arrays.asList("branch"), new ArrayList<>(),
+		criteria = DAOHelper.buildJoinCriteria(Account.class, Arrays.asList("branch"), new ArrayList<>(),
 				new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), " JOIN ",
 				true);
 		criteria.setSelectColumn(Collections.singletonList("account.*"));
-		Helper.addJoinCondition(criteria, true, "account.branch_id", "EQUAL_TO", "branch.id");
+		DAOHelper.addJoinCondition(criteria, true, "account.branch_id", "EQUAL_TO", "branch.id");
 		return criteria;
 	}
 
@@ -151,12 +148,12 @@ public class AccountDAO {
 	}
 
 	private List<Object> fetchJoinedAccounts(Map<String, Object> accountMap) throws CustomException {
-		Criteria staffJoinCriteria = Helper.buildJoinCriteria(Account.class, Arrays.asList("branch"), new ArrayList<>(),
-				new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), " JOIN ",
-				true);
+		Criteria staffJoinCriteria = DAOHelper.buildJoinCriteria(Account.class, Arrays.asList("branch"),
+				new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), new ArrayList<>(),
+				new ArrayList<>(), " JOIN ", true);
 		staffJoinCriteria.setSelectColumn(Arrays.asList("account.*", "branch.name"));
 
-		Helper.addJoinCondition(staffJoinCriteria, true, "account.branch_id", "EQUAL_TO", "branch.id");
+		DAOHelper.addJoinCondition(staffJoinCriteria, true, "account.branch_id", "EQUAL_TO", "branch.id");
 		applyAccountFilters(staffJoinCriteria, accountMap);
 
 		return SQLHelper.get(staffJoinCriteria);

@@ -86,14 +86,16 @@
 						onclick="toggleEditUser()"></button>
 					<button id="saveButton" class="saveAllButton border-0 mt-3 ms-3"
 						style="display: none" onclick="toggleSaveAll()"></button>
-					<h2 class="mt-3 text-center mx-auto"
-						style="color: #2980b9; font-size: 24px; font-family: 'Arial', sans-serif; font-weight: 600;">User
-						Details</h2>
+					<div class="d-flex col mx-auto mt-3 justify-content-center">
+						<img src="./images/info-dark.svg" width="30px" height="30px" alt="" />
+						
+					</div>
+
 
 				</div>
 
 				<!-- Branch details -->
-				<div class="d-flex mb-3 me-3 ms-5" style="flex-direction: row;">
+				<div class="d-flex mb-1 me-3 mx-4" style="flex-direction: row;">
 					<div id="userDetails" class="w-100 mt-4 mb-0 pt-4 pb-0">
 						<div class="detail-item d-flex  w-100 py-3 px-2 mx-2" data-id="1">
 							<span class="detail-label ps-4"
@@ -127,15 +129,14 @@
 						</div>
 						<div id="branchIdDiv" class="detail-item w-100 py-3 px-2 mx-2"
 							style="display: none">
-							<span class="detail-label ps-4" style="width: 50%; padding-left: 10%;">Branch
-								id:</span>
+							<span class="detail-label ps-4"
+								style="width: 50%; padding-left: 10%;">Branch id:</span>
 							<div class="inputDiv w-40">
-								<input class="rounded p-1 px-2 w-30" id="branchId"
-									oninput="fetchDropdownOptions(this.value)"
+								<input class="rounded p-1 px-2 w-30" id="branchId" required
+									oninput="fetchDropdownOptions(this.value)" placeholder="7"
 									style="font-family: 'Arial', sans-serif;" autocomplete="off">
 								<div id="dropdown" class="dropdown-menu w-30"
 									style="display: none; background: white; border: 1px solid #ddd; border-radius: 5px; z-index: 10;"></div>
-
 							</div>
 						</div>
 						<div class="detail-item d-flex w-100 py-3 px-2 mx-2" data-id="4">
@@ -194,7 +195,7 @@
 							<div class="inputDiv w-40">
 								<textarea required rows="1.5" cols="21" id="address"
 									class="accNumberInput rounded p-1 px-2 w-30"
-									placeholder="2/504 Ayyanar colony, Madurai"
+									placeholder="2/45 KK Nagar, Chennai"
 									style="border: 1px solid #555; color: #2b5ab3"></textarea>
 							</div>
 						</div>
@@ -225,7 +226,7 @@
 							<span class="detail-label ps-4"
 								style="width: 50%; padding-left: 10%;">DOB:</span>
 							<div class="inputDiv w-40">
-								<input id="dob"
+								<input id="dob" required
 									class="accNumberInput rounded p-1 px-2 ms-4 w-30"
 									style="border: 1px solid #555; color: #2b5ab3" type="text"
 									placeholder="08/06/2004" />
@@ -235,7 +236,7 @@
 							<span class="detail-label ps-4"
 								style="width: 50%; padding-left: 10%;">Father name:</span>
 							<div class="inputDiv w-40">
-								<input id="fatherName"
+								<input id="fatherName" required
 									class="accNumberInput rounded p-1 px-2 ms-4 w-30"
 									style="border: 1px solid #555; color: #2b5ab3" type="text"
 									placeholder="Vijayakumar G" />
@@ -246,19 +247,19 @@
 								style="width: 50%; padding-left: 10%;">Mother name:</span>
 							<div class="inputDiv w-40">
 								<input id="motherName"
-									class="accNumberInput rounded p-1 px-2 ms-4 w-30"
+									class="accNumberInput rounded p-1 px-2 ms-4 w-30" required
 									style="color: green; border: 1px solid #555; color: #2b5ab3"
 									type="text" placeholder="Kavitha V" />
 							</div>
 						</div>
-						<div class="detail-item d-flex w-100 py-3 me-2 border-0"
+						<div class="detail-item d-flex w-100 py-3 pe-2 me-2 border-0"
 							data-id="12">
 							<span class="detail-label ps-4"
 								style="width: 50%; padding-left: 10%;">Marital status:</span>
-							<div class="inputDiv w-20">
+							<div class="inputDiv w-40">
 								<div class="accounts-dropdown">
 									<input required id="maritalStatus"
-										class="accNumberInput rounded p-1 px-2 ms-4 w-20"
+										class="accNumberInput rounded p-1 px-2 ms-3 w-30"
 										style="border: 1px solid #555; color: #2b5ab3;"
 										id="accountDropdown" data-bs-toggle="dropdown-menu"
 										aria-expanded="false" placeholder="Single" />
@@ -272,110 +273,18 @@
 							</div>
 						</div>
 					</div>
-				</div>
-			</div>
-		</div>
-
-		<div id="accountDetailsModal" class="modal-overlay"
-			style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.7); z-index: 1000; justify-content: center; align-items: center;">
-			<p id="successPopup"
-				style="display: none; position: fixed; top: 120px; right: 20px; padding: 15px; background-color: #4CAF50; color: white; border-radius: 5px; font-size: 16px; z-index: 1000;">
-			</p>
-			<div class="modal-content account-details"
-				style="background-color: #ffffff; border-radius: 10px; width: 80%; max-width: 500px; padding: 20px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);">
-				<button class="close-btn my-3"
-					onclick="toggleModal('accountDetailsModal')"
-					style="background: transparent; font-size: 30px; color: #e74c3c; cursor: pointer; position: absolute; top: 15px; right: 15px; border: none; border-radius: 50%; height: 40px; width: 40px; display: flex; align-items: center; justify-content: center; transition: background-color 0.3s ease, transform 0.3s ease;"
-					onmouseover="this.style.backgroundColor='rgba(231, 76, 60, 0.1)'; this.style.transform='scale(1.1)';"
-					onmouseout="this.style.backgroundColor='transparent'; this.style.transform='scale(1)';">&times;</button>
-				<h2 class="w-100 py-4 mb-4 text-center"
-					style="color: #2980b9; font-size: 24px; font-family: 'Arial', sans-serif; font-weight: 600;">Account
-					Details</h2>
-				<!-- Branch details -->
-				<div class="d-flex row" style="flex-direction: column;">
-
-					<div class="detail-item d-flex w-100 py-3 px-2 mx-2"
-						style="border-bottom: 1px solid #ccc;">
-						<span class="detail-label"
-							style="width: 39%; color: #34495e; margin-left: 17%;">Branch
-							id:</span>
-						<div class="inputDiv d-flex"
-							style="width: 40%; position: relative;">
-							<input class="mb-0 px-2 py-1" id="accountbranchId" disabled
-								oninput="fetchDropdownOptions(this.value)"
-								style="color: #2c3e50; border: 0; border-radius: 10px; width: 75%; font-size: 16px; font-weight: 600; font-family: 'Arial', sans-serif;"
-								autocomplete="off">
-							<div id="dropdown" class="dropdown-menu"
-								style="display: none; position: absolute; top: 100%; left: 0; width: 100%; background: white; border: 1px solid #ddd; border-radius: 5px; z-index: 10;"></div>
-							<img onclick="updateBranch()" id="branchEdit"
-								style="margin-top: 5px; margin-left: auto; cursor: pointer; display: none;"
-								src="./images/editOne.svg" width="20px" height="20px"
-								alt="brancheditbutton" /> <img id="branchSave"
-								onclick="saveBranch()"
-								style="margin-top: 5px; display: none; margin-left: auto; cursor: pointer"
-								src="./images/save.svg" width="20px" height="20px" alt="" />
-						</div>
-
-					</div>
-
-					<div class="detail-item d-flex w-100 py-3 px-2 mx-2"
-						style="border-bottom: 1px solid #ccc;">
-						<span class="detail-label"
-							style="width: 39%; color: #34495e; margin-left: 17%;">Account
-							Holder:</span>
-						<div class="inputDiv" style="width: 40%;">
-							<p class="mb-0" id="accountfullname"
-								style="color: #4677bd; font-size: 16px; font-weight: 600; font-family: 'Arial', sans-serif;"></p>
-						</div>
-					</div>
-
-					<div class="detail-item d-flex w-100 py-3 px-2 mx-2"
-						style="border-bottom: 1px solid #ccc;">
-						<span class="detail-label"
-							style="width: 39%; color: #34495e; margin-left: 17%;">Account
-							Number:</span>
-						<div class="inputDiv" style="width: 40%;">
-							<p class="mb-0" id="accountNumber2"
-								style="color: #2c3e50; font-size: 16px; font-weight: 600; font-family: 'Arial', sans-serif;"></p>
-						</div>
-					</div>
-
-
-
-					<div class="detail-item d-flex w-100 py-3 px-2 mx-2"
-						style="border-bottom: 1px solid #ccc;">
-						<span class="detail-label"
-							style="width: 39%; color: #34495e; margin-left: 17%;">Contact:</span>
-						<div class="inputDiv" style="width: 40%;">
-							<p class="mb-0" id="accountphone"
-								style="color: #4677bd; font-size: 16px; font-weight: 600; font-family: 'Arial', sans-serif;"></p>
-						</div>
-					</div>
-
-					<div class="detail-item d-flex w-100 py-3 px-2 mx-2">
-						<span class="detail-label"
-							style="width: 39%; color: #34495e; margin-left: 17%;">Status:</span>
-						<div class="inputDiv d-flex"
-							style="width: 40%; position: relative;">
-							<input class="mb-0 px-2 py-1" id="accountStatus" disabled
-								onclick="toggleDropdown()"
-								style="color: #2c3e50; border: 0; border-radius: 10px; width: 75%; font-size: 16px; font-weight: 600; font-family: 'Arial', sans-serif;"
-								autocomplete="off" />
-							<div id="dropdownStatus" class="dropdown-menu"
-								style="display: none; position: absolute; top: 100%; left: 0; width: 100%; background: white; border: 1px solid #ddd; border-radius: 5px; z-index: 10;"></div>
-							<img onclick="updateStatus()" id="statusEdit"
-								style="margin-top: 5px; margin-left: auto; cursor: pointer; display: block;"
-								src="./images/editOne.svg" width="20px" height="20px"
-								alt="statuseditbutton" /> <img id="statusSave"
-								onclick="saveStatus()"
-								style="margin-top: 5px; display: none; margin-left: auto; cursor: pointer"
-								src="./images/save.svg" width="20px" height="20px" alt="" />
-						</div>
-
-
-					</div>
 
 				</div>
+				<p id="errorMessage" style="display: none;"
+					class="text-danger text-center w-100 mb-4">Enter a unique
+					username and email.</p>
+				<button class="mx-auto" onclick="newUser()" id="newUserButton"
+					style="width: max-content; display: none; align-items: center; justify-content: center; background-color: #2980b9; color: white; font-size: 16px; font-family: Arial, sans-serif; font-weight: bold; padding: 10px 20px; border: none; border-radius: 8px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); cursor: pointer; transition: background-color 0.3s ease, transform 0.2s ease;"
+					onmouseover="this.style.backgroundColor='#2471A3'; this.style.transform='scale(1.05)';"
+					onmouseout="this.style.backgroundColor='#2980b9'; this.style.transform='scale(1)';">
+					<img src="./images/savewhite.svg" alt="Save Icon"
+						style="width: 20px; height: 20px; margin-right: 10px;"> Save
+				</button>
 			</div>
 		</div>
 
@@ -493,9 +402,12 @@
 						class="d-flex column mb-3 align-items-center align-items-baseline">
 						<h3 class="my-auto"
 							style="font-family: sans-serif; font-weight: 900; color: #2b0444; font-size: larger;">Users</h3>
-						<img class="my-auto ms-2" onclick="createButton()"
+						<img class="my-auto ms-2 createButton" onclick="createButton()"
 							style="cursor: pointer;" width="34px" height="30px"
 							src="./images/new.svg" alt="" />
+						<div id="dynamicButtons" class="dropdown-container"
+							style="margin-top: -10px;"></div>
+
 						<div class="account-filter d-flex my-auto flex-wrap ms-auto">
 							<div id="customeridfilter" style="display: flex;"
 								class="id-dropdown align-items-baseline me-3 mb-3">

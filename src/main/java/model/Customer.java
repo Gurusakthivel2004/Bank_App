@@ -1,4 +1,4 @@
-package dblayer.model;
+package model;
 
 public class Customer extends User {
 	
@@ -13,16 +13,18 @@ public class Customer extends User {
 		return panNumber;
 	}
 
-	public void setPanNumber(String panNumber) {
+	public Customer setPanNumber(String panNumber) {
 		this.panNumber = panNumber;
+		return this;
 	}
 
 	public Long getAadharNumber() {
 		return aadharNumber;
 	}
 
-	public void setAadharNumber(Long aadharNumber) {
+	public Customer setAadharNumber(Long aadharNumber) {
 		this.aadharNumber = aadharNumber;
+		return this;
 	}
 
 	@Override
@@ -34,8 +36,9 @@ public class Customer extends User {
 		return userId;
 	}
 
-	public void setUserId(Long userId) {
+	public Customer setUserId(Long userId) {
 		this.userId = userId;
+		return this;
 	}
     
 }

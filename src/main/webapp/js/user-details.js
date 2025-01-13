@@ -49,6 +49,7 @@ async function fetchUsers() {
 		updatePagination();
 	} catch (error) {
 		console.log(error);
+		window.location.href = "index.html";
 	}
 }
 
@@ -224,19 +225,160 @@ const userClick = async user => {
 	});
 }
 
-const createButton = _ => {
-	toggleModal('newUserModal');
-	const modalDiv = document.getElementById('newUserModal');
-	const inputFields = modalDiv.querySelectorAll('input');
-	inputFields.forEach(input => {
-		input.disabled = false;
-		input.value = "";
-		input.style.border = "1px solid";
+const createButton = () => {
+	const buttonContainer = document.getElementById("dynamicButtons");
+
+	buttonContainer.innerHTML = "";
+
+	const selectDropdown = document.createElement("select");
+
+	selectDropdown.id = "newUserRole";
+	selectDropdown.style.padding = "8px";
+	selectDropdown.style.fontSize = "16px";
+	selectDropdown.style.color = "#2b0444";
+	selectDropdown.style.background = "#ffffff";
+	selectDropdown.style.border = "1px solid #ddd";
+	selectDropdown.style.borderRadius = "6px";
+	selectDropdown.style.boxShadow = "0 2px 4px rgba(0, 0, 0, 0.2)";
+	selectDropdown.style.cursor = "pointer";
+
+	const options = [
+		{ value: "Customer", text: "Customer" },
+		{ value: "Staff", text: "Staff" }
+	];
+
+	options.forEach(option => {
+		const opt = document.createElement("option");
+		opt.value = option.value;
+		opt.textContent = option.text;
+		selectDropdown.appendChild(opt);
 	});
-	document.getElementById('customerAddress').value = "";
-	document.getElementById('customerAddress').disabled = false;
-	document.getElementById('customerAddress').style.border = "1px solid";
+
+	selectDropdown.addEventListener("click", (event) => {
+		const selectedValue = event.target.value;
+		if (selectedValue) {
+			console.log(`Selected: ${selectedValue}`);
+			handleCreateSelection(selectedValue);
+		}
+	});
+
+	buttonContainer.appendChild(selectDropdown);
+
+	buttonContainer.style.display = "none";
+
+	const imgElement = document.querySelector("img.createButton");
+
+	imgElement.addEventListener("mouseover", () => {
+		buttonContainer.style.display = "block";
+		buttonContainer.style.position = "absolute";
+
+		const imgRect = imgElement.getBoundingClientRect();
+		buttonContainer.style.left = `${imgRect.right}px`;
+		buttonContainer.style.top = `${imgRect.top}px`;
+		buttonContainer.style.zIndex = "100";
+		buttonContainer.style.borderRadius = "6px";
+		buttonContainer.style.padding = "8px";
+	});
+
+	imgElement.addEventListener("mouseout", (event) => {
+		const relatedTarget = event.relatedTarget;
+		if (!buttonContainer.contains(relatedTarget)) {
+			buttonContainer.style.display = "none";
+		}
+	});
+
+	buttonContainer.addEventListener("mouseleave", () => {
+		buttonContainer.style.display = "none";
+	});
+};
+
+createButton();
+
+function handleCreateSelection(selectedValue) {
+	console.log(selectedValue);
+	if (selectedValue === "Customer") {
+		document.getElementById('customerDetails').style.display = 'block';
+		document.getElementById('addressDiv').style.display = 'flex';
+		document.getElementById('roleDiv').style.display = 'none';
+		document.getElementById('address').disabled = false;
+		document.getElementById('branchIdDiv').style.display = 'none';
+	} else if (selectedValue === "Staff") {
+		document.getElementById('customerDetails').style.display = 'none';
+		document.getElementById('addressDiv').style.display = 'none';
+		document.getElementById('roleDiv').style.display = 'flex';
+		document.getElementById('branchIdDiv').style.display = 'flex';
+	}
+	toggleModal('newUserModal');
+	document.getElementById('editButton').style.display = 'none';
+	document.getElementById('saveButton').style.display = 'none';
+	document.getElementById('newUserButton').style.display = 'flex';
+
+	document.getElementById('address').value = '';
+	document.getElementById('address').style.border = "1px solid black";
+	document.querySelectorAll("input").forEach(input => {
+		input.disabled = false;
+		input.style.border = "1px solid black";
+		input.value = "";
+	})
 }
+
+const newUser = _ => {
+	const userRole = document.getElementById('newUserRole').value, inputData = { role: userRole };
+	let inputElements = document.querySelectorAll("#userDetails input, #customerDetails input, #userDetails textarea, #customerDetails textarea"), errorCount = 0;
+	if (userRole == "staff") {
+		inputElements = document.querySelectorAll("#userDetails input");
+	}
+	inputElements.forEach(input => {
+		const key = input.id;
+		const value = input.value.trim();
+		if (key == 'branchId') return;
+		if (key == 'role') return;
+
+		const formattedKey = key
+			.replace(/([A-Z])/g, ' $1')
+			.replace(/^./, str => str.toUpperCase());
+
+		if (input.hasAttribute("required") && !value) {
+			const errorMessageElement = document.getElementById('errorMessage');
+			errorMessageElement.style.display = "block";
+			errorMessageElement.innerHTML = `${formattedKey} is empty. Please provide valid details.`;
+			console.error(`The field ${formattedKey} is required but is empty.`);
+			errorCount++;
+			return;
+		}
+		inputData[key] = value;
+	});
+
+	if (errorCount == 0) {
+		console.log("Collected Input Data:", inputData);
+		createNewUser(inputData);
+	}
+}
+
+const createNewUser = async data => {
+	console.log("Sending data to server:", data);
+	const userDetailsResponse = await fetch('http://localhost:8080/Bank_Application/api/User', {
+		method: 'POST',
+		headers: {
+			'Content-Type': 'application/json',
+			'Authorization': `Bearer ${token}`
+		},
+		body: JSON.stringify(data)
+	});
+	const result = await userDetailsResponse.json();
+	console.log(result);
+	const successPop = document.getElementById('successPopup');
+	if (result.message == 'success') {
+		successDisplay(successPop);
+	} else {
+		const errorMessageElement = document.getElementById('errorMessage');
+		errorMessageElement.style.display = "block";
+		errorMessageElement.innerHTML = result.message;
+	}
+	setTimeout(() => {
+		successPop.style.display = 'none';
+	}, 3000);
+};
 
 document.querySelectorAll('.accNumberInput').forEach(item => {
 	item.addEventListener('click', function(event) {
@@ -388,8 +530,6 @@ const toggleSaveAll = () => {
 			inputField.style.border = "0";
 		}
 	});
-	console.log(updatedValues);
-	console.log(isValid, borderSet);
 	if (!isValid && borderSet > 0 && updatedValues.size == 0) return;
 	document.getElementById('saveButton').style.display = 'none';
 	document.getElementById('editButton').style.display = 'block';

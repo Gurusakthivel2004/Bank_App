@@ -1,6 +1,8 @@
-package dblayer.model;
+package model;
 
 import java.math.BigDecimal;
+import Enum.Constants.TransactionStatus;
+import Enum.Constants.TransactionType;
 
 public class Transaction extends MarkedClass {
 
@@ -8,8 +10,8 @@ public class Transaction extends MarkedClass {
 	private Long customerId;
 	private Long accountNumber;
 	private Long transactionAccountNumber;
-	private String transactionType;
-	private String status;
+	private TransactionType transactionType;
+	private TransactionStatus transactionStatus;
 	private String remarks;
 	private BigDecimal amount;
 	private BigDecimal closingBalance;
@@ -55,19 +57,47 @@ public class Transaction extends MarkedClass {
 	}
 
 	public String getTransactionType() {
-		return transactionType;
+		return transactionType != null ? transactionType.name() : null;
 	}
 
-	public void setTransactionType(String transactionType) {
+	public Transaction setTransactionType(String transactionType) {
+		if (transactionType != null && !transactionType.trim().isEmpty()) {
+			this.transactionType = TransactionType.valueOf(transactionType.toUpperCase());
+		} else {
+			this.transactionType = null;
+		}
+		return this;
+	}
+
+	public TransactionType getTransactionTypeEnum() {
+		return this.transactionType;
+	}
+
+	public Transaction setTransactionTypeEnum(TransactionType transactionType) {
 		this.transactionType = transactionType;
+		return this;
 	}
 
-	public String getStatus() {
-		return status;
+	public String getTransactionStatus() {
+		return transactionStatus != null ? transactionStatus.name() : null;
 	}
 
-	public void setStatus(String status) {
-		this.status = status;
+	public Transaction setTransactionStatus(String transactionStatus) {
+		if (transactionStatus != null && !transactionStatus.trim().isEmpty()) {
+			this.transactionStatus = TransactionStatus.valueOf(transactionStatus.toUpperCase());
+		} else {
+			this.transactionStatus = null;
+		}
+		return this;
+	}
+
+	public TransactionStatus getTransactionStatusEnum() {
+		return this.transactionStatus;
+	}
+
+	public Transaction setTransactionStatusEnum(TransactionStatus transactionStatus) {
+		this.transactionStatus = transactionStatus;
+		return this;
 	}
 
 	public String getRemarks() {
@@ -138,7 +168,7 @@ public class Transaction extends MarkedClass {
 	public String toString() {
 		return "Transaction [id=" + id + ", customerId=" + customerId + ", accountNumber=" + accountNumber
 				+ ", transactionAccountNumber=" + transactionAccountNumber + ", transactionType=" + transactionType
-				+ ", status=" + status + ", remarks=" + remarks + ", amount=" + amount + ", closingBalance="
+				+ ", status=" + transactionStatus + ", remarks=" + remarks + ", amount=" + amount + ", closingBalance="
 				+ closingBalance + ", ifsc=" + ifsc + ", transactionIfsc=" + transactionIfsc + ", bankName=" + bankName
 				+ ", transactionTime=" + transactionTime + ", performedBy=" + performedBy + "]";
 	}

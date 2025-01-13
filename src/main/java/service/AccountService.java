@@ -3,16 +3,22 @@ package service;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+
+import java.math.BigDecimal;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+
 import com.fasterxml.jackson.core.type.TypeReference;
-import dblayer.dao.AccountDAO;
-import dblayer.model.Account;
-import dblayer.model.ColumnCriteria;
+
+import dao.AccountDAO;
+
+import model.Account;
+import model.ColumnCriteria;
+
 import util.CustomException;
 import util.Helper;
 
@@ -59,9 +65,8 @@ public class AccountService {
 	public void updateAccount(Long accountNumber, String key, Object value) throws CustomException {
 		logger.info("Attempting to update account details.");
 		try {
-			ColumnCriteria columnCriteria = new ColumnCriteria();
-			columnCriteria.setFields(Arrays.asList(key, "modifiedAt"));
-			columnCriteria.setValues(Arrays.asList(value, System.currentTimeMillis()));
+			ColumnCriteria columnCriteria = new ColumnCriteria().setFields(Arrays.asList(key, "modifiedAt"))
+					.setValues(Arrays.asList(value, System.currentTimeMillis()));
 
 			accountDAO.updateAccount(columnCriteria, "account_number", accountNumber);
 			cacheService.delete("Accounts");

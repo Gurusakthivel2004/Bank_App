@@ -153,5 +153,30 @@ nav {
 	animation: slideIn 0.3s ease;
 }
 
+.create-btn {
+	width: 40px;
+	height: 40px;
+	border-radius: 50%;
+	background: linear-gradient(135deg, #6c63ff, #4a47a3);
+	box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	cursor: pointer;
+	transition: transform 0.2s, box-shadow 0.2s;
+}
 
+.create-btn img {
+	width: 24px;
+	height: 24px;
+}
 
+.create-btn:hover {
+	transform: scale(1.1);
+	box-shadow: 0 6px 8px rgba(0, 0, 0, 0.3);
+}
+/* Container for the dropdown */
+.dropdown-container {
+	position: relative;
+	display: inline-block;
+}

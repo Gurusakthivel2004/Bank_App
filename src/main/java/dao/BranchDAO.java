@@ -1,13 +1,13 @@
-package dblayer.dao;
+package dao;
 
 import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import dblayer.model.Branch;
-import dblayer.model.ColumnCriteria;
-import dblayer.model.Criteria;
+import model.Branch;
+import model.ColumnCriteria;
+import model.Criteria;
 import util.CustomException;
 import util.Helper;
 import util.SQLHelper;
@@ -20,9 +20,8 @@ public class BranchDAO {
 		logger.info("Starting branch creation...");
 
 		Helper.checkNullValues(branch);
-		branch.setCreatedAt(System.currentTimeMillis());
-		branch.setPerformedBy((Long) Helper.getThreadLocalValue().get("id"));
-		branch.setIfscCode("temp");
+		branch.setCreatedAt(System.currentTimeMillis()).setPerformedBy((Long) Helper.getThreadLocalValue().get("id"))
+				.setIfscCode("temp");
 
 		logger.info("Inserting branch record into database...");
 		Long branchId;
@@ -36,8 +35,9 @@ public class BranchDAO {
 		logger.info("Branch created successfully with ID: " + branchId);
 
 		String ifscCode = "HORI000" + String.format("%04d", branchId);
-		ColumnCriteria columnCriteria = Helper.createColumnCriteria(Arrays.asList("ifscCode"), Arrays.asList(ifscCode));
-		Criteria criteria = Helper.createCriteria(Branch.class, "id", "EQUAL_TO", branchId);
+		ColumnCriteria columnCriteria = DAOHelper.createColumnCriteria(Arrays.asList("ifscCode"),
+				Arrays.asList(ifscCode));
+		Criteria criteria = DAOHelper.createCriteria(Branch.class, "id", "EQUAL_TO", branchId);
 
 		try {
 			logger.info("Updating IFSC code for branch with ID: " + branchId);
@@ -51,15 +51,13 @@ public class BranchDAO {
 
 	public List<Object> getBranch(Long branchId, boolean notExact) throws CustomException {
 		logger.info("Fetching branch details for ID: " + branchId);
-		Criteria criteria = Helper.createCriteria(Branch.class, "id", "EQUAL_TO", branchId);
-		criteria.setSelectColumn(Arrays.asList("*"));
+		Criteria criteria = DAOHelper.createCriteria(Branch.class, "id", "EQUAL_TO", branchId)
+				.setSelectColumn(Arrays.asList("*"));
 		try {
 			if (notExact) {
-				criteria.setColumn(Arrays.asList("id", "id"));
-				criteria.setOperator(Arrays.asList("EQUAL_TO", "LIKE"));
-				criteria.setValue(Arrays.asList(branchId, "%" + branchId + "%"));
-				criteria.setLimitValue(1);
-				criteria.setLogicalOperator("OR");
+				criteria.setColumn(Arrays.asList("id", "id")).setOperator(Arrays.asList("EQUAL_TO", "LIKE"))
+						.setValue(Arrays.asList(branchId, "%" + branchId + "%")).setLimitValue(1)
+						.setLogicalOperator("OR");
 			}
 			List<Object> branches = SQLHelper.get(criteria);
 			logger.info("Branch details fetched successfully for ID: " + branchId);
@@ -72,7 +70,7 @@ public class BranchDAO {
 
 	public <T> void updateBranch(ColumnCriteria columnCriterias, Long branchId) throws CustomException {
 		logger.info("Updating branch details for ID: " + branchId);
-		Criteria criteria = Helper.createCriteria(Branch.class, "id", "EQUAL_TO", branchId);
+		Criteria criteria = DAOHelper.createCriteria(Branch.class, "id", "EQUAL_TO", branchId);
 		try {
 			SQLHelper.update(columnCriterias, criteria);
 			logger.info("Branch details updated successfully for ID: " + branchId);

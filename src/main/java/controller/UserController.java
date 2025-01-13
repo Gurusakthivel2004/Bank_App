@@ -58,7 +58,7 @@ public class UserController {
 			}
 
 			userService.createUser(userMap);
-			Helper.sendSuccessResponse(response, "success");
+			Helper.sendSuccessResponse(response, "User created successfully.");
 		} catch (CustomException exception) {
 			Helper.sendErrorResponse(response, exception.getMessage());
 		}
@@ -70,9 +70,6 @@ public class UserController {
 			JsonObject jsonObject = Helper.parseRequestBody(request);
 			Gson gson = new Gson();
 			Map<String, Object> userMap = gson.fromJson(jsonObject, Map.class);
-
-			System.out.println(userMap.keySet());
-			System.out.println(userMap.values());
 
 			userService.updateUserDetails(userMap);
 			Helper.sendSuccessResponse(response, "success");
