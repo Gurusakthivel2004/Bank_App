@@ -12,6 +12,7 @@ import java.util.Map;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import Enum.Constants.HttpStatusCodes;
 import model.Account;
 import model.Transaction;
 
@@ -45,7 +46,8 @@ public class FacadeHandler {
 			List<Transaction> transactions = new ArrayList<>();
 			for (int i = 0; i < accounts.size(); i++) {
 				Account account = accounts.get(i);
-				Map<String, Object> txMap = getTransactionMap(id, account.getAccountNumber(), 5l, 0l, 0l, -1l);
+				Map<String, Object> txMap = new HashMap<>();
+				getTransactionMap(txMap, id, account.getAccountNumber(), 5l, 0l, 0l, -1l);
 				List<Transaction> accountTransactions = (List<Transaction>) transactionService
 						.getTransactionDetails(txMap).get("transactions");
 				transactions.addAll(accountTransactions);
@@ -56,12 +58,10 @@ public class FacadeHandler {
 
 			// Fetch user details based on role
 			String role = (String) Helper.getThreadLocalValue().get("role");
-			String key = "Customer".equals(role) ? "customerDetail" : "staff";
-			logger.debug("Fetching {} details for user ID: {}", key, id);
 			Map<String, Object> userMap = new HashMap<>();
 			userMap.put("role", role);
 			userMap.put("userId", id);
-			map.put(key, userService.getUserDetails(userMap, false).get(key));
+			map.put("userDetail", userService.getUserDetails(userMap, false).get("userDetail"));
 
 			// Fetch branch details for the accounts
 			logger.debug("Fetching branch details for user ID: {}", id);
@@ -85,7 +85,8 @@ public class FacadeHandler {
 		} catch (Exception e) {
 			logger.error("Unexpected error occurred while fetching dashboard details for user ID: {}: {}", id,
 					e.getMessage(), e);
-			throw new CustomException("An unexpected error occurred while fetching details.");
+			throw new CustomException("An unexpected error occurred while fetching details.",
+					HttpStatusCodes.INTERNAL_SERVER_ERROR);
 		}
 
 		return map;
@@ -109,12 +110,12 @@ public class FacadeHandler {
 			long startMillis = Helper.getStartOfMonthMillis(adjustedYear, adjustedMonth);
 			long endMillis = Helper.getEndOfMonthMillis(adjustedYear, adjustedMonth);
 
-			logger.debug("Fetching transaction details for month: {}-{} (Start: {}, End: {})", adjustedYear,
+			logger.info("Fetching transaction details for month: {}-{} (Start: {}, End: {})", adjustedYear,
 					adjustedMonth, startMillis, endMillis);
-			Map<String, Object> txMap = getTransactionMap(customerId, 0L, 0L, startMillis, endMillis, -1L);
+			Map<String, Object> txMap = new HashMap<>();
+			getTransactionMap(txMap, customerId, 0l, 0L, startMillis, endMillis, -1L);
 			List<Transaction> transactions = (List<Transaction>) transactionService.getTransactionDetails(txMap)
 					.get("transactions");
-
 			Map<String, BigDecimal> monthlyFinance = new HashMap<>();
 			for (Transaction tx : transactions) {
 				String type = tx.getTransactionType();
@@ -126,9 +127,8 @@ public class FacadeHandler {
 		logger.info("Monthly finance details added successfully for customer ID: {}", customerId);
 	}
 
-	private Map<String, Object> getTransactionMap(Long id, Long accountNumber, Long limit, Long from, Long to,
-			Long offset) {
-		Map<String, Object> txMap = new HashMap<>();
+	private void getTransactionMap(Map<String, Object> txMap, Long id, Long accountNumber, Long limit, Long from,
+			Long to, Long offset) {
 
 		if (id != null && id > 0) {
 			txMap.put("customerId", id);
@@ -148,7 +148,6 @@ public class FacadeHandler {
 		if (offset != null && offset > 0) {
 			txMap.put("offset", offset);
 		}
-		return txMap;
 	}
 
 }

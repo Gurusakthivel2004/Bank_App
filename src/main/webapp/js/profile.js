@@ -69,6 +69,7 @@ const toggleModal = modalId => {
 		document.getElementById('editButton').style.display = 'block';
 		document.getElementById('newUserButton').style.display = 'none';
 		document.getElementById('dropdown').style.display = 'none';
+		document.getElementById('errorMessage').style.display = "none";
 		document.querySelectorAll("input").forEach(input => {
 			input.disabled = false;
 			input.style.border = "0px solid ";

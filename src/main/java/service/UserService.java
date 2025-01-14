@@ -13,6 +13,7 @@ import org.apache.logging.log4j.Logger;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 
+import Enum.Constants.HttpStatusCodes;
 import dao.UserDAO;
 
 import model.ColumnCriteria;
@@ -38,9 +39,9 @@ public class UserService {
 			Map<String, Object> users = checkPassword(username, password);
 			if (users == null || users.isEmpty() || users.size() > 1) {
 				logger.warn("User not found or invalid credentials for username: {}", username);
-				throw new CustomException("Invalid username or password.");
+				throw new CustomException("Invalid username or password.", HttpStatusCodes.UNAUTHORIZED);
 			}
-			User user = (User) ((List<Object>) users.get("users")).get(0);
+			User user = (User) ((List<Object>) users.get("userDetail")).get(0);
 			Map<String, Object> userDetails = Stream
 					.of(new Object[][] { { "id", user.getId() }, { "fullname", user.getFullname() },
 							{ "username", user.getUsername() }, { "status", user.getStatus() },
@@ -49,11 +50,14 @@ public class UserService {
 
 			// Add additional staff details for employee role
 			if (!"Customer".equals(user.getRole())) {
-				logger.debug("Fetching additional staff details for employee user.");
-				Map<String, Object> staffDetails = userDAO.getStaff(user.getId());
+				logger.info("Fetching additional staff details for employee user.");
+				Map<String, Object> userMap = new HashMap<>();
+				userMap.put("userId", user.getId());
+				userMap.put("role", user.getRole());
+				Map<String, Object> staffDetails = userDAO.getUserDetails(userMap, Staff.class, false);
 				if (!staffDetails.isEmpty()) {
 					userDetails.put("branchId",
-							((Staff) ((List<Object>) staffDetails.get("staff")).get(0)).getBranchId());
+							((Staff) ((List<Object>) staffDetails.get("userDetail")).get(0)).getBranchId());
 				} else {
 					logger.warn("No staff details found for user with ID: {}", user.getId());
 				}
@@ -64,8 +68,9 @@ public class UserService {
 			logger.error("User login failed for username: {}. Error: {}", username, e.getMessage());
 			throw e;
 		} catch (Exception e) {
-			logger.error("Unexpected error occurred during login.}", e);
-			throw new CustomException("An unexpected error occurred. Please try again later.", e);
+			logger.error("Unexpected error occurred during login.", e);
+			throw new CustomException("An unexpected error occurred. Please try again later.", e,
+					HttpStatusCodes.INTERNAL_SERVER_ERROR);
 		}
 	}
 
@@ -88,16 +93,18 @@ public class UserService {
 			}
 			Map<String, Object> userMap = new HashMap<>();
 			userMap.put("username", username);
-			users = userDAO.getUser(userMap, false);
+			users = userDAO.getUserDetails(userMap, User.class, false);
 			cachedUserDetails.put(username, users);
 			cacheService.save(key, cachedUserDetails);
 			logger.debug("User details cached for username: {}", username);
 			logger.debug("Checking password match.");
-			User user = (User) ((List<Object>) users.get("users")).get(0);
+			User user = (User) ((List<Object>) users.get("userDetail")).get(0);
+
 			if (!Helper.checkPassword(password, user.getPassword())) {
 				logger.warn("Password mismatch for user: {}", username);
-				throw new CustomException("Password does not match");
+				throw new CustomException("Password does not match", HttpStatusCodes.UNAUTHORIZED);
 			}
+
 			logger.info("Password validation successful for user: {}", username);
 			return users;
 		} catch (CustomException e) {
@@ -120,10 +127,10 @@ public class UserService {
 			userMap.put("userId", Helper.getThreadLocalValue().get("id"));
 			if ("Customer".equals(role)) {
 				logger.debug("Updating password for customer.");
-				userDAO.updateCustomer(columnCriteria, userMap);
+				userDAO.updateUser(columnCriteria, userMap, CustomerDetail.class);
 			} else {
 				logger.debug("Updating password for staff.");
-				userDAO.updateStaff(columnCriteria, userMap);
+				userDAO.updateUser(columnCriteria, userMap, Staff.class);
 			}
 			cacheService.delete("userDetails");
 			logger.info("Password updated successfully.");
@@ -134,17 +141,28 @@ public class UserService {
 		}
 	}
 
+	@SuppressWarnings("unchecked")
 	public <T extends User> Map<String, Object> getUserDetails(Map<String, Object> userMap, boolean notExact)
 			throws CustomException {
 		logger.info("Fetching user details.");
 		try {
-			return userDAO.getUser(userMap, notExact);
+			Class<T> clazz = (Class<T>) User.class;
+			if (userMap.containsKey("userId") && userMap.containsKey("role")) {
+				String role = (String) userMap.get("role");
+				if (role.equals("Customer")) {
+					clazz = (Class<T>) CustomerDetail.class;
+				} else {
+					clazz = (Class<T>) Staff.class;
+				}
+			}
+			return userDAO.getUserDetails(userMap, clazz, notExact);
 		} catch (CustomException e) {
 			logger.error("Error fetching user details. Error: {}", e.getMessage());
 			throw e;
 		} catch (Exception e) {
 			logger.error("Unexpected error occurred while fetching user details.", e);
-			throw new CustomException("An unexpected error occurred while fetching user details.", e);
+			throw new CustomException("An unexpected error occurred while fetching user details.", e,
+					HttpStatusCodes.INTERNAL_SERVER_ERROR);
 		}
 	}
 
@@ -156,11 +174,11 @@ public class UserService {
 			if ("Customer".equals(role)) {
 				logger.debug("Creating customer user.");
 				CustomerDetail customerDetail = Helper.createPojoFromMap(userMap, CustomerDetail.class);
-				userDAO.createCustomer(customerDetail);
+				userDAO.createUser(customerDetail, "Customer");
 			} else {
 				logger.debug("Creating staff user.");
 				Staff staff = Helper.createPojoFromMap(userMap, Staff.class);
-				userDAO.createStaff(staff);
+				userDAO.createUser(staff, "Staff");
 			}
 			logger.info("User created successfully.");
 		} catch (CustomException e) {
@@ -174,7 +192,7 @@ public class UserService {
 		logger.info("Attempting to update user details.");
 		try {
 			if (!userMap.containsKey("updatedValues")) {
-				throw new CustomException("Provide the values to update");
+				throw new CustomException("Provide the values to update", HttpStatusCodes.BAD_REQUEST);
 			}
 			Map<String, Object> updatedValues = (Map<String, Object>) userMap.get("updatedValues");
 			Helper.convertMapValuesToLong(updatedValues);
@@ -194,13 +212,13 @@ public class UserService {
 			userMap.remove("updatedValues");
 
 			ColumnCriteria columnCriteria = new ColumnCriteria().setFields(fields).setValues(values);
-
+			userDAO.updateUser(columnCriteria, userMap, CustomerDetail.class);
 			if ("Customer".equals(role)) {
 				logger.debug("Updating details for customer.");
-				userDAO.updateCustomer(columnCriteria, userMap);
+				userDAO.updateUser(columnCriteria, userMap, CustomerDetail.class);
 			} else {
 				logger.debug("Updating details for staff.");
-				userDAO.updateStaff(columnCriteria, userMap);
+				userDAO.updateUser(columnCriteria, userMap, Staff.class);
 			}
 			cacheService.delete("userDetails");
 			logger.info("User details updated successfully.");

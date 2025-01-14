@@ -181,8 +181,7 @@ const accountClick = async account => {
 	});
 	const result = await userDetailsResponse.json();
 	console.log(result);
-	const resultKey = userRole == "Customer" ? "customerDetail" : "staff";
-	const userResult = result[resultKey];
+	const userResult = result['userDetail'];
 	document.getElementById('accountbranchId').value = account.branchId;
 	document.getElementById('accountfullname').innerText = userResult[0].fullname;
 	document.getElementById('accountphone').innerText = userResult[0].phone;
@@ -428,7 +427,7 @@ function fetchUserIdDetails(query) {
 				return;
 			}
 			validUserIds = [];
-			data["users"].forEach((user, index) => {
+			data["userDetail"].forEach((user, index) => {
 				if (role == "Employee" && user.role == "Manager") return;
 				if (localStorage.getItem('email') == user.email) return;
 				const option = document.createElement('div');

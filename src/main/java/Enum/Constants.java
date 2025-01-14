@@ -233,7 +233,7 @@ public class Constants {
 
 		@Override
 		public String toString() {
-			return name().toLowerCase();
+			return name();
 		}
 	}
 
@@ -242,7 +242,7 @@ public class Constants {
 
 		@Override
 		public String toString() {
-			return name().toLowerCase();
+			return name();
 		}
 	}
 
@@ -251,7 +251,7 @@ public class Constants {
 
 		@Override
 		public String toString() {
-			return name().toLowerCase();
+			return name();
 		}
 	}
 
@@ -260,7 +260,7 @@ public class Constants {
 
 		@Override
 		public String toString() {
-			return name().toLowerCase();
+			return name();
 		}
 	}
 
@@ -269,7 +269,7 @@ public class Constants {
 
 		@Override
 		public String toString() {
-			return name().toLowerCase();
+			return name();
 		}
 	}
 

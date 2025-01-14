@@ -2,6 +2,8 @@ package dao;
 
 import java.math.BigInteger;
 
+import java.sql.SQLException;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -11,6 +13,8 @@ import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+
+import Enum.Constants.HttpStatusCodes;
 
 import model.Account;
 import model.Criteria;
@@ -31,9 +35,9 @@ public class AccountDAO {
 
 			SQLHelper.update(columnCriteria, criteria);
 			logger.info("Account updated successfully.");
-		} catch (Exception e) {
+		} catch (SQLException e) {
 			logger.error("Error updating account.", e);
-			throw new CustomException("Failed to update account");
+			throw new CustomException("Failed to update account", HttpStatusCodes.INTERNAL_SERVER_ERROR);
 		}
 	}
 
@@ -52,9 +56,9 @@ public class AccountDAO {
 			updateAccount(columnCriteria, "account_id", accountId);
 
 			logger.info("Account suspended successfully.");
-		} catch (Exception e) {
+		} catch (CustomException e) {
 			logger.error("Error removing account.", e);
-			throw new CustomException("Failed to remove account.");
+			throw new CustomException("Failed to remove account.", HttpStatusCodes.INTERNAL_SERVER_ERROR);
 		}
 	}
 
@@ -83,21 +87,21 @@ public class AccountDAO {
 			logger.info("Account created successfully: {}", account);
 		} catch (Exception e) {
 			logger.error("Error creating account: {}", account, e);
-			throw new CustomException("Failed to create account");
+			throw new CustomException("Failed to create account", HttpStatusCodes.INTERNAL_SERVER_ERROR);
 		}
 	}
 
 	public Map<String, Object> getAccounts(Map<String, Object> accountMap) throws CustomException {
 		logger.info("Fetching accounts with parameters: {}", accountMap);
+		Criteria criteria = DAOHelper.initializeCriteria(Account.class);
+		criteria = applyBranchFilter(criteria, accountMap);
+		applyAccountFilters(criteria, accountMap);
+		applyPagination(criteria, accountMap);
+
+		Map<String, Object> result = new HashMap<>();
+
+		Long offset = (Long) accountMap.getOrDefault("offset", -1L);
 		try {
-			Criteria criteria = DAOHelper.initializeCriteria(Account.class);
-			criteria = applyBranchFilter(criteria, accountMap);
-			applyAccountFilters(criteria, accountMap);
-			applyPagination(criteria, accountMap);
-
-			Map<String, Object> result = new HashMap<>();
-
-			Long offset = (Long) accountMap.getOrDefault("offset", -1L);
 			if (offset == 0) {
 				criteria.setOffsetValue(-1L).setAggregateFunction("COUNT").setAggregateOperator("*");
 				result.put("count", SQLHelper.get(criteria).get(0));
@@ -107,10 +111,11 @@ public class AccountDAO {
 				result.put("accounts", SQLHelper.get(criteria));
 			}
 			return result;
-		} catch (Exception e) {
-			logger.error("Error fetching accounts.", e);
-			throw new CustomException("Failed to fetch accounts");
+		} catch (SQLException e) {
+			logger.error("Error while fetching account details: ", e);
+			throw new CustomException("Failed to fetch account details: ", HttpStatusCodes.INTERNAL_SERVER_ERROR);
 		}
+
 	}
 
 	private void applyAccountFilters(Criteria criteria, Map<String, Object> accountMap) {
@@ -156,7 +161,12 @@ public class AccountDAO {
 		DAOHelper.addJoinCondition(staffJoinCriteria, true, "account.branch_id", "EQUAL_TO", "branch.id");
 		applyAccountFilters(staffJoinCriteria, accountMap);
 
-		return SQLHelper.get(staffJoinCriteria);
+		try {
+			return SQLHelper.get(staffJoinCriteria);
+		} catch (SQLException e) {
+			logger.error("Error while fetching account details: ", e);
+			throw new CustomException("Failed to fetch account details: ", HttpStatusCodes.INTERNAL_SERVER_ERROR);
+		}
 	}
 
 }

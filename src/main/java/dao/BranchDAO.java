@@ -1,10 +1,13 @@
 package dao;
 
 import java.math.BigInteger;
+import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
+import Enum.Constants.HttpStatusCodes;
 import model.Branch;
 import model.ColumnCriteria;
 import model.Criteria;
@@ -29,7 +32,7 @@ public class BranchDAO {
 			branchId = ((BigInteger) SQLHelper.insert(branch)).longValue();
 		} catch (Exception e) {
 			logger.log(Level.SEVERE, "Error while inserting branch record", e);
-			throw new CustomException("Failed to create branch", e);
+			throw new CustomException("Failed to create branch", HttpStatusCodes.INTERNAL_SERVER_ERROR);
 		}
 
 		logger.info("Branch created successfully with ID: " + branchId);
@@ -43,9 +46,10 @@ public class BranchDAO {
 			logger.info("Updating IFSC code for branch with ID: " + branchId);
 			SQLHelper.update(columnCriteria, criteria);
 			logger.info("IFSC code updated successfully: " + ifscCode);
-		} catch (Exception e) {
+		} catch (SQLException e) {
 			logger.log(Level.SEVERE, "Error while updating IFSC code", e);
-			throw new CustomException("Failed to update IFSC code for branch ID: " + branchId, e);
+			throw new CustomException("Failed to update IFSC code for branch ID: " + branchId,
+					HttpStatusCodes.INTERNAL_SERVER_ERROR);
 		}
 	}
 
@@ -60,11 +64,15 @@ public class BranchDAO {
 						.setLogicalOperator("OR");
 			}
 			List<Object> branches = SQLHelper.get(criteria);
+			if (branches.isEmpty()) {
+				throw new CustomException("No result found for the id " + branchId, HttpStatusCodes.BAD_REQUEST);
+			}
 			logger.info("Branch details fetched successfully for ID: " + branchId);
 			return branches;
-		} catch (Exception e) {
+		} catch (SQLException e) {
 			logger.log(Level.SEVERE, "Error while fetching branch details for ID: " + branchId, e);
-			throw new CustomException("Failed to fetch branch details for ID: " + branchId, e);
+			throw new CustomException("Failed to fetch branch details for ID: " + branchId,
+					HttpStatusCodes.INTERNAL_SERVER_ERROR);
 		}
 	}
 
@@ -76,7 +84,8 @@ public class BranchDAO {
 			logger.info("Branch details updated successfully for ID: " + branchId);
 		} catch (Exception e) {
 			logger.log(Level.SEVERE, "Error while updating branch details for ID: " + branchId, e);
-			throw new CustomException("Failed to update branch details for ID: " + branchId, e);
+			throw new CustomException("Failed to update branch details for ID: " + branchId,
+					HttpStatusCodes.INTERNAL_SERVER_ERROR);
 		}
 	}
 }

@@ -7,6 +7,7 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import Enum.Constants.HttpStatusCodes;
 import model.ColumnCriteria;
 import model.Criteria;
 import model.MarkedClass;
@@ -42,7 +43,7 @@ public class DAOHelper {
 			throws CustomException {
 		List<Object> inValues = condition.getValues();
 		if (inValues == null || inValues.isEmpty()) {
-			throw new CustomException("IN clause requires at least one value.");
+			throw new CustomException("IN clause requires at least one value.", HttpStatusCodes.BAD_REQUEST);
 		}
 
 		sql.append("IN (");
@@ -61,7 +62,7 @@ public class DAOHelper {
 			throws CustomException {
 		List<Object> betweenValues = condition.getValues();
 		if (betweenValues == null || betweenValues.size() != 2) {
-			throw new CustomException("BETWEEN operator requires exactly two values.");
+			throw new CustomException("BETWEEN operator requires exactly two values.", HttpStatusCodes.BAD_REQUEST);
 		}
 
 		sql.append("BETWEEN ? AND ?");
@@ -97,31 +98,22 @@ public class DAOHelper {
 	}
 
 	public static <T> Criteria initializeCriteria(Class<T> clazz) {
-		Criteria criteria = new Criteria();
-		criteria.setClazz(clazz);
-		criteria.setSelectColumn(new ArrayList<>(Arrays.asList("*")));
+		Criteria criteria = new Criteria().setClazz(clazz).setSelectColumn(new ArrayList<>(Arrays.asList("*")));
 		return criteria;
 	}
 
 	public static Criteria buildCriteria(Class<? extends MarkedClass> clazz, List<String> columns,
 			List<String> operators, List<Object> values) {
-		Criteria criteria = new Criteria();
-		criteria.setClazz(clazz);
-		criteria.setColumn(columns);
-		criteria.setOperator(operators);
-		criteria.setValue(values);
+		Criteria criteria = new Criteria().setClazz(clazz).setColumn(columns).setOperator(operators).setValue(values);
 		return criteria;
 	}
 
 	public static Criteria buildJoinCriteria(Class<? extends MarkedClass> clazz, List<String> joinTable,
 			List<String> joinColumn, List<String> joinOperator, List<Object> joinValue, List<String> columns,
 			List<String> operators, List<Object> values) {
-		Criteria criteria = buildCriteria(clazz, columns, operators, values);
-		criteria.setJoinTable(joinTable);
-		criteria.setJoinColumn(joinColumn);
-		criteria.setJoinOperator(joinOperator);
-		criteria.setJoinValue(joinValue);
-		criteria.setSelectColumn(Arrays.asList("*"));
+		Criteria criteria = buildCriteria(clazz, columns, operators, values).setJoinTable(joinTable)
+				.setJoinColumn(joinColumn).setJoinOperator(joinOperator).setJoinValue(joinValue)
+				.setSelectColumn(Arrays.asList("*"));
 		return criteria;
 	}
 
@@ -147,7 +139,7 @@ public class DAOHelper {
 	}
 
 	public static void applyAccountNumberFilter(Criteria criteria, Map<String, Object> map) {
-		Long accountNumber = (Long) map.get("accountNumber");
+		Long accountNumber = (Long) map.getOrDefault("accountNumber", -1l);
 		if (accountNumber != null && accountNumber > 0) {
 			if (accountNumber <= 9999) {
 				addCondition(criteria, true, "RIGHT(account_number, 4)", "EQUAL_TO", accountNumber);
@@ -163,7 +155,7 @@ public class DAOHelper {
 		Matcher matcher = pattern.matcher(errorMessage);
 		if (matcher.find()) {
 			String value = matcher.group(1);
-			return String.format("The value '%s' already exists. Please use a different value.", value);
+			return String.format("The value '%s' already exists.", value);
 		}
 		return "Duplicate entry error occurred.";
 	}

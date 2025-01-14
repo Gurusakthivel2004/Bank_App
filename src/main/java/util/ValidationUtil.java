@@ -11,6 +11,7 @@ import java.util.Map;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import Enum.Constants.HttpStatusCodes;
 import model.MarkedClass;
 
 public class ValidationUtil {
@@ -92,8 +93,9 @@ public class ValidationUtil {
 
 	public static <T> void validateModel(T instance, Class<? extends MarkedClass> clazz) throws CustomException {
 		if (instance == null) {
-			throw new CustomException("instance cannot be null.");
+			throw new CustomException("Instance cannot be null.", HttpStatusCodes.BAD_REQUEST);
 		}
+
 		StringBuilder errorMessages = new StringBuilder();
 		for (Field field : clazz.getDeclaredFields()) {
 			field.setAccessible(true);
@@ -104,16 +106,18 @@ public class ValidationUtil {
 				Object value = field.get(instance);
 				if (value == null || (value instanceof String && ((String) value).trim().isEmpty())
 						|| (value instanceof BigDecimal && ((BigDecimal) value).compareTo(BigDecimal.ZERO) < 0)) {
+
 					String formattedFieldName = Helper.formatFieldName(field.getName());
 					errorMessages.append("Invalid value for field: ").append(formattedFieldName).append("\n");
 				}
-
 			} catch (IllegalAccessException e) {
-				throw new CustomException("Error accessing field: " + field.getName(), e);
+				throw new CustomException("Error accessing field: " + field.getName(), e,
+						HttpStatusCodes.INTERNAL_SERVER_ERROR);
 			}
 		}
+
 		if (errorMessages.length() > 0) {
-			throw new CustomException("Validation failed:\n" + errorMessages.toString());
+			throw new CustomException("Validation failed:\n" + errorMessages.toString(), HttpStatusCodes.BAD_REQUEST);
 		}
 	}
 

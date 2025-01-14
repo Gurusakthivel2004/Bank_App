@@ -43,12 +43,11 @@ import com.google.gson.JsonPrimitive;
 import Enum.Constants.HttpStatusCodes;
 import Enum.Constants.ValidQueryParams;
 
-import service.BranchService;
 import util.ColumnYamlUtil.ClassMapping;
 
 public class Helper {
 
-	private static final Logger logger = LogManager.getLogger(BranchService.class);
+	private static final Logger logger = LogManager.getLogger(Helper.class);
 	private static ThreadLocal<Map<String, Object>> threadLocal = ThreadLocal
 			.withInitial(() -> new HashMap<String, Object>());
 
@@ -74,19 +73,19 @@ public class Helper {
 
 	public static void checkNullValues(Object inputObject) throws CustomException {
 		if (inputObject == null) {
-			throw new CustomException("Error: Null value provided.");
+			throw new CustomException("Error: Null value provided.", HttpStatusCodes.BAD_REQUEST);
 		}
 	}
 
 	public static void checkNull(Object obj, String message) throws CustomException {
 		if (obj == null) {
-			throw new CustomException(message);
+			throw new CustomException(message, HttpStatusCodes.BAD_REQUEST);
 		}
 	}
 
 	public static void checkEmptyString(String str, String message) throws CustomException {
 		if (str == null || str.isEmpty()) {
-			throw new CustomException(message);
+			throw new CustomException(message, HttpStatusCodes.BAD_REQUEST);
 		}
 	}
 
@@ -101,30 +100,31 @@ public class Helper {
 
 	public static void validateQueryConditions(List<?> conditions, String message) throws CustomException {
 		if (conditions == null || conditions.isEmpty()) {
-			throw new CustomException(message);
+			throw new CustomException(message, HttpStatusCodes.BAD_REQUEST);
 		}
 	}
 
 	public static void handleSQLException(SQLException e) throws CustomException {
 		logger.error("SQL error: " + e.getMessage(), e);
-		throw new CustomException("Error occurred. Please try later.");
+		throw new CustomException("We encountered an issue while processing your request. Please try again later.",
+				HttpStatusCodes.BAD_REQUEST);
 	}
 
 	public static void handleGeneralException(Exception e, String message) throws CustomException {
 		logger.error(message + ": " + e.getMessage(), e);
-		throw new CustomException(message);
+		throw new CustomException(message, HttpStatusCodes.INTERNAL_SERVER_ERROR);
 	}
 
 	public static void handleGeneralException(Exception e, String logMessage, String message) throws CustomException {
 		logger.error("{} {}", logMessage, message, e);
-		throw new CustomException(message, e);
+		throw new CustomException(message, e, HttpStatusCodes.INTERNAL_SERVER_ERROR);
 	}
 
 	public static void checkPhoneNumber(String number) throws CustomException {
 		checkNullValues(number);
 		String patternString = "^\\d{10}$";
 		if (!Pattern.matches(patternString, number)) {
-			throw new CustomException("Error: Mobile number must have 10 digits!");
+			throw new CustomException("Error: Mobile number must have 10 digits!", HttpStatusCodes.BAD_REQUEST);
 		}
 	}
 
@@ -132,7 +132,7 @@ public class Helper {
 		checkNullValues(arr1);
 		checkNullValues(arr2);
 		if (arr1.length != arr2.length) {
-			throw new CustomException("Both arrays must have the same length.");
+			throw new CustomException("Both arrays must have the same length.", HttpStatusCodes.BAD_REQUEST);
 		}
 	}
 
@@ -140,7 +140,7 @@ public class Helper {
 		checkNullValues(email);
 		String patternString = "^[a-zA-Z0-9._-]+@[a-zA-Z0-9-]+\\.[a-zA-Z.]{2,18}$";
 		if (!Pattern.matches(patternString, email)) {
-			throw new CustomException("Error: Email is not valid");
+			throw new CustomException("Error: Email is not valid", HttpStatusCodes.BAD_REQUEST);
 		}
 	}
 
@@ -318,15 +318,18 @@ public class Helper {
 			throw e;
 		} catch (IllegalArgumentException e) {
 			logger.error("Invalid argument provided while mapping data to object. Please check the input values.", e);
-			throw new CustomException("Invalid data provided. Please check the values and try again.");
+			throw new CustomException("Invalid data provided. Please check the values and try again.",
+					HttpStatusCodes.BAD_REQUEST);
 		} catch (IllegalAccessException e) {
 			logger.error("Unable to access the field. Ensure the field is accessible and public.", e);
 			throw new CustomException(
-					"An unexpected error occurred while processing your request. Please contact support.");
+					"An unexpected error occurred while processing your request. Please contact support.",
+					HttpStatusCodes.INTERNAL_SERVER_ERROR);
 		} catch (Exception e) {
 			logger.error("Unexpected exception occurred.", e);
 			throw new CustomException(
-					"An unexpected error occurred while processing your request. Please contact support.");
+					"An unexpected error occurred while processing your request. Please contact support.",
+					HttpStatusCodes.INTERNAL_SERVER_ERROR);
 		}
 	}
 

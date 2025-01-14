@@ -11,8 +11,7 @@ document.addEventListener("DOMContentLoaded", async _ => {
 		});
 		const result = await response.json();
 		console.log(result);
-		const userDetails = result.staff[0];
-		console.log(result)
+		const userDetails = result.userDetail[0];
 		try {
 			setValues(userDetails);
 			let modifiedAt = userDetails['modifiedAt'];
@@ -85,13 +84,14 @@ const getDate = (millis, time) => {
 
 const setBranchDetails = (branches, branchId) => {
 	for (let k = 0; k < branches.length; k++) {
+		console.log(branches[k].id == branchId);
 		if (branches[k].id == branchId) {
 			const keys = Object.keys(branches[k]);
 			for (let i = 0; i < keys.length; i++) {
 				const key = keys[i];
-				const branchField = document.getElementById('branch' + key);
-				if (branchField != null) {
-					branchField.innerHTML = branches[k][key];
+				const elements = document.getElementsByClassName('branch' + key);
+				for (let element of elements) {
+					element.innerText = branches[k][key];
 				}
 			}
 			break;

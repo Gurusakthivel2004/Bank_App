@@ -58,7 +58,7 @@ public class UserController {
 			}
 
 			userService.createUser(userMap);
-			Helper.sendSuccessResponse(response, "User created successfully.");
+			Helper.sendSuccessResponse(response, "success");
 		} catch (CustomException exception) {
 			Helper.sendErrorResponse(response, exception.getMessage());
 		}

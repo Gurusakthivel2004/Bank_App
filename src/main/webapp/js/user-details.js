@@ -32,7 +32,7 @@ async function fetchUsers() {
 			});
 
 			const usersResult = await response.json();
-			const users = usersResult["users"];
+			const users = usersResult['userDetail'];
 			console.log(usersResult);
 
 			usersCount = filterOffset == 0 ? usersResult["count"] : usersCount;
@@ -197,8 +197,7 @@ const userClick = async user => {
 	});
 	const result = await userDetailsResponse.json();
 	console.log(result);
-	const resultKey = user.role == "Customer" ? "customerDetail" : "staff";
-	const userResult = result[resultKey][0];
+	const userResult = result['userDetail'][0];
 	if (user.role != "Customer") {
 		document.getElementById('customerDetails').style.display = 'none';
 		document.getElementById('addressDiv').style.display = 'none';
@@ -324,25 +323,33 @@ function handleCreateSelection(selectedValue) {
 
 const newUser = _ => {
 	const userRole = document.getElementById('newUserRole').value, inputData = { role: userRole };
+	console.log(userRole);
 	let inputElements = document.querySelectorAll("#userDetails input, #customerDetails input, #userDetails textarea, #customerDetails textarea"), errorCount = 0;
-	if (userRole == "staff") {
+	if (userRole == "Staff") {
 		inputElements = document.querySelectorAll("#userDetails input");
 	}
+	console.log("valid: ", validBranchIds);
 	inputElements.forEach(input => {
 		const key = input.id;
+		console.log(key);
 		const value = input.value.trim();
-		if (key == 'branchId') return;
-		if (key == 'role') return;
 
 		const formattedKey = key
 			.replace(/([A-Z])/g, ' $1')
 			.replace(/^./, str => str.toUpperCase());
 
+
+		const errorMessageElement = document.getElementById('errorMessage');
 		if (input.hasAttribute("required") && !value) {
-			const errorMessageElement = document.getElementById('errorMessage');
 			errorMessageElement.style.display = "block";
 			errorMessageElement.innerHTML = `${formattedKey} is empty. Please provide valid details.`;
 			console.error(`The field ${formattedKey} is required but is empty.`);
+			errorCount++;
+			return;
+		} else if (key == "branchId" && !validBranchIds.includes(parseInt(value))) {
+			errorMessageElement.style.display = "block";
+			errorMessageElement.innerHTML = `Please provide valid branch Id.`;
+			console.error(`Please provide valid branch Id.`);
 			errorCount++;
 			return;
 		}
@@ -369,7 +376,7 @@ const createNewUser = async data => {
 	console.log(result);
 	const successPop = document.getElementById('successPopup');
 	if (result.message == 'success') {
-		successDisplay(successPop);
+		successDisplayWithMsg(successPop, "User created successfully.");
 	} else {
 		const errorMessageElement = document.getElementById('errorMessage');
 		errorMessageElement.style.display = "block";
@@ -552,6 +559,12 @@ const validatePhone = (phone) => {
 	const phoneRegex = /^\d{10}$/;
 	return phoneRegex.test(phone);
 };
+
+const successDisplayWithMsg = (successPop, msg) => {
+	successPop.textContent = msg;
+	successPop.style.backgroundColor = 'green';
+	successPop.style.display = 'block';
+}
 
 const successDisplay = (successPop) => {
 	successPop.textContent = 'Updated successfully!';

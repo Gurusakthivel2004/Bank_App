@@ -11,6 +11,7 @@ import java.util.List;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import Enum.Constants.HttpStatusCodes;
 import Enum.Constants.TransactionStatus;
 import Enum.Constants.TransactionType;
 import dao.AccountDAO;
@@ -55,7 +56,8 @@ public class TransactionService {
 
 		} catch (Exception e) {
 			logger.error("Error fetching transaction details: {}", e);
-			throw new CustomException("Error fetching transaction details: " + e.getMessage());
+			throw new CustomException("Error fetching transaction details: " + e.getMessage(),
+					HttpStatusCodes.INTERNAL_SERVER_ERROR);
 		}
 	}
 
@@ -66,10 +68,11 @@ public class TransactionService {
 		List<Account> accounts = (List<Account>) new AccountDAO().getAccounts(accountMap).get("accounts");
 		if (accounts == null || accounts.isEmpty()) {
 			logger.error("No Accounts found for user {}", customerId);
-			throw new CustomException("No accounts found for user " + customerId);
+			throw new CustomException("No accounts found for user " + customerId, HttpStatusCodes.NOT_FOUND);
 		}
 		return accounts.stream().filter(Account::getIsPrimary).findFirst()
-				.orElseThrow(() -> new CustomException("No primary account found for user " + customerId));
+				.orElseThrow(() -> new CustomException("No primary account found for user " + customerId,
+						HttpStatusCodes.NOT_FOUND));
 	}
 
 	@SuppressWarnings("unchecked")
@@ -91,15 +94,16 @@ public class TransactionService {
 			Account account = accounts.get(0);
 			if (account.getBranchId() != branchId) {
 				logger.warn("Branch ID mismatch for account number: {}", accountNumber);
-				throw new CustomException("Invalid account");
+				throw new CustomException("Invalid account", HttpStatusCodes.BAD_REQUEST);
 			}
 			accountMap.put("accountNumber", transactionAccountNumber);
 			accounts = (List<Account>) accountDAO.getAccountDetails(accountMap).get("accounts");
 			Account transactionAccount = accounts.get(0);
 			if (transactionAccount.getBranchId() != branchId) {
 				logger.warn("Branch ID mismatch for transaction account number: {}", transactionAccountNumber);
-				throw new CustomException("Invalid account");
+				throw new CustomException("Invalid account", HttpStatusCodes.BAD_REQUEST);
 			}
+
 		}
 
 		BranchDAO branchDAO = new BranchDAO();
@@ -121,7 +125,7 @@ public class TransactionService {
 				transactionMap.put("transactionIfsc", transactionIfsc);
 			} catch (IndexOutOfBoundsException e) {
 				logger.error("Error while fetching transaction account details: {}", e.getMessage());
-				throw new CustomException("Enter valid credentials");
+				throw new CustomException("Enter valid credentials", HttpStatusCodes.BAD_REQUEST);
 			}
 		}
 
@@ -173,7 +177,7 @@ public class TransactionService {
 				criteria.setOperator(new ArrayList<>(Arrays.asList("=")));
 				criteria.setValue(new ArrayList<>(Arrays.asList(txId)));
 				transactionDAO.removeFailedTransaction(criteria);
-				throw new CustomException(e.getMessage());
+				throw new CustomException("Error occurred during transaction.", HttpStatusCodes.INTERNAL_SERVER_ERROR);
 			}
 		}
 	}
@@ -210,7 +214,8 @@ public class TransactionService {
 			break;
 		default:
 			logger.error("Invalid transaction type: " + transactionType);
-			throw new CustomException("Invalid transaction type: " + transactionType);
+			throw new CustomException("Invalid transaction type: " + transactionType, HttpStatusCodes.BAD_REQUEST);
+
 		}
 
 		transaction.setClosingBalance(closingBalance);

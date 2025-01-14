@@ -9,6 +9,7 @@ import org.apache.logging.log4j.Logger;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 
+import Enum.Constants.HttpStatusCodes;
 import dao.BranchDAO;
 
 import model.Branch;
@@ -51,7 +52,8 @@ public class BranchService {
 			return branches;
 		} catch (Exception e) {
 			logger.error("Error fetching branch details: {}", e.getMessage(), e);
-			throw new CustomException("Unable to fetch branch details. Please try again later.", e);
+			throw new CustomException("Unable to fetch branch details. Please try again later.",
+					HttpStatusCodes.INTERNAL_SERVER_ERROR);
 		}
 	}
 
@@ -74,7 +76,8 @@ public class BranchService {
 			throw e;
 		} catch (Exception e) {
 			logger.error("Unexpected error during branch creation: {}", e.getMessage());
-			throw new CustomException("Branch creation failed. Please contact support.", e);
+			throw new CustomException("Branch creation failed. Please contact support.",
+					HttpStatusCodes.INTERNAL_SERVER_ERROR);
 		}
 	}
 

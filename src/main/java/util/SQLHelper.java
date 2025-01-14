@@ -20,6 +20,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import Enum.Constants.AggregateFunction;
+import Enum.Constants.HttpStatusCodes;
 import Enum.Constants.Operators;
 
 import dao.DAOHelper;
@@ -44,9 +45,11 @@ public class SQLHelper {
 			}
 			ClassMapping classMapping = ColumnYamlUtil.getMapping(clazz.getName());
 			if (classMapping == null) {
-				logger.error("Mapping for class " + clazz + " not found.");
-				throw new CustomException("Mapping for class " + clazz + " not found.");
+				logger.error("Mapping for class {} not found.", clazz);
+				throw new CustomException("Requested data could not be found. Please contact support.",
+						HttpStatusCodes.NOT_FOUND);
 			}
+
 			Map<String, FieldMapping> fieldMap = classMapping.getFields();
 			Field[] fields = clazz.getDeclaredFields();
 			for (Field field : fields) {
@@ -69,10 +72,10 @@ public class SQLHelper {
 					modifiedFields.add(columnName);
 				} catch (SQLSyntaxErrorException exception) {
 					logger.warn("SQL Syntax error while setting field: " + field.getName(), exception);
-					continue;
 				} catch (IllegalAccessException e) {
 					logger.error("Error accessing field: " + field.getName(), e);
-					throw new CustomException("Error mapping result set to object: " + e.getMessage());
+					throw new CustomException("Error processing data. Please try again later.",
+							HttpStatusCodes.INTERNAL_SERVER_ERROR);
 				}
 			}
 
@@ -85,8 +88,10 @@ public class SQLHelper {
 			return instance;
 		} catch (Exception e) {
 			logger.error("Error mapping result set to object: ", e);
-			throw new CustomException("Error mapping result set to object: " + e.getMessage());
+			throw new CustomException("Error processing data. Please try again later.",
+					HttpStatusCodes.INTERNAL_SERVER_ERROR);
 		}
+
 	}
 
 	// Returns the preparedStatement after setting the values
@@ -94,27 +99,26 @@ public class SQLHelper {
 			throws CustomException, SQLException {
 		Helper.checkNullValues(query);
 		if (connection == null || connection.isClosed()) {
-			throw new CustomException("Database connection is not established or is closed.");
+			throw new CustomException("Database connection is not established or is closed.",
+					HttpStatusCodes.INTERNAL_SERVER_ERROR);
 		}
-		try {
-			PreparedStatement preparedStatement = connection.prepareStatement(query, Statement.RETURN_GENERATED_KEYS);
-			if (values != null) {
-				for (int i = 0; i < values.length; i++) {
-					Object value = values[i];
-					preparedStatement.setObject(i + 1, value);
-				}
+
+		PreparedStatement preparedStatement = connection.prepareStatement(query, Statement.RETURN_GENERATED_KEYS);
+		if (values != null) {
+			for (int i = 0; i < values.length; i++) {
+				Object value = values[i];
+				preparedStatement.setObject(i + 1, value);
 			}
-			logger.debug("PreparedStatement: " + preparedStatement.toString());
-			System.out.println("PreparedStatement: " + preparedStatement.toString());
-			return preparedStatement;
-		} catch (SQLException e) {
-			logger.error("Error preparing statement: " + query, e);
-			throw new CustomException("Error preparing statement: " + e.getMessage());
 		}
+		logger.debug("PreparedStatement: " + preparedStatement.toString());
+		System.out.println("PreparedStatement: " + preparedStatement.toString());
+		return preparedStatement;
+
 	}
 
 	// Execute the preparedStatement for the insert queries
-	private static Object executeNonSelect(Connection connection, String query, Object[] values) throws Exception {
+	private static Object executeNonSelect(Connection connection, String query, Object[] values)
+			throws CustomException, SQLException {
 		try (PreparedStatement preparedStatement = getPreparedStatement(connection, query, values)) {
 			preparedStatement.execute();
 			try (ResultSet generatedKeys = preparedStatement.getGeneratedKeys()) {
@@ -131,16 +135,19 @@ public class SQLHelper {
 					logger.info("Transaction rolled back due to error.");
 				}
 			} catch (SQLException rollbackException) {
-				logger.error("Rollback failed for query: " + query, rollbackException);
-				throw new CustomException("Rollback failed: " + rollbackException.getMessage());
+				logger.error("Rollback failed for the transaction. Query could not be rolled back. Error details: {}",
+						rollbackException.getMessage(), rollbackException);
+				throw new CustomException("Transaction failed. Please try again later.",
+						HttpStatusCodes.INTERNAL_SERVER_ERROR);
 			}
+
 			logger.info("Duplicate entry error: ", e);
-			throw new CustomException(message);
+			throw new CustomException(message, HttpStatusCodes.CONFLICT);
 		}
 	}
 
 	// Execute the preparedStatement for the non-select queries.
-	private static Object executeNonSelect(String query, Object[] values) throws CustomException {
+	private static Object executeNonSelect(String query, Object[] values) throws CustomException, SQLException {
 		try (Connection connection = DBConnection.getConnection();
 				PreparedStatement preparedStatement = getPreparedStatement(connection, query, values)) {
 			preparedStatement.execute();
@@ -150,12 +157,6 @@ public class SQLHelper {
 				}
 			}
 			return null;
-		} catch (SQLException e) {
-			logger.error("Error executing non-select query: " + query, e);
-			throw new CustomException("Database error while executing query: " + e.getMessage(), e);
-		} catch (Exception e) {
-			logger.error("Unexpected error executing query: " + query, e);
-			throw new CustomException("Unexpected error executing query: " + e.getMessage(), e);
 		}
 	}
 
@@ -168,15 +169,21 @@ public class SQLHelper {
 			throws CustomException {
 
 		if (condition == null) {
-			throw new CustomException("The condition object cannot be null.");
-		}
-		// Ensure the join column and join value lists are the same size
-		if (condition.getJoinColumn() != null && condition.getJoinColumn().size() != condition.getJoinValue().size()) {
-			throw new CustomException("Join columns and join values must have the same size.");
+			logger.error("Condition object is null. The request is invalid.");
+			throw new CustomException("Invalid request. Please check the input and try again.",
+					HttpStatusCodes.BAD_REQUEST);
 		}
 
-		List<String> joinColumn = condition.getJoinColumn(), joinOperator = condition.getJoinOperator();
-		List<String> joinTable = condition.getJoinTable();
+		// Ensure the join column and join value lists are the same size
+		if (condition.getJoinColumn() != null && condition.getJoinColumn().size() != condition.getJoinValue().size()) {
+			logger.error("Join columns and values size mismatch. Columns: {}, Values: {}", condition.getJoinColumn(),
+					condition.getJoinValue());
+			throw new CustomException("Invalid configuration. Please check the input and try again.",
+					HttpStatusCodes.BAD_REQUEST);
+		}
+
+		List<String> joinColumn = condition.getJoinColumn(), joinOperator = condition.getJoinOperator(),
+				joinTable = condition.getJoinTable();
 		List<Object> joinValue = condition.getJoinValue();
 
 		if (joinColumn != null && !joinColumn.isEmpty()) {
@@ -223,10 +230,10 @@ public class SQLHelper {
 					DAOHelper.appendComparisonOperator(sql, opEnum.getSymbol(), value, conditionValues);
 					break;
 				default:
-					throw new CustomException("Unsupported operator: " + operator);
+					throw new CustomException("Unsupported operator: " + operator, HttpStatusCodes.BAD_REQUEST);
 				}
 			} catch (IllegalArgumentException e) {
-				throw new CustomException("Invalid operator: " + operator);
+				throw new CustomException("Invalid operator: " + operator, e, HttpStatusCodes.BAD_REQUEST);
 			}
 
 			if (condition.getLogicalOperator() != null && i < columns.size() - 1) {
@@ -252,82 +259,75 @@ public class SQLHelper {
 	// columnCriteriaList : it contains the column and value to be updated.
 	// conditions : It contains the criteria that has to be included in that query
 	// (WHERE clause).
-	public static <T> void update(ColumnCriteria columnCriteriaList, Criteria criterias) throws CustomException {
-		try {
-			Helper.checkNullValues(criterias);
-			Helper.checkNullValues(columnCriteriaList);
+	public static <T> void update(ColumnCriteria columnCriteriaList, Criteria criterias)
+			throws CustomException, SQLException {
 
-			Class<?> clazz = criterias.getClazz();
-			ClassMapping classMapping = ColumnYamlUtil.getMapping(clazz.getName());
-			Helper.validateClassMapping(clazz, classMapping);
+		Helper.checkNullValues(criterias);
+		Helper.checkNullValues(columnCriteriaList);
 
-			String table = classMapping.getTableName();
-			Helper.validateTableName(table, clazz.getName());
+		Class<?> clazz = criterias.getClazz();
+		ClassMapping classMapping = ColumnYamlUtil.getMapping(clazz.getName());
+		Helper.validateClassMapping(clazz, classMapping);
 
-			StringBuilder updateSql = new StringBuilder("UPDATE " + table + " SET ");
-			List<Object> values = new ArrayList<>();
-			List<Object> setValues = columnCriteriaList.getValues();
-			List<String> setColumns = columnCriteriaList.getFields();
+		String table = classMapping.getTableName();
+		Helper.validateTableName(table, clazz.getName());
 
-			Helper.validateQueryConditions(setColumns, "No columns to update.");
+		StringBuilder updateSql = new StringBuilder("UPDATE " + table + " SET ");
+		List<Object> values = new ArrayList<>();
+		List<Object> setValues = columnCriteriaList.getValues();
+		List<String> setColumns = columnCriteriaList.getFields();
 
-			int len = updateSql.length();
-			for (int i = 0; i < setColumns.size(); i++) {
-				String setColumn = setColumns.get(i);
-				Object setValue = setValues.get(i);
-				FieldMapping fieldMapping = classMapping.getFields().get(setColumn);
+		Helper.validateQueryConditions(setColumns, "No columns to update.");
 
-				if (fieldMapping != null) {
-					if (len < updateSql.length()) {
-						updateSql.append(", ");
-						len = updateSql.length();
-					}
-					updateSql.append(fieldMapping.getColumnName()).append(" = ?");
-					values.add(setValue);
+		int len = updateSql.length();
+		for (int i = 0; i < setColumns.size(); i++) {
+			String setColumn = setColumns.get(i);
+			Object setValue = setValues.get(i);
+			FieldMapping fieldMapping = classMapping.getFields().get(setColumn);
+
+			if (fieldMapping != null) {
+				if (len < updateSql.length()) {
+					updateSql.append(", ");
+					len = updateSql.length();
 				}
+				updateSql.append(fieldMapping.getColumnName()).append(" = ?");
+				values.add(setValue);
 			}
-
-			if (!values.isEmpty()) {
-				if (classMapping.getReferedField() != null) {
-					criterias.setColumn(Arrays.asList(classMapping.getReferedField()));
-				}
-				QueryBuilder(updateSql, criterias, values);
-				executeNonSelect(updateSql.toString(), values.toArray());
-			}
-
-			Class<?> superclass = clazz.getSuperclass();
-			if (superclass != null && !superclass.getName().equals("dblayer.model.MarkedClass")) {
-				criterias.setClazz(superclass);
-				update(columnCriteriaList, criterias);
-			}
-
-		} catch (Exception e) {
-			Helper.handleGeneralException(e, "Error occurred during update");
 		}
+
+		if (!values.isEmpty()) {
+			if (classMapping.getReferedField() != null) {
+				criterias.setColumn(Arrays.asList(classMapping.getReferedField()));
+			}
+			QueryBuilder(updateSql, criterias, values);
+			executeNonSelect(updateSql.toString(), values.toArray());
+		}
+
+		Class<?> superclass = clazz.getSuperclass();
+		if (superclass != null && !superclass.getName().equals("model.MarkedClass")) {
+			criterias.setClazz(superclass);
+			update(columnCriteriaList, criterias);
+		}
+
 	}
 
 	// @Delete method
 	// table : name of the table.
 	// conditions : It contains the criteria that has to be included in that query
 	// (WHERE clause).
-	public static <T> void delete(Criteria conditions) throws CustomException {
-		try {
-			Helper.checkNullValues(conditions);
-			Class<?> clazz = conditions.getClazz();
-			ClassMapping classMapping = ColumnYamlUtil.getMapping(clazz.getName());
-			Helper.validateClassMapping(clazz, classMapping);
+	public static <T> void delete(Criteria conditions) throws CustomException, SQLException {
+		Helper.checkNullValues(conditions);
+		Class<?> clazz = conditions.getClazz();
+		ClassMapping classMapping = ColumnYamlUtil.getMapping(clazz.getName());
+		Helper.validateClassMapping(clazz, classMapping);
 
-			String table = classMapping.getTableName();
-			Helper.validateTableName(table, clazz.getName());
-			StringBuilder deleteSql = new StringBuilder("DELETE FROM ").append(table);
-			List<Object> values = new ArrayList<>();
-			QueryBuilder(deleteSql, conditions, values);
-			Helper.validateQueryConditions(values, "No conditions provided for deletion.");
-			executeNonSelect(deleteSql.toString(), values.toArray());
-
-		} catch (Exception e) {
-			Helper.handleGeneralException(e, "Error occurred during deletion");
-		}
+		String table = classMapping.getTableName();
+		Helper.validateTableName(table, clazz.getName());
+		StringBuilder deleteSql = new StringBuilder("DELETE FROM ").append(table);
+		List<Object> values = new ArrayList<>();
+		QueryBuilder(deleteSql, conditions, values);
+		Helper.validateQueryConditions(values, "No conditions provided for deletion.");
+		executeNonSelect(deleteSql.toString(), values.toArray());
 	}
 
 	// @Get method
@@ -337,70 +337,65 @@ public class SQLHelper {
 	// conditions : It contains the criteria that has to be included in that query
 	// (WHERE clause).
 	@SuppressWarnings("unchecked")
-	public static <T> List<Object> get(Criteria condition) throws CustomException {
-		try {
-			Helper.checkNullValues(condition);
-			Class<?> clazz = condition.getClazz();
-			Helper.checkNull(clazz, "Class type cannot be null.");
-			ClassMapping classMapping = ColumnYamlUtil.getMapping(clazz.getName());
-			Helper.validateClassMapping(clazz, classMapping);
+	public static <T> List<Object> get(Criteria condition) throws CustomException, SQLException {
 
-			String table = classMapping.getTableName();
-			Helper.validateTableName(table, clazz.getName());
+		Helper.checkNullValues(condition);
+		Class<?> clazz = condition.getClazz();
+		Helper.checkNull(clazz, "Class type cannot be null.");
+		ClassMapping classMapping = ColumnYamlUtil.getMapping(clazz.getName());
+		Helper.validateClassMapping(clazz, classMapping);
 
-			List<String> selectColumns = condition.getSelectColumn();
-			Helper.validateQueryConditions(selectColumns, "No columns to select.");
+		String table = classMapping.getTableName();
+		Helper.validateTableName(table, clazz.getName());
 
-			StringBuilder selectSql = new StringBuilder("SELECT ");
-			if (condition.getOffsetValue() != null && condition.getOffsetValue() == -1) {
-				String aggregateFunction = condition.getAggregateFunction();
-				String aggregateOperator = condition.getAggregateOperator();
+		List<String> selectColumns = condition.getSelectColumn();
+		Helper.validateQueryConditions(selectColumns, "No columns to select.");
 
-				selectSql.append(AggregateFunction.get(aggregateFunction, aggregateOperator));
-			} else {
-				List<String> aliasStrings = condition.getAlias();
-				for (int i = 0; i < selectColumns.size(); i++) {
-					selectSql.append(selectColumns.get(i));
-					if (aliasStrings != null && aliasStrings.get(i) != null
-							&& aliasStrings.size() == selectColumns.size()) {
-						selectSql.append(" AS " + aliasStrings.get(i));
-					}
-					if (i < selectColumns.size() - 1) {
-						selectSql.append(", ");
-					}
+		StringBuilder selectSql = new StringBuilder("SELECT ");
+		if (condition.getOffsetValue() != null && condition.getOffsetValue() == -1) {
+			String aggregateFunction = condition.getAggregateFunction();
+			String aggregateOperator = condition.getAggregateOperator();
+
+			selectSql.append(AggregateFunction.get(aggregateFunction, aggregateOperator));
+		} else {
+			List<String> aliasStrings = condition.getAlias();
+			for (int i = 0; i < selectColumns.size(); i++) {
+				selectSql.append(selectColumns.get(i));
+				if (aliasStrings != null && aliasStrings.get(i) != null
+						&& aliasStrings.size() == selectColumns.size()) {
+					selectSql.append(" AS " + aliasStrings.get(i));
+				}
+				if (i < selectColumns.size() - 1) {
+					selectSql.append(", ");
 				}
 			}
-			selectSql.append(" FROM ").append(table);
-
-			List<Object> conditionValues = new ArrayList<>();
-			if (condition.getColumn() != null) {
-				QueryBuilder(selectSql, condition, conditionValues);
-			}
-			List<Object> list = new ArrayList<>();
-			try (Connection connection = DBConnection.getConnection();
-					PreparedStatement preparedStatement = getPreparedStatement(connection, selectSql.toString(),
-							conditionValues.toArray());
-					ResultSet resultSet = preparedStatement.executeQuery()) {
-				while (resultSet.next()) {
-					if (condition.getOffsetValue() != null && condition.getOffsetValue() == -1) {
-						Object count = resultSet.getObject("COUNT(*)");
-						List<Object> counts = new ArrayList<Object>();
-						counts.add((Long) count);
-						return (List<Object>) counts;
-					}
-					List<String> modifiedFields = new ArrayList<>();
-					T instance = (T) mapResultSetToObject(resultSet, clazz, null, table, modifiedFields);
-					list.add(mapLeftOverResultSet(resultSet, modifiedFields, instance));
-				}
-				return list;
-			} catch (SQLException e) {
-				Helper.handleSQLException(e);
-				return new ArrayList<>();
-			}
-		} catch (Exception e) {
-			Helper.handleGeneralException(e, "Error occurred while fetching data.");
 		}
-		return null;
+		selectSql.append(" FROM ").append(table);
+
+		List<Object> conditionValues = new ArrayList<>();
+		if (condition.getColumn() != null) {
+			QueryBuilder(selectSql, condition, conditionValues);
+		}
+		List<Object> list = new ArrayList<>();
+		try (Connection connection = DBConnection.getConnection();
+				PreparedStatement preparedStatement = getPreparedStatement(connection, selectSql.toString(),
+						conditionValues.toArray());
+				ResultSet resultSet = preparedStatement.executeQuery()) {
+			while (resultSet.next()) {
+				if (condition.getOffsetValue() != null && condition.getOffsetValue() == -1) {
+					Object count = resultSet.getObject("COUNT(*)");
+					List<Object> counts = new ArrayList<Object>();
+					counts.add((Long) count);
+					return (List<Object>) counts;
+				}
+				List<String> modifiedFields = new ArrayList<>();
+				T instance = (T) mapResultSetToObject(resultSet, clazz, null, table, modifiedFields);
+				list.add(mapLeftOverResultSet(resultSet, modifiedFields, instance));
+			}
+			System.out.println(list);
+			return list;
+		}
+
 	}
 
 	private static Object mapLeftOverResultSet(ResultSet resultSet, List<String> modifiedFields, Object instance)
@@ -422,8 +417,10 @@ public class SQLHelper {
 			return joininstance;
 		} catch (Exception e) {
 			logger.error("Error mapping leftover result set: ", e);
-			throw new CustomException("Error mapping leftover result set: " + e.getMessage());
+			throw new CustomException("Error mapping leftover result set: " + e.getMessage(), e,
+					HttpStatusCodes.INTERNAL_SERVER_ERROR);
 		}
+
 	}
 
 	// @Insert method
@@ -434,9 +431,9 @@ public class SQLHelper {
 
 		try (Connection connection = DBConnection.getConnection()) {
 			if (connection == null || connection.isClosed()) {
-				throw new CustomException("Database connection is not established");
+				throw new CustomException("Database connection is not established or is closed.",
+						HttpStatusCodes.INTERNAL_SERVER_ERROR);
 			}
-
 			connection.setAutoCommit(false);
 			List<Class<?>> classList = getClassHierarchy(pojo.getClass());
 			Object generatedValue = null;
@@ -450,7 +447,7 @@ public class SQLHelper {
 				Field[] fields = clazz.getDeclaredFields();
 				StringBuilder insertSql = buildInsertSQL(fields, classMapping, tableName, pojo, fieldMap);
 				List<Object> values = collectFieldValues(fields, pojo, classMapping, fieldMap, generatedValue);
-				System.out.println(clazz.getSimpleName() + " " + generatedValue);
+
 				Object incrementValue = executeNonSelect(connection, insertSql.toString(), values.toArray());
 				if (k == classList.size() - 1) {
 					generatedValue = incrementValue;
@@ -459,10 +456,7 @@ public class SQLHelper {
 
 			connection.commit();
 			return generatedValue;
-		} catch (SQLException e) {
-			Helper.handleSQLException(e);
 		}
-		return null;
 	}
 
 	private static List<Class<?>> getClassHierarchy(Class<?> clazz) {
@@ -489,8 +483,9 @@ public class SQLHelper {
 			insertSql.append(fieldMapping.getColumnName()).append(", ");
 			ctr++;
 		}
-		if (ctr == 0)
-			throw new CustomException("No valid fields found for insertion");
+		if (ctr == 0) {
+			throw new CustomException("No valid fields found for insertion.", HttpStatusCodes.BAD_REQUEST);
+		}
 		insertSql.deleteCharAt(insertSql.length() - 2);
 		insertSql.append(") VALUES (");
 		for (int i = 0; i < ctr; i++) {
@@ -526,7 +521,8 @@ public class SQLHelper {
 					}
 				}
 			} catch (IllegalAccessException e) {
-				throw new CustomException("Error accessing field value: " + e.getMessage());
+				throw new CustomException("Error accessing field value: " + e.getMessage(), e,
+						HttpStatusCodes.INTERNAL_SERVER_ERROR);
 			}
 		}
 		return values;

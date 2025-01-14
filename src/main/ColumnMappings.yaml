@@ -126,7 +126,7 @@ classes:
         columnName: "transaction_account_number"
       transactionType:
         columnName: "transaction_type"
-      status:
+      transactionStatus:
         columnName: "status"
       remarks:
         columnName: "remarks"
