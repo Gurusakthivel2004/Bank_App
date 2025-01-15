@@ -38,14 +38,14 @@ public class FacadeHandler {
 			Map<String, Object> accountMap = new HashMap<>();
 			accountMap.put("userId", id);
 			List<Account> accounts = (List<Account>) accountService.getAccountDetails(accountMap).get("accounts");
+
 			map.put("account", accounts);
-			logger.info(accounts);
 
 			logger.info("Fetching transaction details for user ID: {}", id);
 			// Fetch transaction details
 			List<Transaction> transactions = new ArrayList<>();
 			for (int i = 0; i < accounts.size(); i++) {
-				Account account = accounts.get(i);
+				Account account = (Account) accounts.get(i);
 				Map<String, Object> txMap = new HashMap<>();
 				getTransactionMap(txMap, id, account.getAccountNumber(), 5l, 0l, 0l, -1l);
 				List<Transaction> accountTransactions = (List<Transaction>) transactionService

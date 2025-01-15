@@ -57,12 +57,12 @@
 				<hr>
 				<ul class="dropdown-items d-flex col justify-content-center"
 					role="button">
-					<li><a class="py-2 px-4" href="profile.html"><img
+					<li><a class="py-2 px-4" href="user-details.html"><img
 							src="./images/user-edit.svg" width="30px" height="30px" alt="" /></a></li>
 					<li><a class="py-2 px-4"
 						onclick="toggleModal('passwordChangeModal')"><img
 							src="./images/settings.svg" width="30px" height="30px" alt="" /></a></li>
-					<li><a class="py-2 px-4" href="create-user.html"><img
+					<li><a class="py-2 px-4" href="user-details.html"><img
 							src="./images/create-user.svg" width="30px" height="30px" alt="" /></a></li>
 					<li><a class="py-2 px-4" onclick="logout()"><img
 							src="./images/logout.svg" width="30px" height="30px" alt="" /></a></li>
@@ -136,7 +136,8 @@
 						</div>
 					</div>
 
-					<p id="accountMessage" class="text-danger fs-large text-center"
+					<p id="accountMessage"
+						class="text-danger mt-2 fs-large text-center"
 						style="display: none">Error message</p>
 
 					<button class="mt-3 mb-2 mx-auto" onclick="saveAccount()"

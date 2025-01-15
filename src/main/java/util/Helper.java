@@ -224,7 +224,7 @@ public class Helper {
 
 	public static void sendErrorResponse(HttpServletResponse response, CustomException exception) throws IOException {
 		response.setContentType("application/json");
-		response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+		response.setStatus(exception.getStatusCode());
 		JsonObject responseJson = new JsonObject();
 		responseJson.addProperty("message", exception.getMessage());
 		try (PrintWriter out = response.getWriter()) {
@@ -431,7 +431,7 @@ public class Helper {
 		}
 	}
 
-	public static Map<String, Object> getParametersAsMap(HttpServletRequest request) {
+	public static Map<String, Object> getParametersAsMap(HttpServletRequest request)  {
 		Map<String, Object> parameterMap = new HashMap<>();
 
 		request.getParameterMap().forEach((key, value) -> {

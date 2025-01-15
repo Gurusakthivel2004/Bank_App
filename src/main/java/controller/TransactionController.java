@@ -34,7 +34,7 @@ public class TransactionController {
 
 		try {
 			transactionService.prepareTransaction(transactionMap);
-			Helper.sendSuccessResponse(response, "Transaction prepared successfully");
+			Helper.sendSuccessResponse(response, "success");
 		} catch (CustomException exception) {
 			Helper.sendErrorResponse(response, exception);
 		}

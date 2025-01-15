@@ -50,6 +50,10 @@ public class AccountController {
 		}
 	}
 
+	public void handleGet(HttpServletRequest request, HttpServletResponse response) throws IOException {
+		handleGet(request, response, Helper.getParametersAsMap(request));
+	}
+
 	public void handlePost(HttpServletRequest request, HttpServletResponse response) throws IOException {
 		response.setContentType("application/json");
 		PrintWriter out = response.getWriter();

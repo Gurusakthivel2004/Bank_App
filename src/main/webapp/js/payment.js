@@ -1,5 +1,6 @@
 let originalValue = '';
 let originalActiveItem = null;
+let validAccounts = [];
 const token = localStorage.getItem('token')
 
 const handleSubmit = async (event) => {
@@ -15,20 +16,27 @@ const handleSubmit = async (event) => {
 		bankName = document.querySelector('#bank').value;
 		transactionIfsc = document.querySelector('#ifsc').value;
 	}
-	let accountNumber = '';
-	[...document.querySelectorAll('.accounts')].forEach(input => {
-		if (input.value > 0) {
-			accountNumber = input.value > 0 ? input.value : transactionAccountNumber;
-		}
+	const role = localStorage.getItem("role");
 
-	})
 	const transactionAccountNumber = document.getElementById('transAcc').value;
 	const amount = document.getElementById('amount').value;
 	const remarks = document.querySelector('textarea[placeholder="Enter remarks"]').value;
-	const role = localStorage.getItem("role");
+
 	let transactionType = 'Debit';
 	if (role !== "Customer") {
 		transactionType = document.getElementById('type').value;
+	}
+
+	let accountNumber = '';
+	if (role != 'Customer') {
+		accountNumber = document.getElementById('account').value;
+		if (transactionType == 'Debit') {
+			accountNumber = document.getElementById('account').value;
+		} else {
+			accountNumber = document.getElementById('customerAccounts').value;
+		}
+	} else {
+		accountNumber = document.getElementById('customerAccounts').value;
 	}
 	const transactionData = {
 		accountNumber: accountNumber,
@@ -40,35 +48,46 @@ const handleSubmit = async (event) => {
 		transactionIfsc: transactionIfsc,
 		transactionType: transactionType
 	}
-
 	console.log(transactionData);
 
-	const response = await fetch('http://localhost:8080/Bank_Application/api/Transaction', {
-		method: 'POST',
-		headers: {
-			'Content-Type': 'application/json',
-			'Authorization': `Bearer ${token}`
-		},
-		body: JSON.stringify(transactionData)
-	});
-
-	const result = await response.json();
-	console.log(result);
-	const successPop = document.getElementById('successPopup');
-	if (result.message == 'success') {
-		successPop.textContent = "Payment successful!";
-		successPop.style.backgroundColor = '#4CAF50';
-		successPop.style.color = 'white';
-		successPop.style.display = 'block';
+	if (validAccounts.includes(accountNumber) == false) {
+		console.log('1');
+		displayInvalidAccount();
+		return;
+	} else if (bankName == "Horizon" && !validAccounts.includes(transactionAccountNumber)) {
+		console.log('2');
+		displayInvalidAccount();
+		return;
 	} else {
-		successPop.textContent = result.message;
-		successPop.style.backgroundColor = 'red';
-		successPop.style.color = 'white';
-		successPop.style.display = 'block';
+		console.log(transactionData);
+
+		const response = await fetch('http://localhost:8080/Bank_Application/api/Transaction', {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+				'Authorization': `Bearer ${token}`
+			},
+			body: JSON.stringify(transactionData)
+		});
+
+		const result = await response.json();
+		console.log(result);
+		const successPop = document.getElementById('successPopup');
+		if (result.message == 'success') {
+			successPop.textContent = "Payment successful!";
+			successPop.style.backgroundColor = '#4CAF50';
+			successPop.style.color = 'white';
+			successPop.style.display = 'block';
+		} else {
+			const errorMessage = document.getElementById('errorMessage');
+			errorMessage.style.display = 'block';
+			errorMessage.innerHTML = result.message;
+		}
+		setTimeout(() => {
+			successPop.style.display = 'none';
+			window.location.reload();
+		}, 3000);
 	}
-	setTimeout(() => {
-		successPop.style.display = 'none';
-	}, 3000);
 };
 
 const toggleBankDropdown = () => {
@@ -92,6 +111,12 @@ const toggleBankDropdown = () => {
 	}
 }
 
+const displayInvalidAccount = _ => {
+	const errorMessage = document.getElementById('errorMessage');
+	errorMessage.style.display = 'block';
+	errorMessage.innerHTML = "Enter valid account number.";
+}
+
 document.getElementById('type').addEventListener("change", function(event) {
 	const role = localStorage.getItem("role");
 	console.log(this.value)
@@ -111,6 +136,145 @@ document.getElementById('type').addEventListener("change", function(event) {
 	}
 })
 
+document.addEventListener("DOMContentLoaded", () => {
+	const accountInput = document.getElementById("account");
+	const accountInput2 = document.getElementById("transAcc");
+	const otherBankCheckbox = document.querySelector('#otherBankCheckbox');
+
+	handleInputDropdown(accountInput);
+	if (!otherBankCheckbox.checked) {
+		handleInputDropdown(accountInput2);
+	}
+
+	otherBankCheckbox.addEventListener('change', (e) => {
+		if (e.target.checked) {
+			console.log(accountInput2.nextElementSibling);
+			accountInput2.nextElementSibling.style.display = "none";
+		} else {
+			handleInputDropdown(accountInput2);
+		}
+	});
+
+});
+
+
+
+const handleInputDropdown = accountInput => {
+	const suggestionsBox = document.createElement("div");
+	suggestionsBox.className = "dropdown-menu position-absolute bg-white";
+	suggestionsBox.style.display = "none";
+	suggestionsBox.style.border = "1px solid #ccc";
+	suggestionsBox.style.maxHeight = "150px";
+	suggestionsBox.style.overflowY = "auto";
+
+	accountInput.parentNode.appendChild(suggestionsBox);
+
+	let timeoutId = null;
+	accountInput.addEventListener("input", () => {
+		const otherBankCheckbox = document.querySelector('#otherBankCheckbox');
+		if (otherBankCheckbox.checked) {
+			return;
+		}
+		console.log(accountInput.value);
+		const inputValue = accountInput.value.trim();
+
+		clearTimeout(timeoutId);
+
+		if (inputValue.length >= 4) {
+			timeoutId = setTimeout(async () => {
+				try {
+					const accountData = {
+						get: true,
+						accountNumber: Number(inputValue)
+					}
+					const response = await fetch(
+						`http://localhost:8080/Bank_Application/api/Account`,
+						{
+							method: 'POST',
+							headers: {
+								'Content-Type': 'application/json',
+								'Authorization': `Bearer ${localStorage.getItem("token")}`
+							},
+							body: JSON.stringify(accountData)
+						}
+					);
+					const result = await response.json();
+					console.log(result);
+					// Clear previous suggestions
+					suggestionsBox.innerHTML = "";
+					if (result.accounts && result.accounts.length > 0) {
+						result.accounts.forEach(account => {
+							const option = document.createElement("div");
+							option.className = "dropdown-item";
+							option.style = `
+								    cursor: pointer;
+								    padding: 10px;
+								    transition: background-color 0.3s ease;
+								`;
+
+							const accountContainer = document.createElement("div");
+
+							// Create a div for the account number
+							const accountNumber = document.createElement("div");
+							accountNumber.textContent = 'Account number: ' + account.accountNumber;
+							accountNumber.style = `
+								    font-weight: bold;
+								    font-size: 14px;
+								    color: #2c3e50;
+								`;
+
+							// Create a div for the account balance
+							const accountBalance = document.createElement("div");
+							accountBalance.textContent = 'Balance: ₹' + account.balance; // Using the rupee symbol directly
+							accountBalance.style = `
+								    font-size: 12px;
+								    color: grey;
+								    margin-top: 5px;
+								`;
+							validAccounts.push(account.accountNumber + '');
+							accountContainer.appendChild(accountNumber);
+							accountContainer.appendChild(accountBalance);
+
+							option.appendChild(accountContainer);
+
+							option.dataset.accountId = account.id;
+
+							option.addEventListener("click", () => {
+								accountInput.value = account.accountNumber;
+								suggestionsBox.style.display = "none";
+							});
+
+							option.addEventListener("mouseenter", () => {
+								option.style.backgroundColor = "#f1f1f1";
+							});
+							option.addEventListener("mouseleave", () => {
+								option.style.backgroundColor = "transparent";
+							});
+
+							suggestionsBox.appendChild(option);
+
+						});
+
+						suggestionsBox.style.display = "block";
+					} else {
+						suggestionsBox.style.display = "none";
+					}
+				} catch (error) {
+					console.error("Error fetching suggestions:", error);
+					suggestionsBox.style.display = "none";
+				}
+			}, 300);
+		} else {
+			suggestionsBox.style.display = "none";
+		}
+	})
+
+	document.addEventListener("click", (event) => {
+		if (!accountInput.contains(event.target) && !suggestionsBox.contains(event.target)) {
+			suggestionsBox.style.display = "none";
+		}
+	})
+}
 
 document.addEventListener("DOMContentLoaded", async _ => {
 	const role = localStorage.getItem("role");
@@ -122,7 +286,7 @@ document.addEventListener("DOMContentLoaded", async _ => {
 		document.getElementById('paymentmode').style.display = 'flex';
 	}
 	try {
-		const response = await fetch('http://localhost:8080/Bank_Application/api/Account?userId=-1', {
+		const response = await fetch(`http://localhost:8080/Bank_Application/api/Account?userId=-1`, {
 			method: 'GET',
 			headers: {
 				'Content-Type': 'application/json',
@@ -134,6 +298,7 @@ document.addEventListener("DOMContentLoaded", async _ => {
 		result.accounts.forEach((account) => {
 			const option = document.createElement('option');
 			option.value = account.accountNumber;
+			validAccounts.push(account.accountNumber + '');
 			option.id = account.branchId;
 			option.textContent = account.accountNumber;
 			accountsDropdown.appendChild(option);

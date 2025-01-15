@@ -81,6 +81,32 @@ public class CacheService {
 		return null;
 	}
 
+	public <K, V> Map<K, V> get(String key, Class<K> keyClass, Class<V> valueClass) {
+		if (key == null || keyClass == null || valueClass == null) {
+			logger.error("Key or class types cannot be null.");
+			return null;
+		}
+		try (Jedis jedis = RedisCache.getConnection()) {
+			if (!jedis.exists(key)) {
+				logger.warn("Key '{}' does not exist in Redis.", key);
+				return null;
+			}
+
+			String jsonValue = jedis.get(key);
+			TypeReference<Map<K, V>> typeRef = new TypeReference<Map<K, V>>() {
+			};
+			Map<K, V> mapValue = objectMapper.readValue(jsonValue, typeRef);
+
+			logger.info("Successfully retrieved key '{}' from Redis.", key);
+			return mapValue;
+		} catch (IOException e) {
+			logger.error("Failed to deserialize value for key '{}': {}", key, e.getMessage());
+		} catch (Exception e) {
+			logger.error("Failed to retrieve key '{}' from Redis: {}", key, e.getMessage());
+		}
+		return null;
+	}
+
 	public <T> void update(String key, T value) {
 		if (key == null || value == null) {
 			logger.error("Key or value cannot be null.");

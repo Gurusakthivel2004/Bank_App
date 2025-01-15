@@ -226,7 +226,7 @@ function addTransactionItems(transactions) {
 			<p class="ttimestamp"
 				style="width: 20%; font-weight: bold; color: #6c757d;">${getDate(tx.transactionTime, true)}</p>
 			<p class="tstatus"
-				style="width: 15%; font-weight: bold; color: #2b0444;">${tx.status}</p>
+				style="width: 15%; font-weight: bold; color: #2b0444;">${tx.transactionStatus}</p>
 			<p class="ttype" style="width: 10%; color: ${tx.transactionType == 'Debit' ? 'red' : 'green'};">${tx.transactionType}</p>
 			<p class="tremarks" style="width: 20%; color: #2b0444;">${tx.remarks}</p>			
         `;

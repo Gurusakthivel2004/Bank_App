@@ -81,33 +81,32 @@ public class TransactionService {
 		AccountService accountDAO = new AccountService();
 		List<Account> accounts;
 		Map<String, Object> accountMap = new HashMap<>();
+		long branchId = Long.parseLong((String) transactionMap.get("branchId"));
+		long accountNumber = Long.parseLong((String) transactionMap.get("accountNumber"));
+		logger.debug("Employee role detected. Verifying branch ID for accounts...");
+
+		accountMap.put("accountNumber", accountNumber);
+		accounts = (List<Account>) accountDAO.getAccountDetails(accountMap).get("accounts");
+		Account account = accounts.get(0);
+		long customerId = account.getUserId();
+		try {
+			String amountStr = transactionMap.get("amount").toString();
+			BigDecimal transactionAmount = new BigDecimal(amountStr);
+
+			if (account.getBalance().compareTo(transactionAmount) < 0) {
+				throw new CustomException("Insufficient balance", HttpStatusCodes.BAD_REQUEST);
+			}
+		} catch (NumberFormatException e) {
+			throw new CustomException("Invalid amount format", HttpStatusCodes.BAD_REQUEST);
+		}
 		if (Helper.getThreadLocalValue().get("role").equals("Employee")) {
-			long branchId = Long.parseLong((String) transactionMap.get("branchId"));
-			long accountNumber = Long.parseLong((String) transactionMap.get("accountNumber"));
-			long transactionAccountNumber = Long.parseLong((String) transactionMap.get("transactionAccountNumber"));
-			logger.debug("Employee role detected. Verifying branch ID for accounts...");
-
-			// Use cache for account details
-
-			accountMap.put("accountNumber", accountNumber);
-			accounts = (List<Account>) accountDAO.getAccountDetails(accountMap).get("accounts");
-			Account account = accounts.get(0);
 			if (account.getBranchId() != branchId) {
 				logger.warn("Branch ID mismatch for account number: {}", accountNumber);
 				throw new CustomException("Invalid account", HttpStatusCodes.BAD_REQUEST);
 			}
-			accountMap.put("accountNumber", transactionAccountNumber);
-			accounts = (List<Account>) accountDAO.getAccountDetails(accountMap).get("accounts");
-			Account transactionAccount = accounts.get(0);
-			if (transactionAccount.getBranchId() != branchId) {
-				logger.warn("Branch ID mismatch for transaction account number: {}", transactionAccountNumber);
-				throw new CustomException("Invalid account", HttpStatusCodes.BAD_REQUEST);
-			}
-
 		}
 
 		BranchDAO branchDAO = new BranchDAO();
-		Long branchId = Long.parseLong((String) transactionMap.get("branchId"));
 		List<Object> branches = branchDAO.getBranch(branchId, false);
 		String ifsc = ((Branch) branches.get(0)).getIfscCode();
 		transactionMap.put("ifsc", ifsc);
@@ -129,7 +128,7 @@ public class TransactionService {
 			}
 		}
 
-		transactionMap.put("customerId", (Long) Helper.getThreadLocalValue().get("id"));
+		transactionMap.put("customerId", customerId);
 		Transaction transaction = Helper.createPojoFromMap(transactionMap, Transaction.class);
 		logger.debug("Validating the transaction object...");
 		logger.info("Transaction object validation passed. Proceeding with transaction creation...");

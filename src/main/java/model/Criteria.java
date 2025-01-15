@@ -5,7 +5,7 @@ import java.util.List;
 
 public class Criteria {
 
-	private Class<? extends MarkedClass> clazz;
+	private Class<?> clazz;
 	private String tableName;
 	private List<String> selectColumn;
 	private List<String> column;

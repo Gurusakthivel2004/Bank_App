@@ -192,7 +192,7 @@ function renderTransactions(transactions) {
             <p class="tfrom" style="width: 20%; color: #2b0444;">${tx.accountNumber}</p>
             <p class="tamount" style="width: 15%;margin-left: 20px; font-weight: bold; color: #4677bd;">₹ ${tx.amount.toLocaleString()}</p>
             <p class="ttimestamp" style="width: 20%; font-weight: bold; color: #6c757d;">${getDate(tx.transactionTime, true)}</p>
-            <p class="tstatus" style="width: 15%; margin-left: 0px; font-weight: bold; color: #2b0444;">${tx.status}</p>
+            <p class="tstatus" style="width: 15%; margin-left: 0px; font-weight: bold; color: #2b0444;">${tx.transactionStatus}</p>
             <p class="ttype" style="width: 10%; margin-left: 0px; color: ${tx.transactionType == 'Debit' ? 'red' : 'green'};">${tx.transactionType}</p>
             <p class="tfrom" style="width: 20%; margin-left: 40px; color: #2b0444;">${tx.transactionAccountNumber}</p>
         `;

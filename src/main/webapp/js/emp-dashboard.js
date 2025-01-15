@@ -1,7 +1,12 @@
 // dashboard api fetch
+let branchDetails, account;
 document.addEventListener("DOMContentLoaded", async _ => {
 	try {
 		const token = localStorage.getItem('token');
+		const role = localStorage.getItem('role');
+		if (role == 'Employee') {
+			document.getElementById('createBranchButton').style.display = 'none';
+		}
 		const response = await fetch('http://localhost:8080/Bank_Application/api/UserDashboard', {
 			method: 'GET',
 			headers: {
@@ -21,7 +26,8 @@ document.addEventListener("DOMContentLoaded", async _ => {
 			document.getElementById('lastUpdated').innerHTML = "Last Updated: " + getDate(modifiedAt, false);
 			// setting accounts dropdown
 			const accountsDropdown = document.querySelector('.accountsSelect');
-			let overAllBalance = 0, currentAccountIndex = 0, account = result.account[currentAccountIndex];
+			let overAllBalance = 0, currentAccountIndex = 0;
+			account = result.account[currentAccountIndex];
 
 			setValues(result.account[currentAccountIndex]);
 			result.account.forEach((account, index) => {
@@ -40,6 +46,7 @@ document.addEventListener("DOMContentLoaded", async _ => {
 				getTransactionsByAccountNumber(result, account.accountNumber)
 				setBranchDetails(result.branch, account.branchId);
 			});
+			branchDetails = result.branch;
 			setBranchDetails(result.branch, account.branchId);
 			getTransactionsByAccountNumber(result, account.accountNumber);
 			setFinanceDetails(result);
@@ -91,8 +98,13 @@ const setBranchDetails = (branches, branchId) => {
 				const key = keys[i];
 				const elements = document.getElementsByClassName('branch' + key);
 				for (let element of elements) {
-					element.innerText = branches[k][key];
+					if (element.tagName === 'INPUT' || element.tagName === 'TEXTAREA' || element.tagName === 'SELECT') {
+						element.value = branches[k][key];
+					} else {
+						element.innerText = branches[k][key];
+					}
 				}
+
 			}
 			break;
 		}
@@ -215,7 +227,7 @@ function addTransactionItems(transactions) {
 			<p class="ttimestamp"
 				style="width: 20%; font-weight: bold; color: #6c757d;">${getDate(tx.transactionTime, true)}</p>
 			<p class="tstatus"
-				style="width: 15%; font-weight: bold; color: #2b0444;">${tx.status}</p>
+				style="width: 15%; font-weight: bold; color: #2b0444;">${tx.transactionStatus}</p>
 			<p class="ttype" style="width: 10%; color: ${tx.transactionType == 'Debit' ? 'red' : 'green'};">${tx.transactionType}</p>
 			<p class="tremarks" style="width: 20%; color: #2b0444;">${tx.remarks}</p>			
         `;
@@ -223,3 +235,84 @@ function addTransactionItems(transactions) {
 		transactionHistory.appendChild(transactionItem);
 	});
 }
+
+const createBranch = _ => {
+	toggleModal('branchDetailsModal');
+	document.getElementById('branchIfscdiv').style.display = 'none';
+	const inputElements = document.querySelectorAll("#branchDetailsModal input");
+	const addressInput = document.getElementById('branchaddressInput');
+	inputElements.forEach(input => {
+		input.disabled = false;
+		input.value = '';
+		input.style.border = '1px solid #ccc';
+	})
+	addressInput.disabled = false;
+	addressInput.value = '';
+	addressInput.style.border = '1px solid #ccc';
+	document.getElementById('saveBranchButton').style.display = 'flex';
+}
+
+function saveBranch() {
+	const nameInput = document.querySelector(".branchname");
+	const contactInput = document.querySelector(".branchcontactNumber");
+	const addressInput = document.querySelector(".branchaddress");
+	const errorMessage = document.getElementById("branchMessage");
+
+	errorMessage.style.display = "none";
+
+	if (!nameInput.value.trim()) {
+		errorMessage.textContent = "Name cannot be empty.";
+		errorMessage.style.display = "block";
+		return;
+	}
+	if (!contactInput.value.trim()) {
+		errorMessage.textContent = "Contact cannot be empty.";
+		errorMessage.style.display = "block";
+		return;
+	}
+	if (!addressInput.value.trim()) {
+		errorMessage.textContent = "Address cannot be empty.";
+		errorMessage.style.display = "block";
+		return;
+	}
+
+	const branchData = {
+		name: nameInput.value.trim(),
+		contactNumber: contactInput.value.trim(),
+		address: addressInput.value.trim(),
+	};
+	sendToServer(branchData);
+}
+
+const sendToServer = async branchData => {
+	const token = localStorage.getItem('token');
+	const response = await fetch('http://localhost:8080/Bank_Application/api/Branch', {
+		method: 'POST',
+		headers: {
+			'Content-Type': 'application/json',
+			'Authorization': `Bearer ${token}`
+		},
+		body: JSON.stringify(branchData)
+	});
+	const result = await response.json();
+	console.log(result);
+	const successPop = document.getElementById('successPopup');
+	if (result.message == 'success') {
+		successPop.textContent = "Account created!";
+		successPop.style.backgroundColor = '#4CAF50';
+		successPop.style.color = 'white';
+		successPop.style.display = 'block';
+		setTimeout(() => {
+			successPop.style.display = 'none';
+			userIdInput.value = '';
+			balanceInput.value = '0.0';
+			accountTypeSelect.value = '';
+			toggleModal('newAccountModal');
+		}, 3000);
+	} else {
+		const errorMessage = document.getElementById('branchMessage');
+		errorMessage.style.display = 'block';
+		errorMessage.innerHTML = result.message;
+	}
+}
+

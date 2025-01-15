@@ -153,16 +153,16 @@ public class AccountDAO {
 	}
 
 	private List<Object> fetchJoinedAccounts(Map<String, Object> accountMap) throws CustomException {
-		Criteria staffJoinCriteria = DAOHelper.buildJoinCriteria(Account.class, Arrays.asList("branch"),
+		Criteria branchJoinCriteria = DAOHelper.buildJoinCriteria(Account.class, Arrays.asList("branch"),
 				new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), new ArrayList<>(),
 				new ArrayList<>(), " JOIN ", true);
-		staffJoinCriteria.setSelectColumn(Arrays.asList("account.*", "branch.name"));
+		branchJoinCriteria.setSelectColumn(Arrays.asList("account.*", "branch.name"));
 
-		DAOHelper.addJoinCondition(staffJoinCriteria, true, "account.branch_id", "EQUAL_TO", "branch.id");
-		applyAccountFilters(staffJoinCriteria, accountMap);
+		DAOHelper.addJoinCondition(branchJoinCriteria, true, "account.branch_id", "EQUAL_TO", "branch.id");
+		applyAccountFilters(branchJoinCriteria, accountMap);
 
 		try {
-			return SQLHelper.get(staffJoinCriteria);
+			return SQLHelper.get(branchJoinCriteria);
 		} catch (SQLException e) {
 			logger.error("Error while fetching account details: ", e);
 			throw new CustomException("Failed to fetch account details: ", HttpStatusCodes.INTERNAL_SERVER_ERROR);

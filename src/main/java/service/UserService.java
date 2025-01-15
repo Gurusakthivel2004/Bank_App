@@ -69,7 +69,7 @@ public class UserService {
 			throw e;
 		} catch (Exception e) {
 			logger.error("Unexpected error occurred during login.", e);
-			throw new CustomException("An unexpected error occurred. Please try again later.", e,
+			throw new CustomException("An unexpected error occurred. Please try again later.",
 					HttpStatusCodes.INTERNAL_SERVER_ERROR);
 		}
 	}

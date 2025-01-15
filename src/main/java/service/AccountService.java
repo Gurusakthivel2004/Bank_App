@@ -1,8 +1,6 @@
 package service;
 
 import java.util.Map;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -11,8 +9,6 @@ import java.math.BigDecimal;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
-import com.fasterxml.jackson.core.type.TypeReference;
 
 import Enum.Constants.HttpStatusCodes;
 import dao.AccountDAO;
@@ -95,60 +91,12 @@ public class AccountService {
 			}
 		}
 
-		String key = generateCacheKey(accountMap);
-		Map<Long, Map<String, Object>> cachedAccounts = cacheService.get(key,
-				new TypeReference<Map<Long, Map<String, Object>>>() {
-				});
-
-		Long cachedKey = extractLongFromString(key);
-		if (cachedAccounts != null && cachedAccounts.containsKey(cachedKey)) {
-			return cachedAccounts.get(cachedKey);
-		}
 		if (role.equals("Employee") && !accountMap.containsKey("branchId")) {
 			accountMap.put("branchId", (Long) Helper.getThreadLocalValue().get("branchId"));
 		}
 		Map<String, Object> accountsResult = accountDAO.getAccounts(accountMap);
-		if (!key.isEmpty()) {
-			saveToCache(key, cachedKey, accountsResult);
-		}
+
 		return accountsResult;
-	}
-
-	private String generateCacheKey(Map<String, Object> accountMap) {
-		if (accountMap == null) {
-			return "";
-		}
-		Long userId = Helper.parseLong(accountMap.getOrDefault("userId", "0"));
-		Long accountNumber = Helper.parseLong(accountMap.getOrDefault("accountNumber", "0"));
-		Long branchId = Helper.parseLong(accountMap.getOrDefault("branchId", "0"));
-		if (accountNumber == 0L && branchId == 0L) {
-			return "customerIdAccounts:" + userId;
-		} else if (userId == 0L && accountNumber == 0L) {
-			return "branchIdAccounts:" + branchId;
-		}
-		return "";
-	}
-
-	private Long extractLongFromString(String str) {
-		if (str == null || str.isEmpty()) {
-			return null;
-		}
-		Pattern pattern = Pattern.compile("\\d+");
-		Matcher matcher = pattern.matcher(str);
-		if (matcher.find()) {
-			try {
-				return Long.parseLong(matcher.group());
-			} catch (NumberFormatException e) {
-				logger.error("Number exceeds Long range.", e);
-				return null;
-			}
-		}
-		return null;
-	}
-
-	private void saveToCache(String key, Long accountCreated, Map<String, Object> accountMap) {
-		cacheService.save(key, accountMap);
-		logger.debug("Saved accounts to cache with key '{}'", key);
 	}
 
 }

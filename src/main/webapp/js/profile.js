@@ -54,11 +54,12 @@ const toggleModal = modalId => {
 		document.getElementById('accountbranchId').style.border = "0";
 		document.getElementById('branchSave').style.display = "none";
 		document.getElementById('statusSave').style.display = "none";
-		if (role == "Manager") {
-			if (modal.style.display === "flex") {
+
+		if (modal.style.display === "flex") {
+			if (role == "Manager") {
 				document.getElementById('branchEdit').style.display = "block";
-				document.getElementById('statusEdit').style.display = "block";
 			}
+			document.getElementById('statusEdit').style.display = "block";
 		}
 		document.getElementById('accountbranchId').disabled = true;
 		document.getElementById('dropdown').style.display = "none";
@@ -74,6 +75,19 @@ const toggleModal = modalId => {
 			input.disabled = false;
 			input.style.border = "0px solid ";
 		})
+	}
+	if (modalId == "branchDetailsModal") {
+		setBranchDetails(branchDetails, account.branchId);
+		const inputElements = document.querySelectorAll("#branchDetailsModal input");
+		const addressInput = document.getElementById('branchaddressInput');
+		inputElements.forEach(input => {
+			input.disabled = true;
+			input.style.border = '0px solid #ccc';
+		})
+		addressInput.disabled = true;
+		addressInput.style.border = '0px solid #ccc';
+		document.getElementById('saveBranchButton').style.display = 'none';
+		document.getElementById('branchIfscdiv').style.display = 'flex';
 	}
 }
 

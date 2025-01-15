@@ -377,20 +377,18 @@ async function saveAccount() {
 		successPop.style.backgroundColor = '#4CAF50';
 		successPop.style.color = 'white';
 		successPop.style.display = 'block';
+		setTimeout(() => {
+			successPop.style.display = 'none';
+			userIdInput.value = '';
+			balanceInput.value = '0.0';
+			accountTypeSelect.value = '';
+			toggleModal('newAccountModal');
+		}, 3000);	
 	} else {
-		successPop.textContent = result.message;
-		successPop.style.backgroundColor = 'red';
-		successPop.style.color = 'white';
-		successPop.style.display = 'block';
+		const errorMessage = document.getElementById('accountMessage');
+		errorMessage.style.display = 'block';
+		errorMessage.innerHTML = result.message;
 	}
-	setTimeout(() => {
-		successPop.style.display = 'none';
-	}, 3000);
-
-	userIdInput.value = '';
-	balanceInput.value = '0.0';
-	accountTypeSelect.value = '';
-	toggleModal('newAccountModal');
 }
 
 function fetchUserIdDetails(query) {
