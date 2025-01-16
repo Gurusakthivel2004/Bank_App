@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
@@ -55,80 +56,43 @@ public class TransactionDAO {
 		return txId;
 	}
 
-	public void removeFailedTransaction(Criteria criteria) throws CustomException {
+	public List<Transaction> getTransactions(Map<String, Object> txMap) throws CustomException {
+		Criteria criteria = getCriteria(txMap);
 		try {
-			SQLHelper.delete(criteria);
-		} catch (SQLException e) {
-			logger.error("Error while removing failed transaction: ", e);
-			throw new CustomException("Failed to remove failed transaction: ", HttpStatusCodes.INTERNAL_SERVER_ERROR);
-		}
-	}
-
-	public Map<String, Object> getTransactions(Map<String, Object> txMap) throws CustomException {
-		logger.info("Fetching transactions with provided filters...");
-		Criteria criteria = initializeCriteria();
-		criteria = applyBranchFilter(criteria, txMap);
-		applyTransactionFilters(criteria, txMap);
-		DAOHelper.applyAccountNumberFilter(criteria, txMap);
-		applyPagination(criteria, txMap);
-		return executeQuery(criteria, txMap);
-	}
-
-	private Criteria initializeCriteria() {
-		Criteria criteria = new Criteria().setClazz(Transaction.class).setOrderBy("DESC")
-				.setOrderByField("transaction_time").setSelectColumn(Arrays.asList("*"));
-		return criteria;
-	}
-
-	private void applyTransactionFilters(Criteria criteria, Map<String, Object> txMap) {
-		DAOHelper.addConditionIfPresent(criteria, txMap, "customerId", "customer_id", "EQUAL_TO", 0L);
-		DAOHelper.addConditionIfPresent(criteria, txMap, "from", "transaction_time", "GREATER_THAN", 0L);
-		DAOHelper.addConditionIfPresent(criteria, txMap, "to", "transaction_time", "LESS_THAN", 0L);
-		DAOHelper.addCondition(criteria, txMap.get("transactionType") != null, "transaction_type", "EQUAL_TO",
-				txMap.get("transactionType"));
-	}
-
-	private Criteria applyBranchFilter(Criteria criteria, Map<String, Object> txMap) {
-		if (!txMap.containsKey("branchId")) {
-			return criteria;
-		}
-		criteria = DAOHelper.buildJoinCriteria(Transaction.class, Arrays.asList("branch"), new ArrayList<>(),
-				new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), " JOIN ",
-				true);
-		criteria.setSelectColumn(Collections.singletonList("transaction.*"));
-		DAOHelper.addJoinCondition(criteria, true, "transaction.ifsc", "EQUAL_TO", "branch.ifsc_code");
-		DAOHelper.addCondition(criteria, true, "branch.id", "EQUAL_TO", txMap.get("branchId"));
-		return criteria;
-	}
-
-	private void applyPagination(Criteria criteria, Map<String, Object> txMap) {
-		Long limitValue = (Long) txMap.getOrDefault("limit", 0L);
-		Long offset = (Long) txMap.getOrDefault("offset", -1L);
-
-		if (limitValue > 0) {
-			criteria.setLimitValue(limitValue);
-		}
-		if (offset >= 0) {
-			criteria.setOffsetValue(offset == 0 ? -1L : offset);
-		}
-	}
-
-	private Map<String, Object> executeQuery(Criteria criteria, Map<String, Object> txMap) throws CustomException {
-		Map<String, Object> txResult = new HashMap<>();
-		Long offset = (Long) txMap.getOrDefault("offset", -1L);
-		try {
-			if (offset == 0) {
-				criteria.setOffsetValue(-1L).setAggregateFunction("COUNT").setAggregateOperator("*");
-				txResult.put("count", SQLHelper.get(criteria).get(0));
-				criteria.setOffsetValue(offset);
-			}
-			System.out.println(offset + " " + criteria);
-			txResult.put("transactions", SQLHelper.get(criteria));
+			return SQLHelper.get(criteria, Transaction.class);
 		} catch (SQLException e) {
 			logger.error("Error while fetching transaction details: ", e);
 			throw new CustomException("Failed to fetch transaction details: ", HttpStatusCodes.INTERNAL_SERVER_ERROR);
 		}
-		return txResult;
+	}
+
+	private Criteria getCriteria(Map<String, Object> txMap) throws CustomException {
+		Criteria criteria = new Criteria().setClazz(Transaction.class).setOrderBy("DESC")
+				.setOrderByField("transaction_time").setSelectColumn(Arrays.asList("*"));
+		criteria = DAOHelper.applyTransactionFilterBranch(criteria, txMap);
+		DAOHelper.applyTransactionFilters(criteria, txMap);
+		DAOHelper.applyAccountNumberFilter(criteria, txMap);
+		DAOHelper.applyPagination(criteria, txMap);
+		if (txMap.containsKey("offset")) {
+			criteria.setOffsetValue((Long) txMap.get("offset"));
+		}
+		return criteria;
+	}
+
+	public Long getDataCount(Map<String, Object> txMap) throws CustomException {
+		try {
+			Criteria criteria = getCriteria(txMap);
+			criteria.setOffsetValue(-1L).setAggregateFunction("COUNT").setAggregateOperator("*");
+			Long count = SQLHelper.getCount(criteria, Transaction.class);
+			if (count == 0) {
+				throw new CustomException("Unexpected error occured while fetching account details",
+						HttpStatusCodes.INTERNAL_SERVER_ERROR);
+			}
+			return count;
+		} catch (SQLException e) {
+			logger.error("Error while fetching account details: ", e);
+			throw new CustomException("Failed to fetch account details: ", HttpStatusCodes.INTERNAL_SERVER_ERROR);
+		}
 	}
 
 }

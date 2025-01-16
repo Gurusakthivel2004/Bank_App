@@ -11,11 +11,8 @@ import java.util.stream.Stream;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-
 import Enum.Constants.HttpStatusCodes;
 import dao.UserDAO;
-
 import model.ColumnCriteria;
 import model.CustomerDetail;
 import model.Staff;
@@ -31,17 +28,16 @@ public class UserService {
 	private static UserDAO userDAO = new UserDAO();
 	private CacheService cacheService = new CacheService();
 
-	@SuppressWarnings("unchecked")
 	public Map<String, Object> userLogin(String username, String password) throws CustomException {
 		logger.info("Attempting login for username: {}", username);
 
 		try {
-			Map<String, Object> users = checkPassword(username, password);
+			List<User> users = checkPassword(username, password);
 			if (users == null || users.isEmpty() || users.size() > 1) {
 				logger.warn("User not found or invalid credentials for username: {}", username);
 				throw new CustomException("Invalid username or password.", HttpStatusCodes.UNAUTHORIZED);
 			}
-			User user = (User) ((List<Object>) users.get("userDetail")).get(0);
+			User user = users.get(0);
 			Map<String, Object> userDetails = Stream
 					.of(new Object[][] { { "id", user.getId() }, { "fullname", user.getFullname() },
 							{ "username", user.getUsername() }, { "status", user.getStatus() },
@@ -54,10 +50,9 @@ public class UserService {
 				Map<String, Object> userMap = new HashMap<>();
 				userMap.put("userId", user.getId());
 				userMap.put("role", user.getRole());
-				Map<String, Object> staffDetails = userDAO.getUserDetails(userMap, Staff.class, false);
+				List<Staff> staffDetails = userDAO.getUserDetails(userMap, Staff.class, false);
 				if (!staffDetails.isEmpty()) {
-					userDetails.put("branchId",
-							((Staff) ((List<Object>) staffDetails.get("userDetail")).get(0)).getBranchId());
+					userDetails.put("branchId", staffDetails.get(0).getBranchId());
 				} else {
 					logger.warn("No staff details found for user with ID: {}", user.getId());
 				}
@@ -75,30 +70,20 @@ public class UserService {
 	}
 
 	@SuppressWarnings("unchecked")
-	private Map<String, Object> checkPassword(String username, String password) throws CustomException {
+	private List<User> checkPassword(String username, String password) throws CustomException {
 		logger.info("Validating password for user: {}", username);
 		try {
 			logger.debug("Fetching user for column: username and value: {}", username);
 			String key = "userDetails";
-			Map<String, Object> users = null;
-			Map<String, Map<String, Object>> cachedUserDetails = cacheService.get(key,
-					new TypeReference<Map<String, Map<String, Object>>>() {
-					});
-			if (cachedUserDetails != null && cachedUserDetails.containsKey(username)) {
-				logger.info("Fetching cached user details for username: {}", username);
-				return cachedUserDetails.get(username);
-			}
-			if (cachedUserDetails == null) {
-				cachedUserDetails = new HashMap<String, Map<String, Object>>();
-			}
+			List<User> users = null;
+
 			Map<String, Object> userMap = new HashMap<>();
 			userMap.put("username", username);
 			users = userDAO.getUserDetails(userMap, User.class, false);
-			cachedUserDetails.put(username, users);
-			cacheService.save(key, cachedUserDetails);
+
 			logger.debug("User details cached for username: {}", username);
 			logger.debug("Checking password match.");
-			User user = (User) ((List<Object>) users.get("userDetail")).get(0);
+			User user = users.get(0);
 
 			if (!Helper.checkPassword(password, user.getPassword())) {
 				logger.warn("Password mismatch for user: {}", username);
@@ -155,9 +140,20 @@ public class UserService {
 					clazz = (Class<T>) Staff.class;
 				}
 			}
-			return userDAO.getUserDetails(userMap, clazz, notExact);
+			Map<String, Object> usersResult = new HashMap<>();
+			Long offset = (Long) userMap.getOrDefault("offset", -1l);
+			if (offset != -1) {
+				if (offset == 0) {
+					Long count = userDAO.getDataCount(userMap, clazz, notExact);
+					usersResult.put("count", count);
+				}
+			}
+			List<T> users = userDAO.getUserDetails(userMap, clazz, notExact);
+			usersResult.put("users", users);
+
+			return usersResult;
 		} catch (CustomException e) {
-			logger.error("Error fetching user details. Error: {}", e.getMessage());
+			logger.error("Error fetching user details. Error: {}", e);
 			throw e;
 		} catch (Exception e) {
 			logger.error("Unexpected error occurred while fetching user details.", e);

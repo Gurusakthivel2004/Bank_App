@@ -28,7 +28,7 @@ import dao.DAOHelper;
 import model.ColumnCriteria;
 import model.Criteria;
 import model.JoinObject;
-
+import model.MarkedClass;
 import util.ColumnYamlUtil.ClassMapping;
 import util.ColumnYamlUtil.FieldMapping;
 
@@ -331,22 +331,75 @@ public class SQLHelper {
 	}
 
 	// @Get method
-	// table : name of the table.
 	// clazz : class of the pojo to be returned.
-	// columnCriteriaList : it contains the column and value to be updated.
-	// conditions : It contains the criteria that has to be included in that query
-	// (WHERE clause).
-	@SuppressWarnings("unchecked")
-	public static <T> List<Object> get(Criteria condition) throws CustomException, SQLException {
+	// condition : It contains the criteria that has to be included in that query
 
-		Helper.checkNullValues(condition);
-		Class<?> clazz = condition.getClazz();
-		Helper.checkNull(clazz, "Class type cannot be null.");
+	public static <T> List<T> get(Criteria condition, Class<T> clazz) throws CustomException, SQLException {
+		List<Object> conditionValues = new ArrayList<>();
+		StringBuilder selectSql = buildSelectQuery(condition, clazz, conditionValues);
+
+		try (Connection connection = DBConnection.getConnection();
+				PreparedStatement preparedStatement = getPreparedStatement(connection, selectSql.toString(),
+						conditionValues.toArray());
+				ResultSet resultSet = preparedStatement.executeQuery()) {
+
+			List<T> resultList = new ArrayList<>();
+			while (resultSet.next()) {
+				T instance = mapResultSetToObject(resultSet, clazz, null, getTableName(clazz), new ArrayList<>());
+				resultList.add(instance);
+			}
+			return resultList;
+		}
+	}
+
+	public static <T> List<JoinObject<T>> getJoinedObjects(Criteria condition, Class<T> clazz)
+			throws CustomException, SQLException {
+		List<Object> conditionValues = new ArrayList<>();
+		StringBuilder selectSql = buildSelectQuery(condition, clazz, conditionValues);
+
+		try (Connection connection = DBConnection.getConnection();
+				PreparedStatement preparedStatement = getPreparedStatement(connection, selectSql.toString(),
+						conditionValues.toArray());
+				ResultSet resultSet = preparedStatement.executeQuery()) {
+
+			List<JoinObject<T>> resultList = new ArrayList<>();
+			while (resultSet.next()) {
+				List<String> modifiedFields = new ArrayList<>();
+				T instance = mapResultSetToObject(resultSet, clazz, null, getTableName(clazz), modifiedFields);
+
+				JoinObject<T> joinInstance = mapLeftOverResultSet(resultSet, modifiedFields, instance, clazz);
+				resultList.add(joinInstance);
+			}
+			return resultList;
+		}
+	}
+
+	public static <T> Long getCount(Criteria condition, Class<T> clazz) throws CustomException, SQLException {
+		List<Object> conditionValues = new ArrayList<>();
+		StringBuilder selectSql = buildSelectQuery(condition, clazz, conditionValues);
+
+		try (Connection connection = DBConnection.getConnection();
+				PreparedStatement preparedStatement = getPreparedStatement(connection, selectSql.toString(),
+						conditionValues.toArray());
+				ResultSet resultSet = preparedStatement.executeQuery()) {
+			while (resultSet.next()) {
+				Object count = resultSet.getObject("COUNT(*)");
+				return (Long) count;
+			}
+			return 0l;
+		}
+	}
+
+	private static <T> String getTableName(Class<T> clazz) throws CustomException {
 		ClassMapping classMapping = ColumnYamlUtil.getMapping(clazz.getName());
 		Helper.validateClassMapping(clazz, classMapping);
+		return classMapping.getTableName();
+	}
 
-		String table = classMapping.getTableName();
-		Helper.validateTableName(table, clazz.getName());
+	private static <T> StringBuilder buildSelectQuery(Criteria condition, Class<T> clazz, List<Object> conditionValues)
+			throws CustomException {
+		String tableName = getTableName(clazz);
+		Helper.validateTableName(tableName, clazz.getName());
 
 		List<String> selectColumns = condition.getSelectColumn();
 		Helper.validateQueryConditions(selectColumns, "No columns to select.");
@@ -370,43 +423,22 @@ public class SQLHelper {
 				}
 			}
 		}
-		selectSql.append(" FROM ").append(table);
+		selectSql.append(" FROM ").append(tableName);
 
-		List<Object> conditionValues = new ArrayList<>();
 		if (condition.getColumn() != null) {
 			QueryBuilder(selectSql, condition, conditionValues);
 		}
-		List<Object> list = new ArrayList<>();
-		try (Connection connection = DBConnection.getConnection();
-				PreparedStatement preparedStatement = getPreparedStatement(connection, selectSql.toString(),
-						conditionValues.toArray());
-				ResultSet resultSet = preparedStatement.executeQuery()) {
-			while (resultSet.next()) {
-				if (condition.getOffsetValue() != null && condition.getOffsetValue() == -1) {
-					Object count = resultSet.getObject("COUNT(*)");
-					List<Object> counts = new ArrayList<Object>();
-					counts.add((Long) count);
-					return (List<Object>) counts;
-				}
-				List<String> modifiedFields = new ArrayList<>();
-				T instance = (T) mapResultSetToObject(resultSet, clazz, null, table, modifiedFields);
-				list.add(mapLeftOverResultSet(resultSet, modifiedFields, instance));
-			}
-			System.out.println(list);
-			return list;
-		}
 
+		return selectSql;
 	}
 
-	private static Object mapLeftOverResultSet(ResultSet resultSet, List<String> modifiedFields, Object instance)
-			throws CustomException {
+	private static <T> JoinObject<T> mapLeftOverResultSet(ResultSet resultSet, List<String> modifiedFields, T instance,
+			Class<T> clazz) throws CustomException {
 		try {
 			ResultSetMetaData metaData = resultSet.getMetaData();
 			int columnCount = metaData.getColumnCount();
-			if (columnCount == modifiedFields.size()) {
-				return instance;
-			}
-			JoinObject joininstance = new JoinObject(instance);
+
+			JoinObject<T> joininstance = new JoinObject<T>(instance);
 			for (int i = 1; i <= columnCount; i++) {
 				String columnName = metaData.getColumnLabel(i);
 				if (modifiedFields.contains(columnName)) {

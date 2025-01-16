@@ -61,7 +61,7 @@ public class FacadeHandler {
 			Map<String, Object> userMap = new HashMap<>();
 			userMap.put("role", role);
 			userMap.put("userId", id);
-			map.put("userDetail", userService.getUserDetails(userMap, false).get("userDetail"));
+			map.put("userDetail", userService.getUserDetails(userMap, false).get("users"));
 
 			// Fetch branch details for the accounts
 			logger.debug("Fetching branch details for user ID: {}", id);

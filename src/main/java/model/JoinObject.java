@@ -3,8 +3,8 @@ package model;
 import java.util.HashMap;
 import java.util.Map;
 
-public class JoinObject {
-	private Object instance;
+public class JoinObject<T> {
+	private T instance;
 	private Map<String, Object> joinedFields;
 
 	@Override
@@ -12,7 +12,7 @@ public class JoinObject {
 		return "JoinObject [instance=" + instance + ", joinedFields=" + joinedFields + "]";
 	}
 
-	public JoinObject(Object instance) {
+	public JoinObject(T instance) {
 		this.instance = instance;
 		this.joinedFields = new HashMap<>();
 	}

@@ -1,24 +1,24 @@
 package dao;
 
 import java.sql.SQLException;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-import model.*;
-
-import util.CustomException;
-import util.Helper;
-import util.SQLHelper;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import Enum.Constants.HttpStatusCodes;
+
+import model.ColumnCriteria;
+import model.Criteria;
+import model.CustomerDetail;
+import model.MarkedClass;
+import model.Staff;
+import model.User;
+
+import util.CustomException;
+import util.Helper;
+import util.SQLHelper;
 
 public class UserDAO {
 
@@ -54,7 +54,7 @@ public class UserDAO {
 		columnCriteria.getValues().add(System.currentTimeMillis());
 
 		Criteria criteria = new Criteria().setClazz(clazz);
-		applyUserFilters(criteria, userMap);
+		DAOHelper.applyUserFilters(criteria, userMap);
 
 		try {
 			SQLHelper.update(columnCriteria, criteria);
@@ -66,101 +66,29 @@ public class UserDAO {
 		}
 	}
 
-	public <T extends MarkedClass> void removeUser(Class<T> clazz) throws CustomException {
-		logger.info("Removing {}.", clazz.getSimpleName());
-		ColumnCriteria columnCriteria = new ColumnCriteria().setFields(Arrays.asList("status"))
-				.setValues(Arrays.asList("Inactive"));
-
-		Criteria criteria = DAOHelper.buildCriteria(clazz, Arrays.asList("id"), Arrays.asList("EQUAL_TO"),
-				Arrays.asList(Helper.getThreadLocalValue().get("id")));
-		try {
-			SQLHelper.update(columnCriteria, criteria);
-			logger.info("{} removed successfully.", clazz.getSimpleName());
-		} catch (SQLException e) {
-			logger.error("Error while removing {}: ", clazz.getSimpleName(), e);
-			throw new CustomException("Failed to remove " + clazz.getSimpleName() + ".",
-					HttpStatusCodes.INTERNAL_SERVER_ERROR);
-		}
-	}
-
-	public <T extends MarkedClass> Map<String, Object> getUserDetails(Map<String, Object> userMap, Class<T> clazz,
-			boolean notExact) throws CustomException {
+	public <T extends User> List<T> getUserDetails(Map<String, Object> userMap, Class<T> clazz, boolean notExact)
+			throws CustomException {
 		logger.info("Fetching {} details.", clazz.getSimpleName());
-		Criteria criteria = buildUserCriteria(userMap, clazz, notExact);
-		Map<String, Object> result = new HashMap<>();
-		Long offset = (Long) userMap.getOrDefault("offset", -1L);
+		Criteria criteria = DAOHelper.buildUserCriteria(userMap, clazz, notExact);
 		try {
-			if (offset == 0) {
-				criteria.setOffsetValue(-1L).setAggregateFunction("COUNT").setAggregateOperator("*");
-				result.put("count", SQLHelper.get(criteria).get(0));
-			}
-			if (offset >= 0) {
-				criteria.setOffsetValue(offset);
-			}
-			result.put("userDetail", SQLHelper.get(criteria));
-			return result;
+			return SQLHelper.get(criteria, clazz);
 		} catch (SQLException e) {
 			logger.error("Error while fetching user details {}: ", clazz.getSimpleName(), e);
 			throw new CustomException("Failed to fetch user details.", HttpStatusCodes.INTERNAL_SERVER_ERROR);
 		}
 	}
 
-	private <T extends MarkedClass> Criteria buildUserCriteria(Map<String, Object> userMap, Class<T> clazz,
-			boolean notExact) {
-		Criteria criteria = new Criteria();
-		if (notExact) {
-			Long userId = (Long) userMap.get("userId");
-			criteria.setClazz(clazz).setSelectColumn(Arrays.asList("*")).setColumn(Arrays.asList("id", "id"))
-					.setOperator(Arrays.asList("EQUAL_TO", "LIKE")).setValue(Arrays.asList(userId, "%" + userId + "%"))
-					.setLimitValue(5).setLogicalOperator("OR");
-		} else if (userMap.containsKey("role") && userMap.containsKey("userId")) {
-			String role = (String) userMap.get("role");
-			Long userId = (Long) userMap.get("userId");
-			if (role.equals("Customer")) {
-				criteria = DAOHelper.buildJoinCriteria(CustomerDetail.class, Arrays.asList("customer", "user"),
-						Arrays.asList("customerDetail.user_id", "customer.user_id"),
-						Arrays.asList("EQUAL_TO", "EQUAL_TO"), Arrays.asList("customer.user_id", "user.id"),
-						Arrays.asList("customerDetail.user_id"), Arrays.asList("EQUAL_TO"), Arrays.asList(userId));
-				criteria.setJoin(" JOIN ");
-			} else {
-				criteria = DAOHelper.buildJoinCriteria(Staff.class, Arrays.asList("user"),
-						Arrays.asList("staff.user_id"), Arrays.asList("EQUAL_TO"), Arrays.asList("user.id"),
-						Arrays.asList("staff.user_id"), Arrays.asList("EQUAL_TO"), Arrays.asList(userId));
-				criteria.setJoin(" JOIN ");
-			}
-		} else {
-			criteria = DAOHelper
-					.buildCriteria(clazz, Arrays.asList("user.username"), Arrays.asList("EQUAL_TO"),
-							Arrays.asList(userMap.get("username")))
-					.setSelectColumn(Arrays.asList("user.*")).setColumn(new ArrayList<>()).setValue(new ArrayList<>())
-					.setOperator(new ArrayList<>());
-			criteria = applyBranchFilter(criteria, userMap);
-			applyUserFilters(criteria, userMap);
+	public <T extends MarkedClass> Long getDataCount(Map<String, Object> userMap, Class<T> clazz, boolean notExact)
+			throws CustomException {
+		try {
+			Criteria criteria = DAOHelper.buildUserCriteria(userMap, clazz, notExact);
+			criteria.setOffsetValue(-1L).setAggregateFunction("COUNT").setAggregateOperator("*");
+			Long count = SQLHelper.getCount(criteria, clazz);
+			return count;
+		} catch (SQLException e) {
+			logger.error("Error while fetching account details: ", e);
+			throw new CustomException("Failed to fetch account details: ", HttpStatusCodes.INTERNAL_SERVER_ERROR);
 		}
-		if (userMap.containsKey("limit")) {
-			criteria.setLimitValue(userMap.get("limit"));
-		}
-		return criteria;
 	}
 
-	private void applyUserFilters(Criteria criteria, Map<String, Object> userMap) {
-		DAOHelper.addConditionIfPresent(criteria, userMap, "userId", "user.id", "EQUAL_TO", 0L);
-		DAOHelper.addConditionIfPresent(criteria, userMap, "username", "user.username", "EQUAL_TO", "");
-		DAOHelper.addConditionIfPresent(criteria, userMap, "role", "user.role", "EQUAL_TO", 0L);
-		DAOHelper.addConditionIfPresent(criteria, userMap, "status", "user.status", "EQUAL_TO", "");
-	}
-
-	private Criteria applyBranchFilter(Criteria criteria, Map<String, Object> userMap) {
-		if (!userMap.containsKey("branchId")) {
-			return criteria;
-		}
-		List<String> joinTable = new ArrayList<>(Arrays.asList("account", "customer", "customerDetail", "staff"));
-		criteria = DAOHelper
-				.buildJoinCriteria(User.class, joinTable, new ArrayList<>(), new ArrayList<>(), new ArrayList<>(),
-						new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), " LEFT JOIN ", true)
-				.setSelectColumn(Collections.singletonList("user.*"));
-		DAOHelper.addJoinCondition(criteria, true, "account.user_id", "EQUAL_TO", "user.id");
-		DAOHelper.addConditionIfPresent(criteria, userMap, "branchId", "account.branch_id", "EQUAL_TO", 0L);
-		return criteria;
-	}
 }

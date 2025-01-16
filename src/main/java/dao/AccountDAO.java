@@ -6,8 +6,6 @@ import java.sql.SQLException;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -18,6 +16,7 @@ import Enum.Constants.HttpStatusCodes;
 
 import model.Account;
 import model.Criteria;
+import model.JoinObject;
 import model.ColumnCriteria;
 
 import util.CustomException;
@@ -28,45 +27,64 @@ public class AccountDAO {
 	private static final Logger logger = LogManager.getLogger(AccountDAO.class);
 
 	public <T> void updateAccount(ColumnCriteria columnCriteria, String column, Object value) throws CustomException {
-		logger.info("Updating account with ColumnCriteria: {}", columnCriteria);
 		try {
 			Criteria criteria = new Criteria().setClazz(Account.class);
 			DAOHelper.addCondition(criteria, value != null, column, "EQUAL_TO", value);
 
 			SQLHelper.update(columnCriteria, criteria);
-			logger.info("Account updated successfully.");
 		} catch (SQLException e) {
 			logger.error("Error updating account.", e);
 			throw new CustomException("Failed to update account", HttpStatusCodes.INTERNAL_SERVER_ERROR);
 		}
 	}
 
-	public void removeAccount(Map<String, Object> accountMap) throws CustomException {
-		Long accountId = (Long) accountMap.get("accountId");
-		logger.info("Removing account with accoutnId: {}", accountId);
+	public List<Account> getAccounts(Map<String, Object> accountMap) throws CustomException {
+		Criteria criteria = DAOHelper.getAccountCriteria(accountMap);
 		try {
-			ColumnCriteria columnCriteria = new ColumnCriteria().setFields(Arrays.asList("status"))
-					.setValues(Arrays.asList("Suspended"));
-
-			Criteria criteria = new Criteria().setClazz(Account.class);
-
-			DAOHelper.addCondition(criteria, accountId > 0, "account_id", "EQUAL_TO", accountId);
-
-			logger.debug("Criteria for removing account: {}", criteria);
-			updateAccount(columnCriteria, "account_id", accountId);
-
-			logger.info("Account suspended successfully.");
-		} catch (CustomException e) {
-			logger.error("Error removing account.", e);
-			throw new CustomException("Failed to remove account.", HttpStatusCodes.INTERNAL_SERVER_ERROR);
+			return SQLHelper.get(criteria, Account.class);
+		} catch (SQLException e) {
+			logger.error("Error while fetching account details: ", e);
+			throw new CustomException("Failed to fetch account details: ", HttpStatusCodes.INTERNAL_SERVER_ERROR);
 		}
 	}
 
-	public void createAccount(Account account) throws CustomException {
+	public Long getDataCount(Map<String, Object> accountMap) throws CustomException {
+		try {
+			Criteria criteria = DAOHelper.getAccountCriteria(accountMap);
+			criteria.setOffsetValue(-1L).setAggregateFunction("COUNT").setAggregateOperator("*");
+			Long count = SQLHelper.getCount(criteria, Account.class);
+			if (count == 0) {
+				throw new CustomException("Unexpected error occured while fetching account details",
+						HttpStatusCodes.INTERNAL_SERVER_ERROR);
+			}
+			return count;
+		} catch (SQLException e) {
+			logger.error("Error while fetching account details: ", e);
+			throw new CustomException("Failed to fetch account details: ", HttpStatusCodes.INTERNAL_SERVER_ERROR);
+		}
+	}
+
+	public List<JoinObject<Account>> getJoinedAccounts(Map<String, Object> accountMap) throws CustomException {
+		Criteria branchJoinCriteria = DAOHelper.buildJoinCriteria(Account.class, Arrays.asList("branch"),
+				new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), new ArrayList<>(),
+				new ArrayList<>(), " JOIN ", true);
+		branchJoinCriteria.setSelectColumn(Arrays.asList("account.*", "branch.name"));
+
+		DAOHelper.addJoinCondition(branchJoinCriteria, true, "account.branch_id", "EQUAL_TO", "branch.id");
+		DAOHelper.applyAccountFilters(branchJoinCriteria, accountMap);
+
+		try {
+			return SQLHelper.getJoinedObjects(branchJoinCriteria, Account.class);
+		} catch (SQLException e) {
+			logger.error("Error while fetching account details: ", e);
+			throw new CustomException("Failed to fetch account details: ", HttpStatusCodes.INTERNAL_SERVER_ERROR);
+		}
+	}
+
+	public void create(Account account) throws CustomException {
 		logger.info("Creating account: {}", account);
 		try {
 			account.setCreatedAt(System.currentTimeMillis());
-			logger.debug("Account creation timestamp set: {}", account.getCreatedAt());
 
 			Long accountId = ((BigInteger) SQLHelper.insert(account)).longValue();
 			logger.debug("Account ID generated: {}", accountId);
@@ -76,96 +94,15 @@ public class AccountDAO {
 					+ String.format("%04d", accountId);
 			columnCriteria.setValues(Arrays.asList(Long.parseLong(accountNumber)));
 
-			logger.debug("Account number generated: {}", accountNumber);
-
 			Criteria criteria = new Criteria().setClazz(Account.class);
 			criteria.getColumn().add("account_id");
 			criteria.getOperator().add("EQUAL_TO");
 			criteria.getValue().add(accountId);
 
 			updateAccount(columnCriteria, "account_id", accountId);
-			logger.info("Account created successfully: {}", account);
 		} catch (Exception e) {
 			logger.error("Error creating account: {}", account, e);
 			throw new CustomException("Failed to create account", HttpStatusCodes.INTERNAL_SERVER_ERROR);
-		}
-	}
-
-	public Map<String, Object> getAccounts(Map<String, Object> accountMap) throws CustomException {
-		logger.info("Fetching accounts with parameters: {}", accountMap);
-		Criteria criteria = DAOHelper.initializeCriteria(Account.class);
-		criteria = applyBranchFilter(criteria, accountMap);
-		applyAccountFilters(criteria, accountMap);
-		applyPagination(criteria, accountMap);
-
-		Map<String, Object> result = new HashMap<>();
-
-		Long offset = (Long) accountMap.getOrDefault("offset", -1L);
-		try {
-			if (offset == 0) {
-				criteria.setOffsetValue(-1L).setAggregateFunction("COUNT").setAggregateOperator("*");
-				result.put("count", SQLHelper.get(criteria).get(0));
-				criteria.setOffsetValue(offset);
-				result.put("joinedAccounts", fetchJoinedAccounts(accountMap));
-			} else {
-				result.put("accounts", SQLHelper.get(criteria));
-			}
-			return result;
-		} catch (SQLException e) {
-			logger.error("Error while fetching account details: ", e);
-			throw new CustomException("Failed to fetch account details: ", HttpStatusCodes.INTERNAL_SERVER_ERROR);
-		}
-
-	}
-
-	private void applyAccountFilters(Criteria criteria, Map<String, Object> accountMap) {
-		DAOHelper.addConditionIfPresent(criteria, accountMap, "userId", "user_id", "EQUAL_TO", 0L);
-		DAOHelper.addConditionIfPresent(criteria, accountMap, "branchId", "branch_id", "EQUAL_TO", 0L);
-		DAOHelper.addConditionIfPresent(criteria, accountMap, "accountCreated", "created_at", "EQUAL_TO", 0L);
-		DAOHelper.addCondition(criteria, accountMap.get("accountType") != null, "account_type", "EQUAL_TO",
-				accountMap.get("accountType"));
-		DAOHelper.addCondition(criteria, accountMap.get("status") != null, "status", "EQUAL_TO",
-				accountMap.get("status"));
-		DAOHelper.applyAccountNumberFilter(criteria, accountMap);
-	}
-
-	private Criteria applyBranchFilter(Criteria criteria, Map<String, Object> accountMap) {
-		if (!accountMap.containsKey("branchId")) {
-			return criteria;
-		}
-		criteria = DAOHelper.buildJoinCriteria(Account.class, Arrays.asList("branch"), new ArrayList<>(),
-				new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), " JOIN ",
-				true);
-		criteria.setSelectColumn(Collections.singletonList("account.*"));
-		DAOHelper.addJoinCondition(criteria, true, "account.branch_id", "EQUAL_TO", "branch.id");
-		return criteria;
-	}
-
-	private void applyPagination(Criteria criteria, Map<String, Object> accountMap) {
-		Long limit = (Long) accountMap.getOrDefault("limit", 0L);
-		Long offset = (Long) accountMap.getOrDefault("offset", -1L);
-		if (limit > 0) {
-			criteria.setLimitValue(limit);
-		}
-		if (offset >= 0) {
-			criteria.setOffsetValue(offset == 0 ? -1L : offset);
-		}
-	}
-
-	private List<Object> fetchJoinedAccounts(Map<String, Object> accountMap) throws CustomException {
-		Criteria branchJoinCriteria = DAOHelper.buildJoinCriteria(Account.class, Arrays.asList("branch"),
-				new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), new ArrayList<>(),
-				new ArrayList<>(), " JOIN ", true);
-		branchJoinCriteria.setSelectColumn(Arrays.asList("account.*", "branch.name"));
-
-		DAOHelper.addJoinCondition(branchJoinCriteria, true, "account.branch_id", "EQUAL_TO", "branch.id");
-		applyAccountFilters(branchJoinCriteria, accountMap);
-
-		try {
-			return SQLHelper.get(branchJoinCriteria);
-		} catch (SQLException e) {
-			logger.error("Error while fetching account details: ", e);
-			throw new CustomException("Failed to fetch account details: ", HttpStatusCodes.INTERNAL_SERVER_ERROR);
 		}
 	}
 

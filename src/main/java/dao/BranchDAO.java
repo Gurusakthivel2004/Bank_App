@@ -2,7 +2,6 @@ package dao;
 
 import java.math.BigInteger;
 import java.sql.SQLException;
-
 import java.util.Arrays;
 import java.util.List;
 
@@ -10,11 +9,9 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import Enum.Constants.HttpStatusCodes;
-
 import model.Branch;
 import model.ColumnCriteria;
 import model.Criteria;
-
 import util.CustomException;
 import util.Helper;
 import util.SQLHelper;
@@ -59,7 +56,7 @@ public class BranchDAO {
 		}
 	}
 
-	public List<Object> getBranch(Long branchId, boolean notExact) throws CustomException {
+	public List<Branch> getBranch(Long branchId, boolean notExact) throws CustomException {
 		logger.info("Fetching branch details for ID: " + branchId);
 		Criteria criteria = DAOHelper.createCriteria(Branch.class, "id", "EQUAL_TO", branchId)
 				.setSelectColumn(Arrays.asList("*"));
@@ -69,7 +66,7 @@ public class BranchDAO {
 						.setValue(Arrays.asList(branchId, "%" + branchId + "%")).setLimitValue(1)
 						.setLogicalOperator("OR");
 			}
-			List<Object> branches = SQLHelper.get(criteria);
+			List<Branch> branches = SQLHelper.get(criteria, Branch.class);
 			if (branches.isEmpty()) {
 				throw new CustomException("No result found for the id " + branchId, HttpStatusCodes.BAD_REQUEST);
 			}

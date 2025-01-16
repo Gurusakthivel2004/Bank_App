@@ -181,7 +181,7 @@ const accountClick = async account => {
 	});
 	const result = await userDetailsResponse.json();
 	console.log(result);
-	const userResult = result['userDetail'];
+	const userResult = result['users'];
 	document.getElementById('accountbranchId').value = account.branchId;
 	document.getElementById('accountfullname').innerText = userResult[0].fullname;
 	document.getElementById('accountphone').innerText = userResult[0].phone;

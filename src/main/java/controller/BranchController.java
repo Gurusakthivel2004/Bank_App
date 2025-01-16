@@ -10,6 +10,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.JsonObject;
 
 import Enum.Constants.HttpStatusCodes;
+import model.Branch;
 import service.BranchService;
 import util.CustomException;
 import util.Helper;
@@ -39,7 +40,7 @@ public class BranchController {
 			if (branchId == 0L) {
 				throw new CustomException("Invalid branch id ", HttpStatusCodes.BAD_REQUEST);
 			}
-			List<Object> branches = branchService.getBranchDetails(branchId, notExact != null);
+			List<Branch> branches = branchService.getBranchDetails(branchId, notExact != null);
 			ObjectMapper mapper = new ObjectMapper();
 			String jsonResponse = mapper.writeValueAsString(branches);
 			out.write(jsonResponse);

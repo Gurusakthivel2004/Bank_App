@@ -10,19 +10,24 @@ import java.math.BigDecimal;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+
 import Enum.Constants.HttpStatusCodes;
 import dao.AccountDAO;
 
 import model.Account;
 import model.ColumnCriteria;
-
+import model.JoinModel;
+import model.JoinObject;
 import util.CustomException;
 import util.Helper;
 
 public class AccountService {
 
 	private final Logger logger = LogManager.getLogger(AccountService.class);
+
 	private AccountDAO accountDAO = new AccountDAO();
+
 	private CacheService cacheService = new CacheService();
 
 	@SuppressWarnings("unchecked")
@@ -48,7 +53,7 @@ public class AccountService {
 		Account account = Helper.createPojoFromMap(accountMap, Account.class);
 		logger.debug("Converted accountMap to Account object: {}", account);
 
-		accountDAO.createAccount(account);
+		accountDAO.create(account);
 		logger.info("Account successfully created with accountNumber: {}", account.getAccountNumber());
 
 	}
@@ -65,22 +70,26 @@ public class AccountService {
 
 	}
 
-	public void deleteAccount(Map<String, Object> accountMap) throws CustomException {
-		logger.info("Attempting to delete account");
-
-		Map<String, Object> accounts = accountDAO.getAccounts(accountMap);
-		if (accounts.isEmpty()) {
-			throw new CustomException("Account not found", HttpStatusCodes.NOT_FOUND);
-		}
-		accountDAO.removeAccount(accountMap);
-		logger.info("Account successfully deleted");
-
-	}
-
 	public Map<String, Object> getAccountDetails(Map<String, Object> accountMap) throws CustomException {
 		Long customerId = Helper.parseLong(accountMap.getOrDefault("userId", "0"));
 		Long branchId = Helper.parseLong(accountMap.getOrDefault("branchId", "0"));
 		String role = (String) Helper.getThreadLocalValue().get("role");
+
+//		String key = "accountInfo";
+//		Map<Long, List<Object>> cachedAccount = cacheService.get(key, new TypeReference<Map<Long, List<Object>>>() {
+//		});
+
+//		if (cachedAccount != null && accountMap.containsKey("accountNumber")) {
+//			Long accountNumber = accountMap.get("accountNumber");
+//			if (cachedAccount.containsKey(accountNumber)) {
+//				logger.info("Account details for account Number: {} found in cache", branchId);
+//				return (List<Object>) cachedAccount.get(accountNumber);
+//			}
+//			logger.info("Adding branchId: {} to existing cachedBranch map", branchId);
+//		} else {
+//			logger.info("No existing cache found for key: {}. Initializing new map.", key);
+//			cachedBranch = new HashMap<>();
+//		}
 
 		if (!(accountMap.containsKey("accountNumber") || branchId > 0 && role.equals("Manager"))) {
 			if (customerId == null || customerId == -1) {
@@ -94,7 +103,19 @@ public class AccountService {
 		if (role.equals("Employee") && !accountMap.containsKey("branchId")) {
 			accountMap.put("branchId", (Long) Helper.getThreadLocalValue().get("branchId"));
 		}
-		Map<String, Object> accountsResult = accountDAO.getAccounts(accountMap);
+		Map<String, Object> accountsResult = new HashMap<>();
+		Long offset = (Long) accountMap.getOrDefault("offset", -1l);
+		if (offset != -1) {
+			if (offset == 0) {
+				Long count = accountDAO.getDataCount(accountMap);
+				accountsResult.put("count", count);
+			}
+			List<JoinObject<Account>> joinModels = accountDAO.getJoinedAccounts(accountMap);
+			accountsResult.put("joinedAccounts", joinModels);
+		} else {
+			List<Account> accounts = accountDAO.getAccounts(accountMap);
+			accountsResult.put("accounts", accounts);
+		}
 
 		return accountsResult;
 	}

@@ -32,7 +32,7 @@ async function fetchUsers() {
 			});
 
 			const usersResult = await response.json();
-			const users = usersResult['userDetail'];
+			const users = usersResult['users'];
 			console.log(usersResult);
 
 			usersCount = filterOffset == 0 ? usersResult["count"] : usersCount;
@@ -197,7 +197,7 @@ const userClick = async user => {
 	});
 	const result = await userDetailsResponse.json();
 	console.log(result);
-	const userResult = result['userDetail'][0];
+	const userResult = result['users'][0];
 	if (user.role != "Customer") {
 		document.getElementById('customerDetails').style.display = 'none';
 		document.getElementById('addressDiv').style.display = 'none';

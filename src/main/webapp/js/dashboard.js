@@ -126,6 +126,7 @@ const setAmount = (i, months, result) => {
 	setDefault();
 	for (let j = 0; j < keys.length; j++) {
 		const htmlclass = document.getElementById(keys[j]);
+		if (htmlclass == null) return;
 		htmlclass.textContent = '₹ ' + result[month + ''][keys[j]];
 		const credit = parseInt(result[month + '']['Credit']);
 		const debit = parseInt(result[month + '']['Debit']);

@@ -26,7 +26,7 @@ const handleSubmit = async (event) => {
 	if (role !== "Customer") {
 		transactionType = document.getElementById('type').value;
 	}
-
+	
 	let accountNumber = '';
 	if (role != 'Customer') {
 		accountNumber = document.getElementById('account').value;
@@ -49,14 +49,15 @@ const handleSubmit = async (event) => {
 		transactionType: transactionType
 	}
 	console.log(transactionData);
-
+	if (accountNumber == transactionAccountNumber) {
+		displayInvalidAccount("Cannot make a transaction to same account.");
+		return;
+	}
 	if (validAccounts.includes(accountNumber) == false) {
-		console.log('1');
-		displayInvalidAccount();
+		displayInvalidAccount("Enter valid account number.");
 		return;
 	} else if (bankName == "Horizon" && !validAccounts.includes(transactionAccountNumber)) {
-		console.log('2');
-		displayInvalidAccount();
+		displayInvalidAccount("Enter valid account number.");
 		return;
 	} else {
 		console.log(transactionData);
@@ -78,15 +79,16 @@ const handleSubmit = async (event) => {
 			successPop.style.backgroundColor = '#4CAF50';
 			successPop.style.color = 'white';
 			successPop.style.display = 'block';
+			setTimeout(() => {
+				successPop.style.display = 'none';
+				window.location.reload();
+			}, 3000);
 		} else {
 			const errorMessage = document.getElementById('errorMessage');
 			errorMessage.style.display = 'block';
 			errorMessage.innerHTML = result.message;
 		}
-		setTimeout(() => {
-			successPop.style.display = 'none';
-			window.location.reload();
-		}, 3000);
+
 	}
 };
 
@@ -111,10 +113,10 @@ const toggleBankDropdown = () => {
 	}
 }
 
-const displayInvalidAccount = _ => {
+const displayInvalidAccount = msg => {
 	const errorMessage = document.getElementById('errorMessage');
 	errorMessage.style.display = 'block';
-	errorMessage.innerHTML = "Enter valid account number.";
+	errorMessage.innerHTML = msg;
 }
 
 document.getElementById('type').addEventListener("change", function(event) {
@@ -156,8 +158,6 @@ document.addEventListener("DOMContentLoaded", () => {
 	});
 
 });
-
-
 
 const handleInputDropdown = accountInput => {
 	const suggestionsBox = document.createElement("div");

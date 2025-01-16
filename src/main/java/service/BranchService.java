@@ -25,16 +25,16 @@ public class BranchService {
 
 	private static BranchDAO branchDAO = new BranchDAO();
 
-	public List<Object> getBranchDetails(Long branchId, boolean notExact) throws CustomException {
+	public List<Branch> getBranchDetails(Long branchId, boolean notExact) throws CustomException {
 		logger.info("Fetching branch details for branchId: {}", branchId);
 		String key = "branchInfo";
-		Map<Long, List<Object>> cachedBranch = cacheService.get(key, new TypeReference<Map<Long, List<Object>>>() {
+		Map<Long, List<Branch>> cachedBranch = cacheService.get(key, new TypeReference<Map<Long, List<Branch>>>() {
 		});
 
 		if (cachedBranch != null) {
 			if (cachedBranch.containsKey(branchId)) {
 				logger.info("Branch details for branchId: {} found in cache", branchId);
-				return (List<Object>) cachedBranch.get(branchId);
+				return (List<Branch>) cachedBranch.get(branchId);
 			}
 			logger.info("Adding branchId: {} to existing cachedBranch map", branchId);
 		} else {
@@ -42,7 +42,7 @@ public class BranchService {
 			cachedBranch = new HashMap<>();
 		}
 
-		List<Object> branches = branchDAO.getBranch(branchId, notExact);
+		List<Branch> branches = branchDAO.getBranch(branchId, notExact);
 		if (branches.isEmpty()) {
 			logger.warn("No branch details found for branchId: {}", branchId);
 			throw new CustomException("No branch details found for branchId: " + branchId, HttpStatusCodes.BAD_REQUEST);
@@ -57,7 +57,6 @@ public class BranchService {
 
 	public void createBranch(Map<String, Object> branchMap) throws CustomException {
 		logger.info("Creating a new branch with data: {}", branchMap);
-		logger.debug("Populated branchMap with additional data: {}", branchMap);
 
 		Branch branch = Helper.createPojoFromMap(branchMap, Branch.class);
 		logger.debug("Converted branchMap to Branch object: {}", branch);

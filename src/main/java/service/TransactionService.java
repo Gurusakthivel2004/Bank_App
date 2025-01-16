@@ -14,6 +14,7 @@ import org.apache.logging.log4j.Logger;
 import Enum.Constants.HttpStatusCodes;
 import Enum.Constants.TransactionStatus;
 import Enum.Constants.TransactionType;
+
 import dao.AccountDAO;
 import dao.BranchDAO;
 import dao.TransactionDAO;
@@ -51,7 +52,16 @@ public class TransactionService {
 			}
 
 			txMap.put("accountNumber", accountNumber);
-			Map<String, Object> txResult = transactionDAO.getTransactions(txMap);
+
+			Map<String, Object> txResult = new HashMap<>();
+			Long offset = (Long) txMap.getOrDefault("offset", -1l);
+			if (offset == 0) {
+				Long count = transactionDAO.getDataCount(txMap);
+				txResult.put("count", count);
+			}
+			List<Transaction> transactions = transactionDAO.getTransactions(txMap);
+			txResult.put("transactions", transactions);
+
 			return txResult;
 
 		} catch (Exception e) {
@@ -61,11 +71,10 @@ public class TransactionService {
 		}
 	}
 
-	@SuppressWarnings("unchecked")
 	private Account fetchPrimaryAccount(Long customerId) throws CustomException {
 		Map<String, Object> accountMap = new HashMap<>();
 		accountMap.put("userId", customerId);
-		List<Account> accounts = (List<Account>) new AccountDAO().getAccounts(accountMap).get("accounts");
+		List<Account> accounts = new AccountDAO().getAccounts(accountMap);
 		if (accounts == null || accounts.isEmpty()) {
 			logger.error("No Accounts found for user {}", customerId);
 			throw new CustomException("No accounts found for user " + customerId, HttpStatusCodes.NOT_FOUND);
@@ -75,10 +84,8 @@ public class TransactionService {
 						HttpStatusCodes.NOT_FOUND));
 	}
 
-	@SuppressWarnings("unchecked")
 	public void prepareTransaction(Map<String, Object> transactionMap) throws CustomException {
 		logger.info("Initiating transaction creation...");
-		AccountService accountDAO = new AccountService();
 		List<Account> accounts;
 		Map<String, Object> accountMap = new HashMap<>();
 		long branchId = Long.parseLong((String) transactionMap.get("branchId"));
@@ -86,7 +93,7 @@ public class TransactionService {
 		logger.debug("Employee role detected. Verifying branch ID for accounts...");
 
 		accountMap.put("accountNumber", accountNumber);
-		accounts = (List<Account>) accountDAO.getAccountDetails(accountMap).get("accounts");
+		accounts = new AccountDAO().getAccounts(accountMap);
 		Account account = accounts.get(0);
 		long customerId = account.getUserId();
 		try {
@@ -105,10 +112,15 @@ public class TransactionService {
 				throw new CustomException("Invalid account", HttpStatusCodes.BAD_REQUEST);
 			}
 		}
+		Long id = (Long) Helper.getThreadLocalValue().get("id");
+		String role = (String) Helper.getThreadLocalValue().get("rolw");
+		if (role.equals("Customer") && account.getUserId() != id) {
+			throw new CustomException("Unauthorized account found", HttpStatusCodes.UNAUTHORIZED);
+		}
 
 		BranchDAO branchDAO = new BranchDAO();
-		List<Object> branches = branchDAO.getBranch(branchId, false);
-		String ifsc = ((Branch) branches.get(0)).getIfscCode();
+		List<Branch> branches = branchDAO.getBranch(branchId, false);
+		String ifsc = branches.get(0).getIfscCode();
 		transactionMap.put("ifsc", ifsc);
 		transactionMap.remove("branchId");
 		logger.debug("IFSC code retrieved and set for branch ID: {}", branchId);
@@ -117,7 +129,7 @@ public class TransactionService {
 			try {
 				long transactionAccountNumber = Long.parseLong((String) transactionMap.get("transactionAccountNumber"));
 				accountMap.put("accountNumber", transactionAccountNumber);
-				accounts = (List<Account>) accountDAO.getAccountDetails(accountMap).get("accounts");
+				accounts = new AccountDAO().getAccounts(accountMap);
 				Account transactionAccount = accounts.get(0);
 				branches = branchDAO.getBranch(transactionAccount.getBranchId(), false);
 				String transactionIfsc = ((Branch) branches.get(0)).getIfscCode();
@@ -137,7 +149,6 @@ public class TransactionService {
 		logger.info("Transaction successfully created for account number: {}", transaction.getAccountNumber());
 	}
 
-	@SuppressWarnings("unchecked")
 	public void prepareRecipientTransaction(Transaction transaction, boolean thisBank) throws CustomException {
 		logger.info("Starting transaction processing...");
 		Long txId = createTransaction(transaction);
@@ -150,7 +161,7 @@ public class TransactionService {
 				String ifsc = transaction.getIfsc();
 				Map<String, Object> accountMap = new HashMap<>();
 				accountMap.put("accountNumber", transactionAccountNumber);
-				List<Account> accounts = (List<Account>) accountDAO.getAccounts(accountMap).get("accounts");
+				List<Account> accounts = accountDAO.getAccounts(accountMap);
 				Helper.checkNullValues(accounts);
 
 				String transactionType = transaction.getTransactionType();
@@ -170,18 +181,11 @@ public class TransactionService {
 				createTransaction(transaction);
 			} catch (Exception e) {
 				logger.error("Error during intra-bank transaction, rolling back...", e);
-				Criteria criteria = new Criteria();
-				criteria.setClazz(Transaction.class);
-				criteria.setColumn(new ArrayList<>(Arrays.asList("id")));
-				criteria.setOperator(new ArrayList<>(Arrays.asList("=")));
-				criteria.setValue(new ArrayList<>(Arrays.asList(txId)));
-				transactionDAO.removeFailedTransaction(criteria);
 				throw new CustomException("Error occurred during transaction.", HttpStatusCodes.INTERNAL_SERVER_ERROR);
 			}
 		}
 	}
 
-	@SuppressWarnings("unchecked")
 	public Long createTransaction(Transaction transaction) throws CustomException {
 		logger.info("Creating a new transaction...");
 
@@ -194,7 +198,7 @@ public class TransactionService {
 		BigDecimal amount = transaction.getAmount();
 		Map<String, Object> accountMap = new HashMap<>();
 		accountMap.put("accountNumber", transaction.getAccountNumber());
-		List<Account> accounts = (List<Account>) accountDAO.getAccounts(accountMap).get("accounts");
+		List<Account> accounts = accountDAO.getAccounts(accountMap);
 		Helper.checkNullValues(accounts);
 
 		BigDecimal accountBalance = accounts.get(0).getBalance();
@@ -214,7 +218,6 @@ public class TransactionService {
 		default:
 			logger.error("Invalid transaction type: " + transactionType);
 			throw new CustomException("Invalid transaction type: " + transactionType, HttpStatusCodes.BAD_REQUEST);
-
 		}
 
 		transaction.setClosingBalance(closingBalance);
@@ -227,13 +230,12 @@ public class TransactionService {
 		return txId;
 	}
 
-	@SuppressWarnings("unchecked")
 	private BigDecimal computeDepositBalance(BigDecimal accountBalance, Transaction transaction, AccountDAO accountDAO)
 			throws CustomException {
 		logger.info("Computing deposit balance...");
 		Map<String, Object> accountMap = new HashMap<>();
 		accountMap.put("accountNumber", transaction.getAccountNumber());
-		List<Account> accounts = (List<Account>) accountDAO.getAccounts(accountMap).get("accounts");
+		List<Account> accounts = accountDAO.getAccounts(accountMap);
 		Account account = accounts.get(0);
 		if (!"Operational".equals(account.getAccountType())) {
 			return accountBalance.add(transaction.getAmount());
