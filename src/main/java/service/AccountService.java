@@ -1,23 +1,18 @@
 package service;
 
-import java.util.Map;
+import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
-
-import java.math.BigDecimal;
+import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-
 import Enum.Constants.HttpStatusCodes;
 import dao.AccountDAO;
-
 import model.Account;
 import model.ColumnCriteria;
-import model.JoinModel;
 import model.JoinObject;
 import util.CustomException;
 import util.Helper;

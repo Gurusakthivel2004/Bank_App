@@ -233,8 +233,8 @@ public class DAOHelper {
 		DAOHelper.applyAccountNumberFilter(criteria, accountMap);
 	}
 
-	public static void applyUserFilters(Criteria criteria, Map<String, Object> userMap) {
-		DAOHelper.addConditionIfPresent(criteria, userMap, "userId", "user.id", "EQUAL_TO", 0L);
+	public static void applyUserFilters(Criteria criteria, Map<String, Object> userMap, String idColumn) {
+		DAOHelper.addConditionIfPresent(criteria, userMap, "userId", idColumn, "EQUAL_TO", 0L);
 		DAOHelper.addConditionIfPresent(criteria, userMap, "username", "user.username", "EQUAL_TO", "");
 		DAOHelper.addConditionIfPresent(criteria, userMap, "role", "user.role", "EQUAL_TO", 0L);
 		DAOHelper.addConditionIfPresent(criteria, userMap, "status", "user.status", "EQUAL_TO", "");
@@ -274,17 +274,18 @@ public class DAOHelper {
 						Arrays.asList("staff.user_id"), Arrays.asList("EQUAL_TO"), Arrays.asList(userId));
 				criteria.setJoin(" JOIN ");
 			}
-		} else {
-			criteria = DAOHelper
-					.buildCriteria(clazz, Arrays.asList("user.username"), Arrays.asList("EQUAL_TO"),
-							Arrays.asList(userMap.get("username")))
-					.setSelectColumn(Arrays.asList("user.*")).setColumn(new ArrayList<>()).setValue(new ArrayList<>())
-					.setOperator(new ArrayList<>());
+		} else if (userMap.containsKey("username")) {
+			criteria = DAOHelper.buildCriteria(clazz, Arrays.asList("user.username"), Arrays.asList("EQUAL_TO"),
+					Arrays.asList(userMap.get("username"))).setSelectColumn(Arrays.asList("user.*"));
 			criteria = DAOHelper.applyUserFilterBranch(criteria, userMap);
-			DAOHelper.applyUserFilters(criteria, userMap);
+		} else {
+			criteria.setSelectColumn(Arrays.asList("*")).setClazz(clazz);
 		}
 		if (userMap.containsKey("limit")) {
 			criteria.setLimitValue(userMap.get("limit"));
+		}
+		if (userMap.containsKey("offset")) {
+			criteria.setOffsetValue((Long) userMap.get("offset"));
 		}
 		return criteria;
 	}

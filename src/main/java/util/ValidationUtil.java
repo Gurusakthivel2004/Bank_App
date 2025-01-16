@@ -47,13 +47,13 @@ public class ValidationUtil {
 	}
 
 	private static List<String> getAllowedFieldsForClass(Class<?> targetClass) {
-		String className = targetClass.getSimpleName().toLowerCase();
+		String className = targetClass.getSimpleName();
 		logger.debug("Determining allowed fields for class: {}", className);
-		if (className.contains("user")) {
+		if (className.contains("User") || className.contains("CustomerDetail") || className.contains("Staff")) {
 			return USER_UPDATE_ALLOWED_FIELDS;
-		} else if (className.contains("account")) {
+		} else if (className.contains("Account")) {
 			return ACCOUNT_UPDATE_ALLOWED_FIELDS;
-		} else if (className.contains("branch")) {
+		} else if (className.contains("Branch")) {
 			return BRANCH_UPDATE_ALLOWED_FIELDS;
 		} else {
 			logger.error("No allowed fields found for class: {}", className);

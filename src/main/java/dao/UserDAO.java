@@ -48,17 +48,17 @@ public class UserDAO {
 
 	public <T> void updateUser(ColumnCriteria columnCriteria, Map<String, Object> userMap, Class<T> clazz)
 			throws CustomException {
-		logger.info("Updating {} with criteria: {}", clazz.getSimpleName(), columnCriteria);
 		Helper.checkNullValues(columnCriteria);
 		columnCriteria.getFields().add("modifiedAt");
 		columnCriteria.getValues().add(System.currentTimeMillis());
 
 		Criteria criteria = new Criteria().setClazz(clazz);
-		DAOHelper.applyUserFilters(criteria, userMap);
+		String idColumn = clazz == User.class ? "user.id" : "user_id";
+
+		DAOHelper.applyUserFilters(criteria, userMap, idColumn);
 
 		try {
 			SQLHelper.update(columnCriteria, criteria);
-			logger.info("{} updated successfully.", clazz.getSimpleName());
 		} catch (SQLException e) {
 			logger.error("Error while updating {} details: ", clazz.getSimpleName(), e);
 			throw new CustomException("Failed to update " + clazz.getSimpleName() + " details.",

@@ -1,12 +1,9 @@
 package service;
 
 import java.math.BigDecimal;
-
-import java.util.Map;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -14,16 +11,12 @@ import org.apache.logging.log4j.Logger;
 import Enum.Constants.HttpStatusCodes;
 import Enum.Constants.TransactionStatus;
 import Enum.Constants.TransactionType;
-
 import dao.AccountDAO;
 import dao.BranchDAO;
 import dao.TransactionDAO;
-
 import model.Account;
 import model.Branch;
-import model.Criteria;
 import model.Transaction;
-
 import util.CustomException;
 import util.Helper;
 import util.ValidationUtil;

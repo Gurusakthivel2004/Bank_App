@@ -1,7 +1,6 @@
 package util;
 
 import java.lang.reflect.Field;
-
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -10,7 +9,6 @@ import java.sql.SQLException;
 import java.sql.SQLIntegrityConstraintViolationException;
 import java.sql.SQLSyntaxErrorException;
 import java.sql.Statement;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -22,13 +20,10 @@ import org.apache.logging.log4j.Logger;
 import Enum.Constants.AggregateFunction;
 import Enum.Constants.HttpStatusCodes;
 import Enum.Constants.Operators;
-
 import dao.DAOHelper;
-
 import model.ColumnCriteria;
 import model.Criteria;
 import model.JoinObject;
-import model.MarkedClass;
 import util.ColumnYamlUtil.ClassMapping;
 import util.ColumnYamlUtil.FieldMapping;
 

@@ -69,12 +69,10 @@ public class UserService {
 		}
 	}
 
-	@SuppressWarnings("unchecked")
 	private List<User> checkPassword(String username, String password) throws CustomException {
 		logger.info("Validating password for user: {}", username);
 		try {
 			logger.debug("Fetching user for column: username and value: {}", username);
-			String key = "userDetails";
 			List<User> users = null;
 
 			Map<String, Object> userMap = new HashMap<>();
@@ -142,11 +140,9 @@ public class UserService {
 			}
 			Map<String, Object> usersResult = new HashMap<>();
 			Long offset = (Long) userMap.getOrDefault("offset", -1l);
-			if (offset != -1) {
-				if (offset == 0) {
-					Long count = userDAO.getDataCount(userMap, clazz, notExact);
-					usersResult.put("count", count);
-				}
+			if (offset == 0) {
+				Long count = userDAO.getDataCount(userMap, clazz, notExact);
+				usersResult.put("count", count);
 			}
 			List<T> users = userDAO.getUserDetails(userMap, clazz, notExact);
 			usersResult.put("users", users);
@@ -192,8 +188,12 @@ public class UserService {
 			}
 			Map<String, Object> updatedValues = (Map<String, Object>) userMap.get("updatedValues");
 			Helper.convertMapValuesToLong(updatedValues);
-
-			ValidationUtil.validateUpdateFields(updatedValues, User.class);
+			Class<? extends User> clazz = Staff.class;
+			if (userMap.get("role").equals("Customer")) {
+				clazz = CustomerDetail.class;
+			}
+			userMap.remove("role");
+			ValidationUtil.validateUpdateFields(updatedValues, clazz);
 
 			List<String> fields = new ArrayList<>();
 			List<Object> values = new ArrayList<>();
