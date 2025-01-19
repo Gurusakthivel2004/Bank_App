@@ -26,7 +26,7 @@ const handleSubmit = async (event) => {
 	if (role !== "Customer") {
 		transactionType = document.getElementById('type').value;
 	}
-	
+
 	let accountNumber = '';
 	if (role != 'Customer') {
 		accountNumber = document.getElementById('account').value;
@@ -185,6 +185,7 @@ const handleInputDropdown = accountInput => {
 				try {
 					const accountData = {
 						get: true,
+						status: "Active",
 						accountNumber: Number(inputValue)
 					}
 					const response = await fetch(

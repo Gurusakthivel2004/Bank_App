@@ -4,6 +4,7 @@ import java.math.BigInteger;
 import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -16,18 +17,17 @@ import util.CustomException;
 import util.Helper;
 import util.SQLHelper;
 
-public class BranchDAO {
+public class BranchDAO implements DAO<Branch> {
 
 	private static final Logger logger = LogManager.getLogger(BranchDAO.class);
 
-	public void createBranch(Branch branch) throws CustomException {
+	public Long create(Branch branch) throws CustomException {
 		logger.info("Starting branch creation...");
 
 		Helper.checkNullValues(branch);
-		branch.setCreatedAt(System.currentTimeMillis()).setPerformedBy((Long) Helper.getThreadLocalValue().get("id"))
+		branch.setCreatedAt(System.currentTimeMillis()).setPerformedBy((Long) Helper.getThreadLocalValue("id"))
 				.setIfscCode("temp");
 
-		logger.info("Inserting branch record into database...");
 		Long branchId;
 		try {
 			branchId = ((BigInteger) SQLHelper.insert(branch)).longValue();
@@ -46,7 +46,6 @@ public class BranchDAO {
 		Criteria criteria = DAOHelper.createCriteria(Branch.class, "id", "EQUAL_TO", branchId);
 
 		try {
-			logger.info("Updating IFSC code for branch with ID: " + branchId);
 			SQLHelper.update(columnCriteria, criteria);
 			logger.info("IFSC code updated successfully: " + ifscCode);
 		} catch (SQLException e) {
@@ -54,10 +53,24 @@ public class BranchDAO {
 			throw new CustomException("Failed to update IFSC code for branch ID: " + branchId,
 					HttpStatusCodes.INTERNAL_SERVER_ERROR);
 		}
+		return branchId;
 	}
 
-	public List<Branch> getBranch(Long branchId, boolean notExact) throws CustomException {
-		logger.info("Fetching branch details for ID: " + branchId);
+	public void update(ColumnCriteria columnCriterias, Map<String, Object> branchMap) throws CustomException {
+		Criteria criteria = new Criteria().setClazz(Branch.class);
+		DAOHelper.addConditionIfPresent(criteria, branchMap, "branchId", "id", "EQUAL_TO", 0l);
+		try {
+			SQLHelper.update(columnCriterias, criteria);
+			logger.info("Branch details updated successfully");
+		} catch (Exception e) {
+			logger.error("Error while updating branch details. ", e);
+			throw new CustomException("Failed to update branch details.", HttpStatusCodes.INTERNAL_SERVER_ERROR);
+		}
+	}
+
+	public List<Branch> get(Map<String, Object> branchMap) throws CustomException {
+		Long branchId = (Long) branchMap.get("branchId");
+		Boolean notExact = (Boolean) branchMap.get("notExact");
 		Criteria criteria = DAOHelper.createCriteria(Branch.class, "id", "EQUAL_TO", branchId)
 				.setSelectColumn(Arrays.asList("*"));
 		try {
@@ -79,16 +92,7 @@ public class BranchDAO {
 		}
 	}
 
-	public <T> void updateBranch(ColumnCriteria columnCriterias, Long branchId) throws CustomException {
-		logger.info("Updating branch details for ID: " + branchId);
-		Criteria criteria = DAOHelper.createCriteria(Branch.class, "id", "EQUAL_TO", branchId);
-		try {
-			SQLHelper.update(columnCriterias, criteria);
-			logger.info("Branch details updated successfully for ID: " + branchId);
-		} catch (Exception e) {
-			logger.error("Error while updating branch details for ID: " + branchId, e);
-			throw new CustomException("Failed to update branch details for ID: " + branchId,
-					HttpStatusCodes.INTERNAL_SERVER_ERROR);
-		}
+	public Long getDataCount(Map<String, Object> txMap) throws CustomException {
+		return null;
 	}
 }

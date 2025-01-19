@@ -51,8 +51,12 @@ public class Helper {
 	private static ThreadLocal<Map<String, Object>> threadLocal = ThreadLocal
 			.withInitial(() -> new HashMap<String, Object>());
 
-	public static Map<String, Object> getThreadLocalValue() {
+	public static Map<String, Object> getThreadLocal() {
 		return threadLocal.get();
+	}
+
+	public static Object getThreadLocalValue(String key) {
+		return threadLocal.get().get(key);
 	}
 
 	public static void setThreadLocalValue(Map<String, Object> newValue) {
@@ -431,7 +435,7 @@ public class Helper {
 		}
 	}
 
-	public static Map<String, Object> getParametersAsMap(HttpServletRequest request)  {
+	public static Map<String, Object> getParametersAsMap(HttpServletRequest request) {
 		Map<String, Object> parameterMap = new HashMap<>();
 
 		request.getParameterMap().forEach((key, value) -> {

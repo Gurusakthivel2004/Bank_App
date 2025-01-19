@@ -3,7 +3,7 @@ package controller;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.PrintWriter;
-
+import java.util.HashMap;
 import java.util.Map;
 
 import javax.servlet.http.HttpServletRequest;
@@ -89,12 +89,15 @@ public class AccountController {
 
 			String branchId = null, status = null;
 			Long accountNumber = jsonObject.get("accountNumber").getAsLong();
+			Map<String, Object> accMap = new HashMap<>();
 			if (jsonObject.has("branchId")) {
 				branchId = jsonObject.get("branchId").getAsString();
-				accountService.updateAccount(accountNumber, "branchId", branchId);
+				accMap.put("branchId", branchId);
+				accountService.updateAccount(accountNumber, accMap);
 			} else if (jsonObject.has("status")) {
 				status = jsonObject.get("status").getAsString();
-				accountService.updateAccount(accountNumber, "status", status);
+				accMap.put("status", status);
+				accountService.updateAccount(accountNumber, accMap);
 			}
 			responseJson.addProperty("message", "success");
 			response.setStatus(HttpStatusCodes.OK.getCode());

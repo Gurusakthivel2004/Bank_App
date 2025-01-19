@@ -121,7 +121,6 @@ public class DAOHelper {
 
 	public static void appendComparisonOperator(StringBuilder sql, String operator, Object value,
 			List<Object> conditionValues) {
-		System.out.println(value);
 		if (value.getClass() == String.class && ((String) value).contains("SELECT")) {
 			sql.append(operator).append(" ").append(value);
 		} else {
@@ -233,7 +232,9 @@ public class DAOHelper {
 		DAOHelper.applyAccountNumberFilter(criteria, accountMap);
 	}
 
-	public static void applyUserFilters(Criteria criteria, Map<String, Object> userMap, String idColumn) {
+	public static <T extends User> void applyUserFilters(Criteria criteria, Map<String, Object> userMap,
+			Class<T> clazz) {
+		String idColumn = clazz == User.class ? "user.id" : "user_id";
 		DAOHelper.addConditionIfPresent(criteria, userMap, "userId", idColumn, "EQUAL_TO", 0L);
 		DAOHelper.addConditionIfPresent(criteria, userMap, "username", "user.username", "EQUAL_TO", "");
 		DAOHelper.addConditionIfPresent(criteria, userMap, "role", "user.role", "EQUAL_TO", 0L);
@@ -251,7 +252,7 @@ public class DAOHelper {
 		return criteria;
 	}
 
-	public static <T extends MarkedClass> Criteria buildUserCriteria(Map<String, Object> userMap, Class<T> clazz,
+	public static <T extends User> Criteria buildUserCriteria(Map<String, Object> userMap, Class<T> clazz,
 			boolean notExact) {
 		Criteria criteria = new Criteria();
 		if (notExact) {
@@ -280,6 +281,8 @@ public class DAOHelper {
 			criteria = DAOHelper.applyUserFilterBranch(criteria, userMap);
 		} else {
 			criteria.setSelectColumn(Arrays.asList("*")).setClazz(clazz);
+			criteria = DAOHelper.applyUserFilterBranch(criteria, userMap);
+			applyUserFilters(criteria, userMap, clazz);
 		}
 		if (userMap.containsKey("limit")) {
 			criteria.setLimitValue(userMap.get("limit"));

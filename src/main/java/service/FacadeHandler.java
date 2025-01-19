@@ -28,7 +28,7 @@ public class FacadeHandler {
 
 	@SuppressWarnings("unchecked")
 	public Map<String, Object> dashBoardDetails() throws CustomException {
-		long id = (Long) Helper.getThreadLocalValue().get("id");
+		long id = (Long) Helper.getThreadLocalValue("id");
 		Map<String, Object> map = new HashMap<>();
 
 		logger.info("Fetching dashboard details for user ID: {}", id);
@@ -57,7 +57,7 @@ public class FacadeHandler {
 			map.put("transactions", transactions);
 
 			// Fetch user details based on role
-			String role = (String) Helper.getThreadLocalValue().get("role");
+			String role = (String) Helper.getThreadLocalValue("role");
 			Map<String, Object> userMap = new HashMap<>();
 			userMap.put("role", role);
 			userMap.put("userId", id);

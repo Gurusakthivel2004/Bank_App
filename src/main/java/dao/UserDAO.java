@@ -8,54 +8,46 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import Enum.Constants.HttpStatusCodes;
-
 import model.ColumnCriteria;
 import model.Criteria;
 import model.CustomerDetail;
-import model.MarkedClass;
 import model.Staff;
 import model.User;
-
 import util.CustomException;
 import util.Helper;
 import util.SQLHelper;
 
-public class UserDAO {
+public class UserDAO<T extends User> implements DAO<T> {
 
 	private static final Logger logger = LogManager.getLogger(UserDAO.class);
 
-	public <T> void createUser(T user, String userType) throws CustomException {
-		logger.info("Creating {}...", userType);
+	public Long create(T user) throws CustomException {
 		try {
 			Helper.checkNullValues(user);
 			if (user instanceof CustomerDetail) {
 				((CustomerDetail) user).setCreatedAt(System.currentTimeMillis())
-						.setPerformedBy((long) Helper.getThreadLocalValue().get("id"))
+						.setPerformedBy((long) Helper.getThreadLocalValue("id"))
 						.setPassword(Helper.hashPassword(((CustomerDetail) user).getPassword()));
 			} else if (user instanceof Staff) {
 				((Staff) user).setCreatedAt(System.currentTimeMillis())
-						.setPerformedBy((long) Helper.getThreadLocalValue().get("id"))
+						.setPerformedBy((long) Helper.getThreadLocalValue("id"))
 						.setPassword(Helper.hashPassword(((Staff) user).getPassword()));
 			}
-			SQLHelper.insert(user);
-			logger.info("{} created successfully.", userType);
+			return (Long) SQLHelper.insert(user);
 		} catch (Exception e) {
-			logger.error("Unexpected error occurred while creating {}: {}", userType, e.getMessage());
-			throw new CustomException("An error occurred while creating the " + userType + ". Please try later.",
+			throw new CustomException("An error occurred while creating. Please try later.",
 					HttpStatusCodes.INTERNAL_SERVER_ERROR);
 		}
 	}
 
-	public <T> void updateUser(ColumnCriteria columnCriteria, Map<String, Object> userMap, Class<T> clazz)
-			throws CustomException {
+	@SuppressWarnings("unchecked")
+	public void update(ColumnCriteria columnCriteria, Map<String, Object> userMap) throws CustomException {
 		Helper.checkNullValues(columnCriteria);
 		columnCriteria.getFields().add("modifiedAt");
 		columnCriteria.getValues().add(System.currentTimeMillis());
-
+		Class<? extends User> clazz = (Class<? extends User>) userMap.get("userClass");
 		Criteria criteria = new Criteria().setClazz(clazz);
-		String idColumn = clazz == User.class ? "user.id" : "user_id";
-
-		DAOHelper.applyUserFilters(criteria, userMap, idColumn);
+		DAOHelper.applyUserFilters(criteria, userMap, clazz);
 
 		try {
 			SQLHelper.update(columnCriteria, criteria);
@@ -66,11 +58,16 @@ public class UserDAO {
 		}
 	}
 
-	public <T extends User> List<T> getUserDetails(Map<String, Object> userMap, Class<T> clazz, boolean notExact)
-			throws CustomException {
+	@SuppressWarnings("unchecked")
+	public List<T> get(Map<String, Object> userMap) throws CustomException {
+
+		Class<T> clazz = (Class<T>) userMap.get("userClass");
 		logger.info("Fetching {} details.", clazz.getSimpleName());
+		boolean notExact = (boolean) userMap.get("notExact");
 		Criteria criteria = DAOHelper.buildUserCriteria(userMap, clazz, notExact);
 		try {
+			System.out.println(userMap.keySet());
+			System.out.println(criteria);
 			return SQLHelper.get(criteria, clazz);
 		} catch (SQLException e) {
 			logger.error("Error while fetching user details {}: ", clazz.getSimpleName(), e);
@@ -78,9 +75,11 @@ public class UserDAO {
 		}
 	}
 
-	public <T extends MarkedClass> Long getDataCount(Map<String, Object> userMap, Class<T> clazz, boolean notExact)
-			throws CustomException {
+	@SuppressWarnings("unchecked")
+	public Long getDataCount(Map<String, Object> userMap) throws CustomException {
 		try {
+			Class<T> clazz = (Class<T>) userMap.get("userClass");
+			boolean notExact = (boolean) userMap.get("notExact");
 			Criteria criteria = DAOHelper.buildUserCriteria(userMap, clazz, notExact);
 			criteria.setOffsetValue(-1L).setAggregateFunction("COUNT").setAggregateOperator("*");
 			Long count = SQLHelper.getCount(criteria, clazz);

@@ -1,6 +1,5 @@
 package dao;
 
-import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.sql.SQLException;
 import java.util.Arrays;
@@ -11,38 +10,17 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import Enum.Constants.HttpStatusCodes;
-import model.Account;
 import model.ColumnCriteria;
 import model.Criteria;
 import model.Transaction;
 import util.CustomException;
 import util.SQLHelper;
 
-public class TransactionDAO {
+public class TransactionDAO implements DAO<Transaction> {
 
 	private final Logger logger = LogManager.getLogger(TransactionDAO.class);
 
-	public void updateAccountBalance(Long accountNumber, BigDecimal balance) throws CustomException {
-		logger.info("Updating account balance for account: " + accountNumber);
-		ColumnCriteria columnCriteria = new ColumnCriteria().setFields(Arrays.asList("balance"))
-				.setValues(Arrays.asList(balance));
-
-		Criteria criteria = new Criteria().setClazz(Account.class);
-		criteria.getColumn().add("account_number");
-		criteria.getOperator().add("EQUAL_TO");
-		criteria.getValue().add(accountNumber);
-
-		try {
-			SQLHelper.update(columnCriteria, criteria);
-		} catch (SQLException e) {
-			logger.error("Error while updating Account balance: ", e);
-			throw new CustomException("Failed to update Account balance: ", HttpStatusCodes.INTERNAL_SERVER_ERROR);
-		}
-		logger.info("Account balance updated successfully.");
-
-	}
-
-	public Long createTransaction(Transaction transaction) throws CustomException {
+	public Long create(Transaction transaction) throws CustomException {
 		Long txId;
 		try {
 			txId = ((BigInteger) SQLHelper.insert(transaction)).longValue();
@@ -53,7 +31,7 @@ public class TransactionDAO {
 		return txId;
 	}
 
-	public List<Transaction> getTransactions(Map<String, Object> txMap) throws CustomException {
+	public List<Transaction> get(Map<String, Object> txMap) throws CustomException {
 		Criteria criteria = getCriteria(txMap);
 		try {
 			return SQLHelper.get(criteria, Transaction.class);
@@ -73,6 +51,7 @@ public class TransactionDAO {
 		if (txMap.containsKey("offset")) {
 			criteria.setOffsetValue((Long) txMap.get("offset"));
 		}
+		System.out.println(criteria);
 		return criteria;
 	}
 
@@ -92,4 +71,7 @@ public class TransactionDAO {
 		}
 	}
 
+	public void update(ColumnCriteria columnCriteria, Map<String, Object> map) throws CustomException {
+		throw new CustomException("Transaction cannot be altered.", HttpStatusCodes.INTERNAL_SERVER_ERROR);
+	}
 }

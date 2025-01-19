@@ -15,15 +15,14 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+
 import com.fasterxml.jackson.core.type.TypeReference;
 
 import Enum.Constants.HttpStatusCodes;
 import Enum.Constants.RolePermission;
 import Enum.Constants.ValidPaths;
-
+import cache.CacheUtil;
 import service.AccountService;
-import service.CacheService;
-
 import util.CustomException;
 import util.Helper;
 import util.JwtUtil;
@@ -33,7 +32,7 @@ import util.JwtUtil;
 public class AuthFilter extends HttpFilter implements Filter {
 
 	private final Logger logger = LogManager.getLogger(AuthFilter.class);
-	CacheService cacheService = new CacheService();
+	CacheUtil cacheUtil = new CacheUtil();
 
 	@SuppressWarnings("unchecked")
 	@Override
@@ -54,7 +53,7 @@ public class AuthFilter extends HttpFilter implements Filter {
 			chain.doFilter(request, response);
 			return;
 		}
-		
+
 		if (!ValidPaths.isValidPath(path)) {
 			Helper.sendJsonResponse(response, HttpStatusCodes.NOT_FOUND, "Invalid URL path", null);
 			return;
@@ -75,7 +74,7 @@ public class AuthFilter extends HttpFilter implements Filter {
 		String role = JwtUtil.extractRole(token);
 		List<String> allowedMethods;
 
-		Map<String, String> blacklist = cacheService.get("blacklist", new TypeReference<Map<String, String>>() {
+		Map<String, String> blacklist = cacheUtil.get("blacklist", new TypeReference<Map<String, String>>() {
 		});
 		if (blacklist != null && blacklist.containsKey(token)) {
 			logger.warn("Token is blacklisted. Denying access.");

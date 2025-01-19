@@ -3,7 +3,6 @@ package controller;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.PrintWriter;
-
 import java.util.HashMap;
 import java.util.Map;
 
@@ -14,15 +13,14 @@ import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
-import service.CacheService;
+import cache.CacheUtil;
 import service.UserService;
-
 import util.CustomException;
 import util.Helper;
 
 public class LoginController {
 
-	private final CacheService cacheService = new CacheService();
+	private final CacheUtil cacheUtil = new CacheUtil();
 
 	public void handlePost(HttpServletRequest request, HttpServletResponse response) throws IOException {
 		response.setContentType("application/json");
@@ -34,7 +32,7 @@ public class LoginController {
 			String username = jsonObject.get("username").getAsString();
 			String password = jsonObject.get("password").getAsString();
 
-			cacheService.deleteAll();
+			cacheUtil.deleteAll();
 
 			Map<String, Object> userDetails;
 			try {
@@ -68,8 +66,8 @@ public class LoginController {
 			// Store blacklisted token in cache
 			Map<String, String> blacklistEntry = new HashMap<>();
 			blacklistEntry.put(token, "blacklisted");
-			cacheService.saveWithTTL("blacklist", blacklistEntry, 3600);
-			cacheService.deleteAll();
+			cacheUtil.saveWithTTL("blacklist", blacklistEntry, 3600);
+			cacheUtil.deleteAll();
 			response.setStatus(HttpServletResponse.SC_OK);
 			responseJson.addProperty("message", "Logout successful");
 		} else {

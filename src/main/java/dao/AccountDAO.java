@@ -1,11 +1,10 @@
 package dao;
 
 import java.math.BigInteger;
-
 import java.sql.SQLException;
-
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -13,23 +12,22 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import Enum.Constants.HttpStatusCodes;
-
 import model.Account;
+import model.ColumnCriteria;
 import model.Criteria;
 import model.JoinObject;
-import model.ColumnCriteria;
-
 import util.CustomException;
 import util.SQLHelper;
 
-public class AccountDAO {
+public class AccountDAO implements DAO<Account>, DAOJoin<Account> {
 
 	private static final Logger logger = LogManager.getLogger(AccountDAO.class);
 
-	public <T> void updateAccount(ColumnCriteria columnCriteria, String column, Object value) throws CustomException {
+	public void update(ColumnCriteria columnCriteria, Map<String, Object> accountMap) throws CustomException {
 		try {
 			Criteria criteria = new Criteria().setClazz(Account.class);
-			DAOHelper.addCondition(criteria, value != null, column, "EQUAL_TO", value);
+			DAOHelper.addConditionIfPresent(criteria, accountMap, "accountNumber", "account_number", "EQUAL_TO", 0l);
+			DAOHelper.addConditionIfPresent(criteria, accountMap, "accountId", "account_id", "EQUAL_TO", 0l);
 
 			SQLHelper.update(columnCriteria, criteria);
 		} catch (SQLException e) {
@@ -38,7 +36,7 @@ public class AccountDAO {
 		}
 	}
 
-	public List<Account> getAccounts(Map<String, Object> accountMap) throws CustomException {
+	public List<Account> get(Map<String, Object> accountMap) throws CustomException {
 		Criteria criteria = DAOHelper.getAccountCriteria(accountMap);
 		try {
 			return SQLHelper.get(criteria, Account.class);
@@ -64,7 +62,7 @@ public class AccountDAO {
 		}
 	}
 
-	public List<JoinObject<Account>> getJoinedAccounts(Map<String, Object> accountMap) throws CustomException {
+	public List<JoinObject<Account>> getJoined(Map<String, Object> accountMap) throws CustomException {
 		Criteria branchJoinCriteria = DAOHelper.buildJoinCriteria(Account.class, Arrays.asList("branch"),
 				new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), new ArrayList<>(),
 				new ArrayList<>(), " JOIN ", true);
@@ -81,7 +79,7 @@ public class AccountDAO {
 		}
 	}
 
-	public void create(Account account) throws CustomException {
+	public Long create(Account account) throws CustomException {
 		logger.info("Creating account: {}", account);
 		try {
 			account.setCreatedAt(System.currentTimeMillis());
@@ -99,7 +97,10 @@ public class AccountDAO {
 			criteria.getOperator().add("EQUAL_TO");
 			criteria.getValue().add(accountId);
 
-			updateAccount(columnCriteria, "account_id", accountId);
+			Map<String, Object> accountMap = new HashMap<>();
+			accountMap.put("accountId", accountId);
+			update(columnCriteria, accountMap);
+			return accountId;
 		} catch (Exception e) {
 			logger.error("Error creating account: {}", account, e);
 			throw new CustomException("Failed to create account", HttpStatusCodes.INTERNAL_SERVER_ERROR);

@@ -37,7 +37,7 @@ async function fetchAccounts() {
 			});
 
 			const accountsResult = await response.json();
-			const accounts = accountsResult["joinedAccounts"];
+			const accounts = accountsResult["accounts"];
 			console.log(accountsResult);
 
 			accountsCount = filterOffset == 0 ? accountsResult["count"] : accountsCount;

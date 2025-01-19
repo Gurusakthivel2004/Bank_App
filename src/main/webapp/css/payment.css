@@ -70,10 +70,11 @@ body {
 
 .account-details h2 {
 	font-family: 'Roboto', sans-serif;
-	color: #2b5ab3;
+	color: rgb(41, 128, 185);
 	font-weight: 700;
 	letter-spacing: -0.8px;
 }
+
 .tree-item:hover {
 	background-color: #3b1457;
 	color: white;

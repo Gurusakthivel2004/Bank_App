@@ -1,13 +1,16 @@
-package service;
+package cache;
 
 import java.io.IOException;
-
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -15,25 +18,20 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import redis.clients.jedis.Jedis;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+public class CacheUtil {
 
-import util.RedisCache;
-
-public class CacheService {
-
-	private static final Logger logger = LogManager.getLogger(CacheService.class);
+	private static final Logger logger = LogManager.getLogger(CacheUtil.class);
 	private final ObjectMapper objectMapper = new ObjectMapper();
 
 	public <T> void save(String key, T value) {
 		if (key == null || value == null) {
-			logger.error("Key or value cannot be null.");
+			logger.info("Key or value cannot be null.");
 			return;
 		}
 		try (Jedis jedis = RedisCache.getConnection()) {
 			String jsonValue = objectMapper.writeValueAsString(value);
 			jedis.set(key, jsonValue);
-			logger.info("Successfully saved key '{}' in Redis.", key);
+			logger.info("Successfully saved key '{}' and value {} in Redis.", key, value);
 		} catch (JsonProcessingException e) {
 			logger.error("Failed to serialize value for key '{}': {}", key, e.getMessage());
 		} catch (Exception e) {
@@ -57,28 +55,27 @@ public class CacheService {
 		}
 	}
 
-	public <K, V> Map<K, V> get(String key, TypeReference<Map<K, V>> typeRef) {
-		if (key == null || typeRef == null) {
-			logger.error("Key or type reference cannot be null.");
+	public <T> T get(String key, TypeReference<T> typeReference) {
+		if (key == null) {
+			logger.info("Key cannot be null.");
 			return null;
 		}
+
 		try (Jedis jedis = RedisCache.getConnection()) {
-			if (!jedis.exists(key)) {
-				logger.warn("Key '{}' does not exist in Redis.", key);
+			String jsonValue = jedis.get(key);
+
+			if (jsonValue != null) {
+				T value = objectMapper.readValue(jsonValue, typeReference);
+				logger.info("Successfully retrieved key '{}' from Redis.", key);
+				return value;
+			} else {
+				logger.info("No value found for key '{}'.", key);
 				return null;
 			}
-
-			String jsonValue = jedis.get(key);
-			Map<K, V> mapValue = objectMapper.readValue(jsonValue, typeRef);
-
-			logger.info("Successfully retrieved key '{}' from Redis.", key);
-			return mapValue;
-		} catch (IOException e) {
-			logger.error("Failed to deserialize value for key '{}': {}", key, e.getMessage());
 		} catch (Exception e) {
 			logger.error("Failed to retrieve key '{}' from Redis: {}", key, e.getMessage());
+			return null;
 		}
-		return null;
 	}
 
 	public <K, V> Map<K, V> get(String key, Class<K> keyClass, Class<V> valueClass) {
@@ -170,6 +167,57 @@ public class CacheService {
 			logger.error("Failed to retrieve keys from Redis: {}", e.getMessage());
 			return Collections.emptyList();
 		}
+	}
+
+	public <K, V> Map<K, V> getOrInitializeCache(String key, CacheUtil cacheService,
+			TypeReference<Map<K, V>> typeReference) {
+		Map<K, V> cachedData = get(key, typeReference);
+		if (cachedData == null) {
+			cachedData = new HashMap<>();
+			cacheService.save(key, cachedData);
+			logger.info("No existing cache found for key: {}. Initialized new map.", key);
+		}
+		return cachedData;
+	}
+
+	public <K, V> void saveCacheWithKey(Map<K, V> cache, K key, V value, String cacheKey) {
+		cache.put(key, value);
+		save(cacheKey, cache);
+		logger.info("Updated cache with key: {} details", key);
+	}
+
+	public <V> List<V> getCachedList(String key, TypeReference<List<V>> typeReference, Long value) {
+		List<V> cachedData = get(key, typeReference);
+
+		if (cachedData != null) {
+			if (cachedData.size() > 0) {
+				logger.info("Details for key: {} found in cache.", value);
+				return cachedData;
+			}
+		}
+
+		logger.info("No existing cache found for key: {}. Initialized new list.", key);
+		return null;
+	}
+
+	public <V> List<V> getCachedList(String key, TypeReference<List<V>> typeReference, Map<String, Object> dataMap,
+			String dataKey) {
+			
+		if (!dataMap.containsKey(dataKey)) {
+			return null;
+		}
+		key += dataMap.get(dataKey);
+		List<V> cachedData = get(key, typeReference);
+
+		if (cachedData != null) {
+			if (cachedData.size() > 0) {
+				logger.info("Data for key: {} found in cache.", key);
+				return cachedData;
+			}
+		}
+
+		logger.info("No existing cache found for key: {}.", key);
+		return null;
 	}
 
 }

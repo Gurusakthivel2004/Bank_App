@@ -61,13 +61,27 @@ public class ValidationUtil {
 		}
 	}
 
+	@SuppressWarnings({ "unchecked", "rawtypes" })
 	private static void validateFieldType(Class<?> targetClass, String key, Object value) {
 		try {
 			Field field = getFieldFromClassHierarchy(targetClass, key);
-
 			Class<?> expectedType = field.getType();
 
-			if (!expectedType.isInstance(value)) {
+			// Check if the expected type is an enum and the value is a String
+			if (expectedType.isEnum() && value instanceof String) {
+				try {
+					Object enumValue = Enum.valueOf((Class<Enum>) expectedType, (String) value);
+					if (!expectedType.isInstance(enumValue)) {
+						logger.error("Type mismatch for field '{}': Expected '{}', but received '{}'.", key,
+								expectedType.getName(), value.getClass().getName());
+						throw new IllegalArgumentException("Type mismatch for field '" + key + "'");
+					}
+				} catch (IllegalArgumentException e) {
+					logger.error("Invalid value for field '{}': Expected one of '{}', but received '{}'.", key,
+							Arrays.toString(expectedType.getEnumConstants()), value);
+					throw new IllegalArgumentException("Invalid enum value for field '" + key + "'");
+				}
+			} else if (!expectedType.isInstance(value)) {
 				logger.error("Type mismatch for field '{}': Expected '{}', but received '{}'.", key,
 						expectedType.getName(), value.getClass().getName());
 				throw new IllegalArgumentException("Type mismatch for field '" + key + "'");

@@ -1,6 +1,7 @@
 package service;
 
 import java.math.BigDecimal;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -13,9 +14,11 @@ import Enum.Constants.TransactionStatus;
 import Enum.Constants.TransactionType;
 import dao.AccountDAO;
 import dao.BranchDAO;
+import dao.DAO;
 import dao.TransactionDAO;
 import model.Account;
 import model.Branch;
+import model.ColumnCriteria;
 import model.Transaction;
 import util.CustomException;
 import util.Helper;
@@ -24,14 +27,14 @@ import util.ValidationUtil;
 public class TransactionService {
 
 	private final Logger logger = LogManager.getLogger(TransactionService.class.getName());
-	private TransactionDAO transactionDAO = new TransactionDAO();
+	private DAO<Transaction> transactionDAO = new TransactionDAO();
 
 	public Map<String, Object> getTransactionDetails(Map<String, Object> txMap) throws CustomException {
 		try {
 			Long customerId = (Long) txMap.get("customerId");
 			Long accountNumber = (Long) txMap.getOrDefault("accountNumber", 0L);
 			if (customerId != null && customerId == -1L) {
-				customerId = (Long) Helper.getThreadLocalValue().get("id");
+				customerId = (Long) Helper.getThreadLocalValue("id");
 				txMap.put("customerId", customerId);
 
 				if (accountNumber == 0L) {
@@ -39,9 +42,9 @@ public class TransactionService {
 					accountNumber = primaryAccount != null ? primaryAccount.getAccountNumber() : accountNumber;
 				}
 			}
-			String role = Helper.getThreadLocalValue().get("role").toString();
+			String role = Helper.getThreadLocalValue("role").toString();
 			if ("Employee".equals(role)) {
-				txMap.put("branchId", Helper.getThreadLocalValue().get("branchId"));
+				txMap.put("branchId", Helper.getThreadLocalValue("branchId"));
 			}
 
 			txMap.put("accountNumber", accountNumber);
@@ -52,7 +55,7 @@ public class TransactionService {
 				Long count = transactionDAO.getDataCount(txMap);
 				txResult.put("count", count);
 			}
-			List<Transaction> transactions = transactionDAO.getTransactions(txMap);
+			List<Transaction> transactions = transactionDAO.get(txMap);
 			txResult.put("transactions", transactions);
 
 			return txResult;
@@ -67,7 +70,7 @@ public class TransactionService {
 	private Account fetchPrimaryAccount(Long customerId) throws CustomException {
 		Map<String, Object> accountMap = new HashMap<>();
 		accountMap.put("userId", customerId);
-		List<Account> accounts = new AccountDAO().getAccounts(accountMap);
+		List<Account> accounts = new AccountDAO().get(accountMap);
 		if (accounts == null || accounts.isEmpty()) {
 			logger.error("No Accounts found for user {}", customerId);
 			throw new CustomException("No accounts found for user " + customerId, HttpStatusCodes.NOT_FOUND);
@@ -86,7 +89,7 @@ public class TransactionService {
 		logger.debug("Employee role detected. Verifying branch ID for accounts...");
 
 		accountMap.put("accountNumber", accountNumber);
-		accounts = new AccountDAO().getAccounts(accountMap);
+		accounts = new AccountDAO().get(accountMap);
 		Account account = accounts.get(0);
 		long customerId = account.getUserId();
 		try {
@@ -99,20 +102,23 @@ public class TransactionService {
 		} catch (NumberFormatException e) {
 			throw new CustomException("Invalid amount format", HttpStatusCodes.BAD_REQUEST);
 		}
-		if (Helper.getThreadLocalValue().get("role").equals("Employee")) {
+		String role = (String) Helper.getThreadLocalValue("role");
+		if (role.equals("Employee")) {
 			if (account.getBranchId() != branchId) {
 				logger.warn("Branch ID mismatch for account number: {}", accountNumber);
 				throw new CustomException("Invalid account", HttpStatusCodes.BAD_REQUEST);
 			}
 		}
-		Long id = (Long) Helper.getThreadLocalValue().get("id");
-		String role = (String) Helper.getThreadLocalValue().get("rolw");
+		Long id = (Long) Helper.getThreadLocalValue("id");
 		if (role.equals("Customer") && account.getUserId() != id) {
 			throw new CustomException("Unauthorized account found", HttpStatusCodes.UNAUTHORIZED);
 		}
 
-		BranchDAO branchDAO = new BranchDAO();
-		List<Branch> branches = branchDAO.getBranch(branchId, false);
+		DAO<Branch> branchDAO = new BranchDAO();
+		Map<String, Object> branchMap = new HashMap<>();
+		branchMap.put("notExact", false);
+		branchMap.put("branchId", branchId);
+		List<Branch> branches = branchDAO.get(branchMap);
 		String ifsc = branches.get(0).getIfscCode();
 		transactionMap.put("ifsc", ifsc);
 		transactionMap.remove("branchId");
@@ -122,9 +128,12 @@ public class TransactionService {
 			try {
 				long transactionAccountNumber = Long.parseLong((String) transactionMap.get("transactionAccountNumber"));
 				accountMap.put("accountNumber", transactionAccountNumber);
-				accounts = new AccountDAO().getAccounts(accountMap);
+				accounts = new AccountDAO().get(accountMap);
 				Account transactionAccount = accounts.get(0);
-				branches = branchDAO.getBranch(transactionAccount.getBranchId(), false);
+
+				branchMap.put("branchId", transactionAccount.getBranchId());
+
+				branches = branchDAO.get(branchMap);
 				String transactionIfsc = ((Branch) branches.get(0)).getIfscCode();
 				transactionMap.put("transactionIfsc", transactionIfsc);
 			} catch (IndexOutOfBoundsException e) {
@@ -154,7 +163,7 @@ public class TransactionService {
 				String ifsc = transaction.getIfsc();
 				Map<String, Object> accountMap = new HashMap<>();
 				accountMap.put("accountNumber", transactionAccountNumber);
-				List<Account> accounts = accountDAO.getAccounts(accountMap);
+				List<Account> accounts = accountDAO.get(accountMap);
 				Helper.checkNullValues(accounts);
 
 				String transactionType = transaction.getTransactionType();
@@ -185,13 +194,13 @@ public class TransactionService {
 		AccountDAO accountDAO = new AccountDAO();
 		transaction.setTransactionStatusEnum(TransactionStatus.Completed);
 		transaction.setTransactionTime(System.currentTimeMillis());
-		transaction.setPerformedBy((Long) Helper.getThreadLocalValue().get("id"));
+		transaction.setPerformedBy((Long) Helper.getThreadLocalValue("id"));
 
 		String transactionType = transaction.getTransactionType();
 		BigDecimal amount = transaction.getAmount();
 		Map<String, Object> accountMap = new HashMap<>();
 		accountMap.put("accountNumber", transaction.getAccountNumber());
-		List<Account> accounts = accountDAO.getAccounts(accountMap);
+		List<Account> accounts = accountDAO.get(accountMap);
 		Helper.checkNullValues(accounts);
 
 		BigDecimal accountBalance = accounts.get(0).getBalance();
@@ -216,10 +225,14 @@ public class TransactionService {
 		transaction.setClosingBalance(closingBalance);
 		logger.info("Transaction details: " + transaction);
 		ValidationUtil.validateModel(transaction, Transaction.class);
-		Long txId = transactionDAO.createTransaction(transaction);
+		Long txId = transactionDAO.create(transaction);
 		logger.info("Transaction created with ID: " + txId);
 
-		transactionDAO.updateAccountBalance(transaction.getAccountNumber(), closingBalance);
+		ColumnCriteria columnCriteria = new ColumnCriteria().setFields(Arrays.asList("balance"))
+				.setValues(Arrays.asList(closingBalance));
+
+		accountDAO.update(columnCriteria, accountMap);
+
 		return txId;
 	}
 
@@ -228,7 +241,7 @@ public class TransactionService {
 		logger.info("Computing deposit balance...");
 		Map<String, Object> accountMap = new HashMap<>();
 		accountMap.put("accountNumber", transaction.getAccountNumber());
-		List<Account> accounts = accountDAO.getAccounts(accountMap);
+		List<Account> accounts = accountDAO.get(accountMap);
 		Account account = accounts.get(0);
 		if (!"Operational".equals(account.getAccountType())) {
 			return accountBalance.add(transaction.getAmount());
