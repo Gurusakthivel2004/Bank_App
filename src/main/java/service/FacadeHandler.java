@@ -64,7 +64,7 @@ public class FacadeHandler {
 			map.put("userDetail", userService.getUserDetails(userMap, false).get("users"));
 
 			// Fetch branch details for the accounts
-			logger.debug("Fetching branch details for user ID: {}", id);
+			logger.info("Fetching branch details for user ID: {}", id);
 			List<Object> branchDetails = new ArrayList<>();
 			BranchService branchService = new BranchService();
 			for (Account account : accounts) {
@@ -75,7 +75,7 @@ public class FacadeHandler {
 			}
 			map.put("branch", branchDetails);
 
-			logger.debug("Adding monthly finance details for user ID: {}", id);
+			logger.info("Adding monthly finance details for user ID: {}", id);
 			addMonthlyFinance(map, id, 3);
 
 			logger.info("Dashboard details fetched successfully for user ID: {}", id);
@@ -96,7 +96,7 @@ public class FacadeHandler {
 	private void addMonthlyFinance(Map<String, Object> map, Long customerId, int monthLength) throws CustomException {
 		int currentMonth = LocalDate.now().getMonthValue();
 		int currentYear = LocalDate.now().getYear();
-		logger.debug("Adding monthly finance details for customer ID: {}", customerId);
+		logger.info("Adding monthly finance details for customer ID: {}", customerId);
 
 		for (int i = 0; i < monthLength; i++) {
 			int adjustedMonth = currentMonth - i;

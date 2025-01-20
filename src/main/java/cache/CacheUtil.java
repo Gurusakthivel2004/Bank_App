@@ -186,12 +186,12 @@ public class CacheUtil {
 		logger.info("Updated cache with key: {} details", key);
 	}
 
-	public <V> List<V> getCachedList(String key, TypeReference<List<V>> typeReference, Long value) {
+	public <V> List<V> getCachedList(String key, TypeReference<List<V>> typeReference) {
 		List<V> cachedData = get(key, typeReference);
 
 		if (cachedData != null) {
 			if (cachedData.size() > 0) {
-				logger.info("Details for key: {} found in cache.", value);
+				logger.info("Details for key: {} found in cache.", cachedData);
 				return cachedData;
 			}
 		}
@@ -202,7 +202,7 @@ public class CacheUtil {
 
 	public <V> List<V> getCachedList(String key, TypeReference<List<V>> typeReference, Map<String, Object> dataMap,
 			String dataKey) {
-			
+
 		if (!dataMap.containsKey(dataKey)) {
 			return null;
 		}

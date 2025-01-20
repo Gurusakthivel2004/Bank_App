@@ -10,6 +10,7 @@ import java.util.regex.Pattern;
 
 import Enum.Constants.HttpStatusCodes;
 import model.Account;
+import model.ActivityLog;
 import model.ColumnCriteria;
 import model.Criteria;
 import model.CustomerDetail;
@@ -200,6 +201,22 @@ public class DAOHelper {
 		return criteria;
 	}
 
+	public static Criteria applyLogFilterBranch(Criteria criteria, Map<String, Object> logMap) {
+		if (!logMap.containsKey("branchId")) {
+			return criteria;
+		}
+		List<String> joinTable = new ArrayList<>(Arrays.asList("account", "staff"));
+		criteria = DAOHelper
+				.buildJoinCriteria(ActivityLog.class, joinTable, new ArrayList<>(), new ArrayList<>(),
+						new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), " JOIN ", true)
+				.setSelectColumn(Collections.singletonList("activityLog.*"));
+		DAOHelper.addJoinCondition(criteria, true, "account.account_number", "EQUAL_TO",
+				"activityLog.user_account_number");
+		DAOHelper.addJoinCondition(criteria, true, "staff.branch_id", "EQUAL_TO", "account.branch_id");
+		DAOHelper.addConditionIfPresent(criteria, logMap, "branchId", "staff.branch_id", "EQUAL_TO", 0L);
+		return criteria;
+	}
+
 	public static Criteria applyTransactionFilterBranch(Criteria criteria, Map<String, Object> txMap) {
 		if (!txMap.containsKey("branchId")) {
 			return criteria;
@@ -219,6 +236,15 @@ public class DAOHelper {
 		DAOHelper.addConditionIfPresent(criteria, txMap, "to", "transaction_time", "LESS_THAN", 0L);
 		DAOHelper.addCondition(criteria, txMap.get("transactionType") != null, "transaction_type", "EQUAL_TO",
 				txMap.get("transactionType"));
+	}
+
+	public static void applyLogFilters(Criteria criteria, Map<String, Object> logMap) {
+		DAOHelper.addConditionIfPresent(criteria, logMap, "userId", "user_id", "EQUAL_TO", 0L);
+		DAOHelper.addConditionIfPresent(criteria, logMap, "userAccountNumber", "user_account_number", "EQUAL_TO", 0L);
+		DAOHelper.addConditionIfPresent(criteria, logMap, "performedBy", "performed_by", "EQUAL_TO", 0L);
+		DAOHelper.addConditionIfPresent(criteria, logMap, "logType", "log_type", "EQUAL_TO", 0L);
+		DAOHelper.addConditionIfPresent(criteria, logMap, "from", "timestamp", "GREATER_THAN", 0L);
+		DAOHelper.addConditionIfPresent(criteria, logMap, "to", "timestamp", "LESS_THAN", 0L);
 	}
 
 	public static void applyAccountFilters(Criteria criteria, Map<String, Object> accountMap) {
@@ -252,6 +278,17 @@ public class DAOHelper {
 		return criteria;
 	}
 
+	public static Criteria getLogCriteria(Map<String, Object> logMap) throws CustomException {
+		Criteria criteria = DAOHelper.initializeCriteria(ActivityLog.class);
+		criteria = DAOHelper.applyLogFilterBranch(criteria, logMap);
+		DAOHelper.applyLogFilterBranch(criteria, logMap);
+		DAOHelper.applyPagination(criteria, logMap);
+		if (logMap.containsKey("offset")) {
+			criteria.setOffsetValue((Long) logMap.get("offset"));
+		}
+		return criteria;
+	}
+
 	public static <T extends User> Criteria buildUserCriteria(Map<String, Object> userMap, Class<T> clazz,
 			boolean notExact) {
 		Criteria criteria = new Criteria();
@@ -278,7 +315,7 @@ public class DAOHelper {
 		} else if (userMap.containsKey("username")) {
 			criteria = DAOHelper.buildCriteria(clazz, Arrays.asList("user.username"), Arrays.asList("EQUAL_TO"),
 					Arrays.asList(userMap.get("username"))).setSelectColumn(Arrays.asList("user.*"));
-			criteria = DAOHelper.applyUserFilterBranch(criteria, userMap);
+//			criteria = DAOHelper.applyUserFilterBranch(criteria, userMap);
 		} else {
 			criteria.setSelectColumn(Arrays.asList("*")).setClazz(clazz);
 			criteria = DAOHelper.applyUserFilterBranch(criteria, userMap);

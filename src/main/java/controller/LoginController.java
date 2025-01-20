@@ -3,7 +3,6 @@ package controller;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.util.HashMap;
 import java.util.Map;
 
 import javax.servlet.http.HttpServletRequest;
@@ -32,8 +31,6 @@ public class LoginController {
 			String username = jsonObject.get("username").getAsString();
 			String password = jsonObject.get("password").getAsString();
 
-			cacheUtil.deleteAll();
-
 			Map<String, Object> userDetails;
 			try {
 				UserService userService = new UserService();
@@ -46,6 +43,10 @@ public class LoginController {
 			}
 
 			String jwtToken = Helper.generateJwtToken(userDetails);
+			Long userId = (Long) userDetails.get("id");
+
+			cacheUtil.saveWithTTL(userId.toString(), jwtToken, 3600);
+
 			Map<String, Object> responseData = Helper.prepareResponseData(userDetails, jwtToken);
 
 			responseJson = new Gson().toJsonTree(responseData).getAsJsonObject();
@@ -61,13 +62,11 @@ public class LoginController {
 		String authHeader = request.getHeader("Authorization");
 		JsonObject responseJson = new JsonObject();
 
+		Long userId = (Long) Helper.getThreadLocalValue("id");
+		System.out.println(userId);
 		if (authHeader != null && authHeader.startsWith("Bearer ")) {
-			String token = authHeader.substring(7);
-			// Store blacklisted token in cache
-			Map<String, String> blacklistEntry = new HashMap<>();
-			blacklistEntry.put(token, "blacklisted");
-			cacheUtil.saveWithTTL("blacklist", blacklistEntry, 3600);
-			cacheUtil.deleteAll();
+			System.out.println(userId);
+			cacheUtil.delete(userId.toString());
 			response.setStatus(HttpServletResponse.SC_OK);
 			responseJson.addProperty("message", "Logout successful");
 		} else {

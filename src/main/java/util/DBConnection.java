@@ -9,7 +9,12 @@ public class DBConnection {
     private static final String USER = "root";
     private static final String PASSWORD = "root";
 
-    public static Connection getConnection() throws SQLException {
+    public static Connection getConnection() throws SQLException{
+    	try {
+    		Class.forName("com.mysql.cj.jdbc.Driver");
+		} catch (Exception e) {
+
+		}
         return DriverManager.getConnection(URL, USER, PASSWORD);
     }
 }

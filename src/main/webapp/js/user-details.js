@@ -12,9 +12,6 @@ async function fetchUsers() {
 				get: true,
 				limit: usersPerPage,
 			}
-			if (role === "Employee") {
-				filterBranch = localStorage.getItem("branchId");
-			}
 			if (filterId && filterId != '-1') userData.userId = Number(filterId);
 			if (filterBranch && filterBranch != '-1') userData.branchId = Number(filterBranch);
 			if (filterType) userData.role = filterType;
@@ -91,10 +88,8 @@ function applyFilters() {
 	const idInput = document.getElementById("customerIdsearchInput").value.trim();
 	const statusInput = document.getElementById("userStatussearchInput").value.trim();
 	const typeInput = document.getElementById("userTypesearchInput").value.trim();
-	if (role == "Manager") {
-		branchIdInput = document.getElementById("branchIdsearchInput").value.trim();
-		filterBranch = branchIdInput;
-	}
+	branchIdInput = document.getElementById("branchIdsearchInput").value.trim();
+	filterBranch = branchIdInput;
 	filterId = idInput ? idInput : role != "Customer" ? 0 : -1;
 	filterStatus = statusInput;
 	filterType = typeInput;
@@ -119,10 +114,7 @@ document.addEventListener("DOMContentLoaded", () => {
 	} else if (role === "Customer") {
 		alert("You do not have permission to access this page.");
 		window.history.back();
-	} else if (role == "Employee") {
-		document.getElementById('branchidfilter').style.display = 'none';
-		filterBranch = '-1';
-	}
+	} 
 	fetchUsers();
 	document.getElementById("customerIdsearchInput").addEventListener("input", applyFilters);
 	document.getElementById("branchIdsearchInput").addEventListener("input", applyFilters);
@@ -168,15 +160,15 @@ function renderUsers(users) {
 		userDiv.innerHTML = `
 							<p class="userid"
 								style="margin-left:10px; font-weight: bold; color: #2b0444;">${user.id}</p>
-							<p class="username" style="margin-left: -23px; color: #2b0444;">${user.fullname}</p>
+							<p class="username" style="margin-left: -23px; color: #2b0444; font-weight: bold;">${user.fullname}</p>
 							<p class="useremail"
-									style="margin-left: -35px;font-weight: 600; color: #2b0444;">${user.email}</p>		
+									style="margin-left: -35px;font-weight: 600; color: #6c757d;">${user.email}</p>		
 							<p class="userphone"
-								style="margin-left: 25px; font-weight: bold; color: #28a745;">${user.phone}</p>
+								style="margin-left: 25px; font-weight: bold; color: #4677bd;">${user.phone}</p>
 								<p class="userusername" style="margin-left: 25px; font-weight: bold; color: #2b0444;">${user.username}</p>
 								<p class="userstatus"
-								style="margin-left: 0px; font-weight: bold; color: ${user.status === 'Active' ? 'blue' : 'red'};">${user.status}</p>
-							<p class="usercreatedAt" style="margin-left: 0px; color: #2b0444;">${getDate(user.createdAt, false)}</p>
+								style="margin-left: 0px; font-weight: bold; color: ${user.status === 'Active' ? '#28a745' : 'red'};">${user.status}</p>
+							<p class="usercreatedAt" style="margin-left: 0px; font-weight: bold; color: #6c757d;">${getDate(user.createdAt, false)}</p>
 						</div>`;
 
 		userHistory.appendChild(userDiv);

@@ -9,15 +9,11 @@ import java.util.Map;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
 import Enum.Constants.HttpStatusCodes;
-
 import service.AccountService;
-
 import util.CustomException;
 import util.Helper;
 
@@ -31,20 +27,11 @@ public class AccountController {
 		PrintWriter out = response.getWriter();
 		try {
 			Object accounts = accountService.getAccountDetails(accountMap);
-			ObjectMapper mapper = new ObjectMapper();
-			String jsonResponse = mapper.writeValueAsString(accounts);
-			out.write(jsonResponse);
-			response.setStatus(HttpStatusCodes.OK.getCode());
+			Helper.sendSuccessResponse(response, accounts);
 		} catch (CustomException e) {
-			JsonObject responseJson = new JsonObject();
-			responseJson.addProperty("message", e.getMessage());
-			out.write(responseJson.toString());
-			response.setStatus(HttpStatusCodes.INTERNAL_SERVER_ERROR.getCode());
+			Helper.sendErrorResponse(response, e);
 		} catch (Exception e) {
-			JsonObject responseJson = new JsonObject();
-			responseJson.addProperty("message", "An unexpected error occurred.");
-			out.write(responseJson.toString());
-			response.setStatus(HttpStatusCodes.INTERNAL_SERVER_ERROR.getCode());
+			Helper.sendErrorResponse(response, "Unexpected Error occured.");
 		} finally {
 			out.close();
 		}

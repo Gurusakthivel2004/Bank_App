@@ -29,12 +29,9 @@ import javax.servlet.http.HttpServletResponse;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import org.json.JSONArray;
-import org.json.JSONObject;
-
 import org.mindrot.jbcrypt.BCrypt;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
+import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -457,14 +454,14 @@ public class Helper {
 	}
 
 	public static void sendJsonResponse(HttpServletResponse response, HttpStatusCodes statusCode, String message,
-			JSONArray jsonArray) throws IOException {
+			JsonArray jsonArray) throws IOException {
 		response.setContentType("application/json");
 		response.setCharacterEncoding("UTF-8");
 		response.setStatus(statusCode.getCode());
-		JSONObject responseObject = new JSONObject();
-		responseObject.put("status", statusCode.getCode());
-		responseObject.put("message", message);
-		responseObject.put("data", jsonArray != null ? jsonArray : new JSONArray());
+		JsonObject responseObject = new JsonObject();
+		responseObject.addProperty("status", statusCode.getCode());
+		responseObject.addProperty("message", message);
+		responseObject.addProperty("data", jsonArray != null ? jsonArray.toString() : new JsonArray().toString());
 		response.getWriter().write(responseObject.toString());
 		response.getWriter().flush();
 	}
@@ -472,7 +469,7 @@ public class Helper {
 	private static Object processDynamicKey(String key, String paramValue) {
 		List<String> Longkeys = new ArrayList<>(Arrays.asList("id", "limit", "accountNumber", "offset", "balance"));
 		if (key.toLowerCase().contains("id") || Longkeys.contains(key)) {
-			return Helper.parseLongOrDefault(paramValue, 0L);
+			return Helper.parseLong(paramValue);
 		}
 		if (key.equalsIgnoreCase("from") || key.equalsIgnoreCase("to")) {
 			return Helper.parseDateToMillisOrDefault(paramValue, 0L);

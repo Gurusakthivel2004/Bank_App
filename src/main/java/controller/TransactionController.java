@@ -31,7 +31,6 @@ public class TransactionController {
 			handleGet(request, response, transactionMap);
 			return;
 		}
-
 		try {
 			transactionService.prepareTransaction(transactionMap);
 			Helper.sendSuccessResponse(response, "success");

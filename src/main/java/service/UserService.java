@@ -103,6 +103,10 @@ public class UserService {
 			users = userDao.get(userMap);
 
 			User user = users.get(0);
+			if (user.getStatus() != "Active") {
+				logger.error("User suspended: {}", username);
+				throw new CustomException("User suspended", HttpStatusCodes.UNAUTHORIZED);
+			}
 
 			if (!Helper.checkPassword(password, user.getPassword())) {
 				logger.error("Password mismatch for user: {}", username);

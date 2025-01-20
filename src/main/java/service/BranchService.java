@@ -30,24 +30,30 @@ public class BranchService {
 		String key = "branchInfo" + branchId;
 
 		List<Branch> cachedBranch = cacheUtil.getCachedList(key, new TypeReference<List<Branch>>() {
-		}, branchId);
-
+		});
+		AuthorizationService authService = new AuthorizationService();
 		if (cachedBranch != null) {
+			if (!authService.isAuthorized("branch", cachedBranch)) {
+				throw new CustomException("Not authorized to access branch details", HttpStatusCodes.UNAUTHORIZED);
+			}
 			return cachedBranch;
 		}
-		
+
 		Map<String, Object> branchMap = new HashMap<>();
 		branchMap.put("notExact", notExact);
 		branchMap.put("branchId", branchId);
-		
+
 		List<Branch> branches = branchDAO.get(branchMap);
-		
+
 		if (branches.isEmpty()) {
 			logger.warn("No branch details found for branchId: {}", branchId);
 			throw new CustomException("No branch details found for branchId: " + branchId, HttpStatusCodes.BAD_REQUEST);
 		}
 		if (!notExact) {
 			cacheUtil.save(key, branches);
+		}
+		if (!authService.isAuthorized("branch", branches)) {
+			throw new CustomException("Not authorized to access branch details", HttpStatusCodes.UNAUTHORIZED);
 		}
 		logger.info("Updated cache with branchId: {} details", branchId);
 		return branches;

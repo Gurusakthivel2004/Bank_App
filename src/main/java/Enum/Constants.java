@@ -6,6 +6,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import util.CustomException;
+
 public class Constants {
 
 	public enum ValidPaths {
@@ -18,7 +20,7 @@ public class Constants {
 		ACCOUNT_CRUD("^/Account$", Arrays.asList("Customer")),
 		GET_USER_WITH_ROLE("^/User\\?userId=\\d+&role=\\w+$", Arrays.asList("Customer")),
 		GET_USERDASHBOARD("^/UserDashboard$", null), UPDATE_PROFILE("^/api/Profile$", null),
-		TRANSACTION_CRUD("^/Transaction$", null);
+		TRANSACTION_CRUD("^/Transaction$", null), LOGOUT("^/Logout$", null);
 
 		private final String regexPattern;
 		private final List<String> restrictedForRole;
@@ -105,10 +107,11 @@ public class Constants {
 		ROLE_CUSTOMER("Customer", new HashMap<String, List<String>>() {
 			{
 				put("Account", new ArrayList<>(Arrays.asList("GET")));
-				put("User", new ArrayList<>(Arrays.asList("GET", "POST")));
-				put("Branch", new ArrayList<>(Arrays.asList("GET")));
-				put("Transaction", new ArrayList<>(Arrays.asList("GET", "POST")));
+				put("User", new ArrayList<>(Arrays.asList("POST")));
+				put("Branch", Arrays.asList("GET"));
+				put("Transaction", Arrays.asList("GET", "POST"));
 				put("UserDashboard", new ArrayList<>(Arrays.asList("GET")));
+				put("Logout", new ArrayList<>(Arrays.asList("DELETE")));
 			}
 		}, new ArrayList<>()), ROLE_EMPLOYEE("Employee", new HashMap<String, List<String>>() {
 			{
@@ -117,6 +120,7 @@ public class Constants {
 				put("Branch", new ArrayList<>(Arrays.asList("GET")));
 				put("Transaction", new ArrayList<>(Arrays.asList("GET", "POST")));
 				put("UserDashboard", new ArrayList<>(Arrays.asList("GET")));
+				put("Logout", new ArrayList<>(Arrays.asList("DELETE")));
 			}
 		}, new ArrayList<>()), ROLE_MANAGER("Manager", new HashMap<String, List<String>>() {
 			{
@@ -125,6 +129,7 @@ public class Constants {
 				put("Branch", new ArrayList<>(Arrays.asList("GET", "POST", "PUT")));
 				put("Transaction", new ArrayList<>(Arrays.asList("GET", "POST")));
 				put("UserDashboard", new ArrayList<>(Arrays.asList("GET")));
+				put("Logout", new ArrayList<>(Arrays.asList("DELETE")));
 			}
 		}, new ArrayList<>());
 
@@ -237,6 +242,15 @@ public class Constants {
 		}
 	}
 
+	public enum LogType {
+		Insert, Update, Delete, Login, Logout;
+
+		@Override
+		public String toString() {
+			return name();
+		}
+	}
+
 	public enum AccountType {
 		Savings, Current, Fixed_Deposit, Operational;
 
@@ -252,6 +266,14 @@ public class Constants {
 		@Override
 		public String toString() {
 			return name();
+		}
+
+		public static Role fromString(String role) throws CustomException {
+			try {
+				return Role.valueOf(role);
+			} catch (IllegalArgumentException e) {
+				throw new CustomException("Invalid role: " + role, HttpStatusCodes.BAD_REQUEST);
+			}
 		}
 	}
 

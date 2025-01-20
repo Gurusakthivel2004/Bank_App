@@ -1,9 +1,7 @@
 package util;
 
 import java.lang.reflect.Field;
-
 import java.math.BigDecimal;
-
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -12,7 +10,11 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import Enum.Constants.HttpStatusCodes;
+import model.Account;
+import model.Branch;
 import model.MarkedClass;
+import model.Transaction;
+import service.BranchService;
 
 public class ValidationUtil {
 
@@ -133,6 +135,23 @@ public class ValidationUtil {
 		if (errorMessages.length() > 0) {
 			throw new CustomException("Validation failed:\n" + errorMessages.toString(), HttpStatusCodes.BAD_REQUEST);
 		}
+	}
+
+	public static boolean getAssignedBranches(List<Account> accounts, Long branchId) {
+		if (accounts == null || accounts.isEmpty()) {
+			return false;
+		}
+		return accounts.stream().anyMatch(account -> account.getBranchId().equals(branchId));
+	}
+
+	public static boolean getAssignedTransactions(List<Transaction> transactions, Long branchId)
+			throws CustomException {
+		if (transactions == null || transactions.isEmpty()) {
+			return false;
+		}
+		BranchService branchService = new BranchService();
+		Branch branchDetails = branchService.getBranchDetails(branchId, false).get(0);
+		return transactions.stream().allMatch(transaction -> transaction.getIfsc() == branchDetails.getIfscCode());
 	}
 
 }

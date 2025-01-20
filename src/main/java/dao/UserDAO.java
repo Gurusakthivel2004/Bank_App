@@ -66,8 +66,6 @@ public class UserDAO<T extends User> implements DAO<T> {
 		boolean notExact = (boolean) userMap.get("notExact");
 		Criteria criteria = DAOHelper.buildUserCriteria(userMap, clazz, notExact);
 		try {
-			System.out.println(userMap.keySet());
-			System.out.println(criteria);
 			return SQLHelper.get(criteria, clazz);
 		} catch (SQLException e) {
 			logger.error("Error while fetching user details {}: ", clazz.getSimpleName(), e);

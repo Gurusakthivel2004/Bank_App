@@ -48,7 +48,7 @@ public class AuthFilter extends HttpFilter implements Filter {
 
 		logger.info("Request path: {}", path);
 
-		if (path.equals("/Login") || path.equals("/Logout")) {
+		if (path.equals("/Login")) {
 			logger.info("Skipping authentication for login endpoint.");
 			chain.doFilter(request, response);
 			return;
@@ -70,15 +70,22 @@ public class AuthFilter extends HttpFilter implements Filter {
 		String token = authorizationHeader.substring(7);
 		logger.info("Authorization token found. Verifying token...");
 
+		try {
+			JwtUtil.verifyToken(token);
+		} catch (Exception e) {
+			Helper.sendJsonResponse(response, HttpStatusCodes.UNAUTHORIZED, "Invalid token", null);
+			return;
+		}
+
 		Long id = JwtUtil.extractUserId(token);
 		String role = JwtUtil.extractRole(token);
 		List<String> allowedMethods;
 
-		Map<String, String> blacklist = cacheUtil.get("blacklist", new TypeReference<Map<String, String>>() {
+		// token check
+		String cachedToken = cacheUtil.get(id.toString(), new TypeReference<String>() {
 		});
-		if (blacklist != null && blacklist.containsKey(token)) {
-			logger.warn("Token is blacklisted. Denying access.");
-			response.getWriter().println("Blacklisted token");
+		if (cachedToken == null || !cachedToken.equals(token)) {
+			Helper.sendJsonResponse(response, HttpStatusCodes.UNAUTHORIZED, "Invalid token", null);
 			return;
 		}
 
@@ -99,6 +106,7 @@ public class AuthFilter extends HttpFilter implements Filter {
 			}
 
 		} catch (CustomException exception) {
+			exception.printStackTrace();
 			Helper.sendJsonResponse(response, HttpStatusCodes.FORBIDDEN, "Something wrong with fetching the account id",
 					null);
 			return;

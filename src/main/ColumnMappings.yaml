@@ -144,3 +144,25 @@ classes:
         columnName: "transaction_time"
       performedBy:
         columnName: "performed_by"
+
+  model.ActivityLog:
+    tableName: "activityLog"
+    fields:
+      id:
+        columnName: "id"
+      userId:
+        columnName: "user_id"
+      tableName:
+        columnName: "table_name"
+      logType:
+        columnName: "log_type"
+      rowId:
+        columnName: "row_id"
+      userAccountNumber:
+        columnName: "user_account_number"
+      logMessage:
+        columnName: "log_message"
+      timestamp:
+        columnName: "timestamp"
+      performedBy:
+        columnName: "performed_by"

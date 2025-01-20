@@ -33,6 +33,7 @@ public class TransactionService {
 		try {
 			Long customerId = (Long) txMap.get("customerId");
 			Long accountNumber = (Long) txMap.getOrDefault("accountNumber", 0L);
+
 			if (customerId != null && customerId == -1L) {
 				customerId = (Long) Helper.getThreadLocalValue("id");
 				txMap.put("customerId", customerId);
@@ -56,8 +57,13 @@ public class TransactionService {
 				txResult.put("count", count);
 			}
 			List<Transaction> transactions = transactionDAO.get(txMap);
-			txResult.put("transactions", transactions);
 
+			AuthorizationService authService = new AuthorizationService();
+			if (!authService.isAuthorized("transaction", transactions)) {
+				throw new CustomException("Not authorized to access transaction details", HttpStatusCodes.UNAUTHORIZED);
+			}
+
+			txResult.put("transactions", transactions);
 			return txResult;
 
 		} catch (Exception e) {

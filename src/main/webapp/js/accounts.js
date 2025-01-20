@@ -221,13 +221,13 @@ function renderAccounts(accounts) {
 							<p class="branchId"
 									style="width: 5%; font-weight: bold; color: #2b0444;">${account.branchId}</p>		
 							<p class="accbalance"
-								style="width: 10%; font-weight: bold; color: #28a745;">${account.balance.toLocaleString()}</p>
-								<p class="branchName" style="width: 5%; font-weight: bold; color: #2b0444;">${branch.name}</p>
-
-								<p class="acctype" style="width: 15%; color: #2b0444;">${account.accountType}</p>
+								style="width: 10%; font-weight: bold; color: #4677bd;">${account.balance.toLocaleString()}</p>
+								<p class="branchName" style="width: 5%; font-weight: bold; color: #6c757d;">${branch.name}</p>
+								
+								<p class="acctype" style="width: 15%; font-weight: bold; color: #2b0444;">${account.accountType}</p>
 								<p class="accstatus"
-								style="width: 15%; font-weight: bold; color: ${account.status === 'Active' ? 'blue' : 'red'};">${account.status}</p>
-							<p class="accountcreatedat" style="width: 15%; color: #2b0444;">${getDate(account.createdAt, false)}</p>
+								style="width: 15%; font-weight: bold; color: ${account.status === 'Active' ? '#28a745' : 'red'};">${account.status}</p>
+							<p class="accountcreatedat" style="width: 15%; font-weight: bold; color: #6c757d;">${getDate(account.createdAt, false)}</p>
 						</div>`;
 
 		accountHistory.appendChild(accountDiv);
@@ -298,14 +298,16 @@ const updateAccount = async accountUpdateData => {
 		body: JSON.stringify(accountUpdateData)
 	});
 	const result = await response.json();
-	const successPop = document.getElementById('successPopup');
+	console.log(result);
+	const successPop = document.getElementById('updateSuccessPopup');
+	console.log(successPop);
 	if (result.message == 'success') {
-		successPop.textContent = "Account updated!";
+		successPop.innerHTML = "Account updated!";
 		successPop.style.backgroundColor = '#4CAF50';
 		successPop.style.color = 'white';
 		successPop.style.display = 'block';
 	} else {
-		successPop.textContent = result.message;
+		successPop.innerHTML = result.message;
 		successPop.style.backgroundColor = 'red';
 		successPop.style.color = 'white';
 		successPop.style.display = 'block';
@@ -371,7 +373,7 @@ async function saveAccount() {
 	});
 	const result = await response.json();
 	console.log(result);
-	const successPop = document.getElementById('successPopup');
+	const successPop = document.getElementById('createSuccessPopup');
 	if (result.message == 'success') {
 		successPop.textContent = "Account created!";
 		successPop.style.backgroundColor = '#4CAF50';
@@ -383,7 +385,7 @@ async function saveAccount() {
 			balanceInput.value = '0.0';
 			accountTypeSelect.value = '';
 			toggleModal('newAccountModal');
-		}, 3000);	
+		}, 3000);
 	} else {
 		const errorMessage = document.getElementById('accountMessage');
 		errorMessage.style.display = 'block';
