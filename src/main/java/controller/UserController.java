@@ -1,19 +1,15 @@
 package controller;
 
 import java.io.IOException;
-import java.io.PrintWriter;
-
 import java.util.Map;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 
 import service.UserService;
-
 import util.CustomException;
 import util.Helper;
 
@@ -23,23 +19,12 @@ public class UserController {
 
 	public void handleGet(HttpServletRequest request, HttpServletResponse response, Map<String, Object> userMap)
 			throws IOException {
-		PrintWriter out = response.getWriter();
-		response.setContentType("application/json");
 
 		try {
-			boolean notExact = userMap != null && userMap.containsKey("notExact");
-
-			Object userDetails = userService.getUserDetails(userMap, notExact);
-			ObjectMapper mapper = new ObjectMapper();
-			String jsonResponse = mapper.writeValueAsString(userDetails);
-
-			response.setStatus(HttpServletResponse.SC_OK);
-			response.getWriter().write(jsonResponse);
-		} catch (CustomException e) {
-			response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-			out.println(e.getMessage());
-		} finally {
-			out.close();
+			Object userDetails = userService.getUserDetails(userMap);
+			Helper.sendSuccessResponse(response, userDetails);
+		} catch (CustomException exception) {
+			Helper.sendErrorResponse(response, exception.getMessage());
 		}
 	}
 
@@ -70,10 +55,10 @@ public class UserController {
 			JsonObject jsonObject = Helper.parseRequestBody(request);
 			Gson gson = new Gson();
 			Map<String, Object> userMap = gson.fromJson(jsonObject, Map.class);
-
 			userService.updateUserDetails(userMap);
 			Helper.sendSuccessResponse(response, "success");
 		} catch (CustomException exception) {
+			exception.printStackTrace();
 			Helper.sendErrorResponse(response, exception.getMessage());
 		}
 	}

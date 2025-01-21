@@ -73,16 +73,10 @@ const handleSubmit = async (event) => {
 
 		const result = await response.json();
 		console.log(result);
-		const successPop = document.getElementById('successPopup');
 		if (result.message == 'success') {
-			successPop.textContent = "Payment successful!";
-			successPop.style.backgroundColor = '#4CAF50';
-			successPop.style.color = 'white';
-			successPop.style.display = 'block';
-			setTimeout(() => {
-				successPop.style.display = 'none';
-				window.location.reload();
-			}, 3000);
+			const successPop = document.getElementById('successModal');
+			document.getElementById('successMessage').innerHTML = "Payment successful!";
+			successPop.style.display = 'flex';
 		} else {
 			const errorMessage = document.getElementById('errorMessage');
 			errorMessage.style.display = 'block';
@@ -91,7 +85,14 @@ const handleSubmit = async (event) => {
 
 	}
 };
-
+function paymentcloseModal() {
+	const modal = document.getElementById('successModal');
+	modal.style.animation = 'fadeOut 0.5s ease-out';
+	setTimeout(() => {
+		modal.style.display = 'none';
+	}, 500);
+	window.location.reload();
+}
 const toggleBankDropdown = () => {
 	const checkbox = document.getElementById('otherBankCheckbox');
 	document.querySelectorAll(".bankDropdownContainer").forEach(a => {

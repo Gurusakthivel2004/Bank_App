@@ -9,14 +9,19 @@ import java.util.Map;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import Enum.Constants.AccountType;
 import Enum.Constants.HttpStatusCodes;
+import Enum.Constants.LogType;
+import Enum.Constants.Role;
 import Enum.Constants.TransactionStatus;
 import Enum.Constants.TransactionType;
+import cache.CacheUtil;
 import dao.AccountDAO;
 import dao.BranchDAO;
 import dao.DAO;
 import dao.TransactionDAO;
 import model.Account;
+import model.ActivityLog;
 import model.Branch;
 import model.ColumnCriteria;
 import model.Transaction;
@@ -43,8 +48,8 @@ public class TransactionService {
 					accountNumber = primaryAccount != null ? primaryAccount.getAccountNumber() : accountNumber;
 				}
 			}
-			String role = Helper.getThreadLocalValue("role").toString();
-			if ("Employee".equals(role)) {
+			Role role = Role.fromString((String) Helper.getThreadLocalValue("role"));
+			if (role == Role.Employee) {
 				txMap.put("branchId", Helper.getThreadLocalValue("branchId"));
 			}
 
@@ -92,7 +97,6 @@ public class TransactionService {
 		Map<String, Object> accountMap = new HashMap<>();
 		long branchId = Long.parseLong((String) transactionMap.get("branchId"));
 		long accountNumber = Long.parseLong((String) transactionMap.get("accountNumber"));
-		logger.debug("Employee role detected. Verifying branch ID for accounts...");
 
 		accountMap.put("accountNumber", accountNumber);
 		accounts = new AccountDAO().get(accountMap);
@@ -108,15 +112,15 @@ public class TransactionService {
 		} catch (NumberFormatException e) {
 			throw new CustomException("Invalid amount format", HttpStatusCodes.BAD_REQUEST);
 		}
-		String role = (String) Helper.getThreadLocalValue("role");
-		if (role.equals("Employee")) {
+		Role role = Role.fromString((String) Helper.getThreadLocalValue("role"));
+		if (role == Role.Employee) {
 			if (account.getBranchId() != branchId) {
 				logger.warn("Branch ID mismatch for account number: {}", accountNumber);
 				throw new CustomException("Invalid account", HttpStatusCodes.BAD_REQUEST);
 			}
 		}
 		Long id = (Long) Helper.getThreadLocalValue("id");
-		if (role.equals("Customer") && account.getUserId() != id) {
+		if (role == Role.Customer && account.getUserId() != id) {
 			throw new CustomException("Unauthorized account found", HttpStatusCodes.UNAUTHORIZED);
 		}
 
@@ -172,7 +176,7 @@ public class TransactionService {
 				List<Account> accounts = accountDAO.get(accountMap);
 				Helper.checkNullValues(accounts);
 
-				String transactionType = transaction.getTransactionType();
+				TransactionType txType = transaction.getTransactionTypeEnum();
 				Long transactionUserId = accounts.get(0).getUserId();
 
 				transaction.setIfsc(transactionIfsc);
@@ -182,7 +186,7 @@ public class TransactionService {
 				transaction.setCustomerId(transactionUserId);
 				transaction.setId(txId);
 
-				if ("Debit".equals(transactionType)) {
+				if (txType == TransactionType.Debit) {
 					transaction.setTransactionTypeEnum(TransactionType.Credit);
 				}
 
@@ -202,7 +206,7 @@ public class TransactionService {
 		transaction.setTransactionTime(System.currentTimeMillis());
 		transaction.setPerformedBy((Long) Helper.getThreadLocalValue("id"));
 
-		String transactionType = transaction.getTransactionType();
+		TransactionType transactionType = transaction.getTransactionTypeEnum();
 		BigDecimal amount = transaction.getAmount();
 		Map<String, Object> accountMap = new HashMap<>();
 		accountMap.put("accountNumber", transaction.getAccountNumber());
@@ -213,14 +217,14 @@ public class TransactionService {
 		BigDecimal closingBalance;
 
 		switch (transactionType) {
-		case "Credit":
+		case Credit:
 			closingBalance = accountBalance.add(amount);
 			break;
-		case "Withdraw":
-		case "Debit":
+		case Withdraw:
+		case Debit:
 			closingBalance = accountBalance.subtract(amount);
 			break;
-		case "Deposit":
+		case Deposit:
 			closingBalance = computeDepositBalance(accountBalance, transaction, accountDAO);
 			break;
 		default:
@@ -231,14 +235,24 @@ public class TransactionService {
 		transaction.setClosingBalance(closingBalance);
 		logger.info("Transaction details: " + transaction);
 		ValidationUtil.validateModel(transaction, Transaction.class);
+
 		Long txId = transactionDAO.create(transaction);
 		logger.info("Transaction created with ID: " + txId);
+
+		ActivityLog activityLog = new ActivityLog().setLogMessage("Transaction created").setLogType(LogType.Insert)
+				.setUserAccountNumber(transaction.getAccountNumber()).setRowId(txId).setTableName("Transaction")
+				.setUserId(transaction.getCustomerId());
+
+		TaskExecutorService.getInstance().submit(activityLog);
 
 		ColumnCriteria columnCriteria = new ColumnCriteria().setFields(Arrays.asList("balance"))
 				.setValues(Arrays.asList(closingBalance));
 
 		accountDAO.update(columnCriteria, accountMap);
 
+		CacheUtil cacheUtil = new CacheUtil();
+		String accountkey = "accountInfo" + (transaction.getAccountNumber() % 10000);
+		cacheUtil.delete(accountkey);
 		return txId;
 	}
 
@@ -249,7 +263,7 @@ public class TransactionService {
 		accountMap.put("accountNumber", transaction.getAccountNumber());
 		List<Account> accounts = accountDAO.get(accountMap);
 		Account account = accounts.get(0);
-		if (!"Operational".equals(account.getAccountType())) {
+		if (!(AccountType.Operational == account.getAccountTypeEnum())) {
 			return accountBalance.add(transaction.getAmount());
 		} else {
 			return accountBalance.subtract(transaction.getAmount());

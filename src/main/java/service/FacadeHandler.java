@@ -61,14 +61,16 @@ public class FacadeHandler {
 			Map<String, Object> userMap = new HashMap<>();
 			userMap.put("role", role);
 			userMap.put("userId", id);
-			map.put("userDetail", userService.getUserDetails(userMap, false).get("users"));
+			map.put("userDetail", userService.getUserDetails(userMap).get("users"));
 
 			// Fetch branch details for the accounts
 			logger.info("Fetching branch details for user ID: {}", id);
 			List<Object> branchDetails = new ArrayList<>();
 			BranchService branchService = new BranchService();
+			Map<String, Object> branchMap = new HashMap<>();
 			for (Account account : accounts) {
-				Object branch = branchService.getBranchDetails(account.getBranchId(), false).get(0);
+				branchMap.put("branchId", account.getBranchId());
+				Object branch = branchService.getBranchDetails(branchMap).get(0);
 				if (!branchDetails.contains(branch)) {
 					branchDetails.add(branch);
 				}

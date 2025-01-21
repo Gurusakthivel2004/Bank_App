@@ -70,11 +70,10 @@ public class BranchDAO implements DAO<Branch> {
 
 	public List<Branch> get(Map<String, Object> branchMap) throws CustomException {
 		Long branchId = (Long) branchMap.get("branchId");
-		Boolean notExact = (Boolean) branchMap.get("notExact");
 		Criteria criteria = DAOHelper.createCriteria(Branch.class, "id", "EQUAL_TO", branchId)
 				.setSelectColumn(Arrays.asList("*"));
 		try {
-			if (notExact) {
+			if (branchMap.containsKey("notExact")) {
 				criteria.setColumn(Arrays.asList("id", "id")).setOperator(Arrays.asList("EQUAL_TO", "LIKE"))
 						.setValue(Arrays.asList(branchId, "%" + branchId + "%")).setLimitValue(1)
 						.setLogicalOperator("OR");

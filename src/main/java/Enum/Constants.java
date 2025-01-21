@@ -240,6 +240,14 @@ public class Constants {
 		public String toString() {
 			return name();
 		}
+
+		public static Status fromString(String status) throws CustomException {
+			try {
+				return Status.valueOf(status);
+			} catch (IllegalArgumentException e) {
+				throw new CustomException("Invalid status: " + status, HttpStatusCodes.BAD_REQUEST);
+			}
+		}
 	}
 
 	public enum LogType {
@@ -249,6 +257,14 @@ public class Constants {
 		public String toString() {
 			return name();
 		}
+
+		public static LogType fromString(String logType) throws CustomException {
+			try {
+				return LogType.valueOf(logType);
+			} catch (IllegalArgumentException e) {
+				throw new CustomException("Invalid log type: " + logType, HttpStatusCodes.BAD_REQUEST);
+			}
+		}
 	}
 
 	public enum AccountType {
@@ -257,6 +273,14 @@ public class Constants {
 		@Override
 		public String toString() {
 			return name();
+		}
+
+		public static AccountType fromString(String accountType) throws CustomException {
+			try {
+				return AccountType.valueOf(accountType);
+			} catch (IllegalArgumentException e) {
+				throw new CustomException("Invalid account type: " + accountType, HttpStatusCodes.BAD_REQUEST);
+			}
 		}
 	}
 
@@ -284,6 +308,14 @@ public class Constants {
 		public String toString() {
 			return name();
 		}
+
+		public static TransactionType fromString(String transactionType) throws CustomException {
+			try {
+				return TransactionType.valueOf(transactionType);
+			} catch (IllegalArgumentException e) {
+				throw new CustomException("Invalid transaction type: " + transactionType, HttpStatusCodes.BAD_REQUEST);
+			}
+		}
 	}
 
 	public enum TransactionStatus {
@@ -292,6 +324,15 @@ public class Constants {
 		@Override
 		public String toString() {
 			return name();
+		}
+
+		public static TransactionStatus fromString(String transactionStatus) throws CustomException {
+			try {
+				return TransactionStatus.valueOf(transactionStatus);
+			} catch (IllegalArgumentException e) {
+				throw new CustomException("Invalid transaction status: " + transactionStatus,
+						HttpStatusCodes.BAD_REQUEST);
+			}
 		}
 	}
 

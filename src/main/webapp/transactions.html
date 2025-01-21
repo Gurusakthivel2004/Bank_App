@@ -34,7 +34,10 @@
 		<div id="profilePanel" class="side-panel">
 			<div class="side-panel-header">
 				<h2>Profile Overview</h2>
-				<button class="close-btn" onclick="toggleProfilePanel()">&#10006;</button>
+				<button class="close-btn" onclick="toggleProfilePanel()"
+					style="background: transparent; font-size: 30px; color: #e74c3c; cursor: pointer; position: absolute; top: 15px; right: 15px; border: none; border-radius: 50%; height: 40px; width: 40px; display: flex; align-items: center; justify-content: center; transition: background-color 0.3s ease, transform 0.3s ease;"
+					onmouseover="this.style.backgroundColor='rgba(231, 76, 60, 0.1)'; this.style.transform='scale(1.1)';"
+					onmouseout="this.style.backgroundColor='transparent'; this.style.transform='scale(1)';">&times;</button>
 			</div>
 			<div class="side-panel-content">
 				<div class="detail-item">
@@ -111,24 +114,26 @@
 						style="background-color: #ffffff; border-radius: 10px; width: 80%; padding: 30px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1); position: relative;">
 						<button class="close-btn"
 							onclick="toggleModal('passwordChangeModal')"
-							style="background: transparent; border: none; font-size: 30px; color: #e74c3c; cursor: pointer; position: absolute; top: 15px; right: 15px;">&times;</button>
+							style="background: transparent; font-size: 30px; color: #e74c3c; cursor: pointer; position: absolute; top: 15px; right: 15px; border: none; border-radius: 50%; height: 40px; width: 40px; display: flex; align-items: center; justify-content: center; transition: background-color 0.3s ease, transform 0.3s ease;"
+							onmouseover="this.style.backgroundColor='rgba(231, 76, 60, 0.1)'; this.style.transform='scale(1.1)';"
+							onmouseout="this.style.backgroundColor='transparent'; this.style.transform='scale(1)';">&times;</button>
 						<h2 class="w-100 py-4 mb-4 text-center"
 							style="color: #2980b9; font-size: 24px; font-family: sans-serif; font-weight: 800;">Change
 							Password</h2>
 
 						<div class="d-flex row" style="flex-direction: column;">
 							<!-- Current Password -->
-							<div class="d-flex align-items-center w-100 py-4 px-2 mx-3"
+							<div class="d-flex align-items-center w-100 py-4 px-5"
 								style="border-bottom: 1px solid #ccc;">
 								<label for="currentPassword" class="detail-label"
-									style="width: 39%; color: #34495e; margin-left: 8%; font-weight: 600;">Current
+									style="width: 39%; color: #34495e; margin-left: 8%; font-weight: 800; font-family: sans-serif">Current
 									Password:</label>
-								<div class="inputDiv" style="width: 40%; position: relative;">
+								<div class="inputDiv" style="width: 45%; position: relative;">
 									<input type="password" id="currentPassword" class=""
 										style="width: 100%; border: 1px solid #ccc; padding: 8px; font-size: 16px; font-weight: 600; border-radius: 5px; color: #2c3e50; font-family: 'Arial', sans-serif;">
 									<button type="button"
 										onclick="togglePasswordVisibility('currentPassword', this)"
-										style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer;">
+										style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; border-radius: 20px;">
 										<img src="./images/eye.svg" alt="Show password"
 											style="width: 20px; height: 20px;">
 									</button>
@@ -136,17 +141,17 @@
 							</div>
 
 							<!-- New Password -->
-							<div class="d-flex w-100 align-items-center py-4 px-2 mx-3"
+							<div class="d-flex w-100 align-items-center py-4 px-5"
 								style="border-bottom: 1px solid #ccc;">
 								<label for="newPassword" class="detail-label"
-									style="width: 39%; color: #34495e; margin-left: 8%; font-weight: 600;">New
+									style="width: 39%; color: #34495e; margin-left: 8%; font-weight: 800; font-family: sans-serif">New
 									Password:</label>
-								<div class="inputDiv" style="width: 40%; position: relative;">
+								<div class="inputDiv" style="width: 45%; position: relative;">
 									<input type="password" id="newPassword" class=""
 										style="width: 100%; border: 1px solid #ccc; padding: 8px; font-size: 16px; font-weight: 600; border-radius: 5px; color: #2c3e50; font-family: 'Arial', sans-serif;">
 									<button type="button"
 										onclick="togglePasswordVisibility('newPassword', this)"
-										style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer;">
+										style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; border-radius: 20px;">
 										<img src="./images/eye.svg" alt="Show password"
 											style="width: 20px; height: 20px;">
 									</button>
@@ -154,29 +159,38 @@
 							</div>
 
 							<!-- Confirm Password -->
-							<div class="d-flex w-100 py-4 align-items-center px-2 mx-3">
+							<div class="d-flex w-100 py-4 align-items-center py-4 px-5">
 								<label for="confirmPassword" class="detail-label"
-									style="width: 39%; color: #34495e; margin-left: 8%; font-weight: 600;">Confirm
+									style="width: 39%; color: #34495e; margin-left: 8%; font-weight: 800; font-family: sans-serif">Confirm
 									Password:</label>
-								<div class="inputDiv" style="width: 40%; position: relative;">
+								<div class="inputDiv" style="width: 45%; position: relative;">
 									<input type="password" id="confirmPassword" class=""
 										style="width: 100%; border: 1px solid #ccc; padding: 8px; font-size: 16px; font-weight: 600; border-radius: 5px; color: #2c3e50; font-family: 'Arial', sans-serif;">
 									<button type="button"
 										onclick="togglePasswordVisibility('confirmPassword', this)"
-										style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer;">
+										style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; border-radius: 20px;">
 										<img src="./images/eye.svg" alt="Show password"
 											style="width: 20px; height: 20px;">
 									</button>
 								</div>
 							</div>
 
-							<p id="passwordmessage" class="text-danger text-center mt-3"></p>
+							<p id="passwordmessage" style="display: none"
+								class="text-danger text-center mt-3"></p>
 
 							<!-- Submit Button -->
 							<div class="d-flex justify-content-center mt-3">
-								<button onclick="submitPasswordChange()" class="btn"
-									style="background-color: #2980b9; color: white; padding: 10px 20px; font-size: 16px; font-weight: 600; border-radius: 5px; border: none; cursor: pointer;">
-									Submit</button>
+								<div class="d-flex my-3">
+									<button class="mb-2 mx-auto" type="submit"
+										style="width: max-content; display: flex; align-items: center; justify-content: center; background-color: #2980b9; color: white; font-size: 16px; font-family: Arial, sans-serif; font-weight: bold; padding: 10px 20px; border: none; border-radius: 8px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); cursor: pointer; transition: background-color 0.3s ease, transform 0.2s ease;"
+										onmouseover="this.style.backgroundColor='#2471A3'; this.style.transform='scale(1.05)';"
+										onmouseout="this.style.backgroundColor='#2980b9'; this.style.transform='scale(1)';"
+										onclick="submitPasswordChange()">
+										<img src="./images/savewhite.svg" alt="Save Icon"
+											style="width: 20px; height: 20px; margin-right: 10px;">
+										Save
+									</button>
+								</div>
 							</div>
 						</div>
 					</div>

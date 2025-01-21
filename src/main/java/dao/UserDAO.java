@@ -1,5 +1,6 @@
 package dao;
 
+import java.math.BigInteger;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Map;
@@ -33,8 +34,11 @@ public class UserDAO<T extends User> implements DAO<T> {
 						.setPerformedBy((long) Helper.getThreadLocalValue("id"))
 						.setPassword(Helper.hashPassword(((Staff) user).getPassword()));
 			}
-			return (Long) SQLHelper.insert(user);
+			return ((BigInteger) SQLHelper.insert(user)).longValue();
+		} catch (CustomException e) {
+			throw e;
 		} catch (Exception e) {
+			e.printStackTrace();
 			throw new CustomException("An error occurred while creating. Please try later.",
 					HttpStatusCodes.INTERNAL_SERVER_ERROR);
 		}
@@ -63,8 +67,7 @@ public class UserDAO<T extends User> implements DAO<T> {
 
 		Class<T> clazz = (Class<T>) userMap.get("userClass");
 		logger.info("Fetching {} details.", clazz.getSimpleName());
-		boolean notExact = (boolean) userMap.get("notExact");
-		Criteria criteria = DAOHelper.buildUserCriteria(userMap, clazz, notExact);
+		Criteria criteria = DAOHelper.buildUserCriteria(userMap, clazz, userMap.containsKey("notExact"));
 		try {
 			return SQLHelper.get(criteria, clazz);
 		} catch (SQLException e) {
@@ -77,8 +80,7 @@ public class UserDAO<T extends User> implements DAO<T> {
 	public Long getDataCount(Map<String, Object> userMap) throws CustomException {
 		try {
 			Class<T> clazz = (Class<T>) userMap.get("userClass");
-			boolean notExact = (boolean) userMap.get("notExact");
-			Criteria criteria = DAOHelper.buildUserCriteria(userMap, clazz, notExact);
+			Criteria criteria = DAOHelper.buildUserCriteria(userMap, clazz, userMap.containsKey("notExact"));
 			criteria.setOffsetValue(-1L).setAggregateFunction("COUNT").setAggregateOperator("*");
 			Long count = SQLHelper.getCount(criteria, clazz);
 			return count;

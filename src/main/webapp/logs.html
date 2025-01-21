@@ -8,7 +8,7 @@
 	href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
 	rel="stylesheet">
 <link href="./css/navProfile.css" rel="stylesheet">
-<link href="./css/user-details.css" rel="stylesheet">
+<link href="./css/accounts.css" rel="stylesheet">
 </head>
 <body>
 	<div>
@@ -30,6 +30,7 @@
 			</div>
 		</nav>
 
+		<!-- Right Side Panel -->
 		<div id="profilePanel" class="side-panel">
 			<div class="side-panel-header">
 				<h2>Profile Overview</h2>
@@ -59,15 +60,103 @@
 				<hr>
 				<ul class="dropdown-items d-flex col justify-content-center"
 					role="button">
+					<li><a class="py-2 px-4" href="user-details.html"><img
+							src="./images/user-edit.svg" width="30px" height="30px" alt="" /></a></li>
 					<li><a class="py-2 px-4"
 						onclick="toggleModal('passwordChangeModal')"><img
 							src="./images/settings.svg" width="30px" height="30px" alt="" /></a></li>
-
+					<li><a class="py-2 px-4" href="user-details.html"><img
+							src="./images/create-user.svg" width="30px" height="30px" alt="" /></a></li>
 					<li><a class="py-2 px-4" onclick="logout()"><img
 							src="./images/logout.svg" width="30px" height="30px" alt="" /></a></li>
 				</ul>
 			</div>
 		</div>
+
+
+		<div id="newAccountModal" class="modal-overlay"
+			style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.7); z-index: 1000; justify-content: center; align-items: center;">
+			<p id="createSuccessPopup"
+				style="display: none; position: fixed; top: 120px; right: 20px; padding: 15px; background-color: #4CAF50; color: white; border-radius: 5px; font-size: 16px; z-index: 1000;">
+			</p>
+			<div class="modal-content account-details"
+				style="background-color: #ffffff; border-radius: 10px; width: 80%; max-width: 500px; padding: 20px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);">
+				<button class="close-btn my-3"
+					onclick="toggleModal('newAccountModal')"
+					style="background: transparent; font-size: 30px; color: #e74c3c; cursor: pointer; position: absolute; top: 15px; right: 15px; border: none; border-radius: 50%; height: 40px; width: 40px; display: flex; align-items: center; justify-content: center; transition: background-color 0.3s ease, transform 0.3s ease;"
+					onmouseover="this.style.backgroundColor='rgba(231, 76, 60, 0.1)'; this.style.transform='scale(1.1)';"
+					onmouseout="this.style.backgroundColor='transparent'; this.style.transform='scale(1)';">&times;</button>
+				<h2 class="w-100 py-4 mb-4 text-center"
+					style="color: #2980b9; font-size: 24px; font-family: 'Arial', sans-serif; font-weight: 600;">Account
+					Details</h2>
+				<!-- Branch details -->
+				<div class="d-flex row mb-3" style="flex-direction: column;">
+
+					<div class="detail-item d-flex w-100 py-3 px-2 mx-2"
+						style="border-bottom: 1px solid #ccc;">
+						<span class="detail-label"
+							style="width: 39%; color: #34495e; margin-left: 17%;">User
+							id:</span>
+						<div class="inputDiv d-flex"
+							style="width: 40%; position: relative;">
+							<input class="mb-0 px-2 py-1" id="newUserId"
+								oninput="fetchUserIdDetails(this.value)" required
+								style="color: #2c3e50; border: 1px solid #ccc; border-radius: 10px; width: 75%; font-size: 16px; font-weight: 600; font-family: 'Arial', sans-serif; transition: border-color 0.3s ease, box-shadow 0.3s ease;"
+								autocomplete="off"
+								onfocus="this.style.borderColor='#2980b9'; this.style.boxShadow='0 0 8px rgba(41, 128, 185, 0.5)';"
+								onblur="this.style.borderColor='#ccc'; this.style.boxShadow='none';">
+							<div id="userIddropdown" class="dropdown-menu"
+								style="display: none; position: absolute; top: 100%; left: 0; width: 100%; background: white; border: 1px solid #ddd; border-radius: 5px; z-index: 10; transition: background-color 0.3s ease, box-shadow 0.3s ease;">
+							</div>
+						</div>
+					</div>
+
+					<div class="detail-item d-flex w-100 py-3 px-2 mx-2 mb-3"
+						data-id="3" style="border-bottom: 1px solid #ccc;">
+						<span class="detail-label" style="width: 39%; margin-left: 17%;">Type:</span>
+						<div class="inputDiv" style="width: 40%;">
+							<select class="form-control p-1 px-2" id="newAccountType"
+								required disabled
+								style="width: 75%; border: 1px solid #ccc; border-radius: 10px; transition: border-color 0.3s ease, box-shadow 0.3s ease;"
+								onfocus="this.style.borderColor='#2980b9'; this.style.boxShadow='0 0 8px rgba(41, 128, 185, 0.5)';"
+								onblur="this.style.borderColor='#ccc'; this.style.boxShadow='none';"
+								aria-expanded="false">
+								<option value="" selected>Select Type</option>
+							</select>
+						</div>
+					</div>
+
+
+					<div class="detail-item d-flex w-100 py-3 px-2 mx-2" data-id="3">
+						<span class="detail-label" style="width: 39%; margin-left: 17%;">Balance:</span>
+						<div class="inputDiv" style="width: 40%;">
+							<input required id="newbalance" value="0.0"
+								class="accNumberInput rounded p-1 px-2 w-30 bg-white"
+								style="border: 1px solid #ccc; border-radius: 10px; width: 75%; transition: border-color 0.3s ease, box-shadow 0.3s ease;"
+								onfocus="this.style.borderColor='#2980b9'; this.style.boxShadow='0 0 8px rgba(41, 128, 185, 0.5)';"
+								onblur="this.style.borderColor='#ccc'; this.style.boxShadow='none';"
+								type="text" />
+						</div>
+					</div>
+
+					<p id="accountMessage"
+						class="text-danger mt-2 fs-large text-center"
+						style="display: none">Error message</p>
+
+					<button class="mt-3 mb-2 mx-auto" onclick="saveAccount()"
+						style="width: max-content; display: flex; align-items: center; justify-content: center; background-color: #2980b9; color: white; font-size: 16px; font-family: Arial, sans-serif; font-weight: bold; padding: 10px 20px; border: none; border-radius: 8px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); cursor: pointer; transition: background-color 0.3s ease, transform 0.2s ease;"
+						onmouseover="this.style.backgroundColor='#2471A3'; this.style.transform='scale(1.05)';"
+						onmouseout="this.style.backgroundColor='#2980b9'; this.style.transform='scale(1)';">
+						<img src="./images/savewhite.svg" alt="Save Icon"
+							style="width: 20px; height: 20px; margin-right: 10px;">
+						Save
+					</button>
+
+				</div>
+			</div>
+		</div>
+
+
 		<div id="successModal"
 			style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.7); justify-content: center; align-items: center; z-index: 1000; animation: fadeIn 0.5s ease-out;">
 			<div
@@ -87,221 +176,106 @@
 			</div>
 		</div>
 
-		<div id="newUserModal" class="modal-overlay"
+		<div id="accountDetailsModal" class="modal-overlay"
 			style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.7); z-index: 1000; justify-content: center; align-items: center;">
-			<div id="successPopup"
-				style="display: none; position: fixed; top: 120px; right: 20px; padding: 15px; background-color: #4CAF50; color: white; border-radius: 5px; font-size: 16px; z-index: 1000;">
-			</div>
-			<div class="usermodal-content account-details"
-				style="width: auto; background-image: url(./images/bg.svg); background: 100% no-repeat center center; border-radius: 10px; margin: 5% auto; height: max-content; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);">
-
-				<button class="close-btn mt-2" onclick="toggleModal('newUserModal')"
+			<div class="modal-content account-details"
+				style="background-color: #ffffff; border-radius: 10px; width: 80%; max-width: 500px; padding: 20px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);">
+				<button class="close-btn my-3"
+					onclick="toggleModal('accountDetailsModal')"
 					style="background: transparent; font-size: 30px; color: #e74c3c; cursor: pointer; position: absolute; top: 15px; right: 15px; border: none; border-radius: 50%; height: 40px; width: 40px; display: flex; align-items: center; justify-content: center; transition: background-color 0.3s ease, transform 0.3s ease;"
 					onmouseover="this.style.backgroundColor='rgba(231, 76, 60, 0.1)'; this.style.transform='scale(1.1)';"
 					onmouseout="this.style.backgroundColor='transparent'; this.style.transform='scale(1)';">&times;</button>
-				<div class="d-flex col justify-content-center">
-					<button id="editButton" class="editAllButton border-0 mt-3 ms-3"
-						onclick="toggleEditUser()"></button>
-					<button id="saveButton" class="saveAllButton border-0 mt-3 ms-3"
-						style="display: none" onclick="toggleSaveAll()"></button>
-					<div class="d-flex col mx-auto mt-3 justify-content-center">
-						<img src="./images/info-dark.svg" width="30px" height="30px"
-							alt="" />
-					</div>
-				</div>
-
+				<h2 class="w-100 py-4 mb-4 text-center"
+					style="color: #2980b9; font-size: 24px; font-family: 'Arial', sans-serif; font-weight: 600;">Account
+					Details</h2>
 				<!-- Branch details -->
-				<div class="d-flex mb-1 me-3 mx-4" style="flex-direction: row;">
-					<div id="userDetails" class="w-100 mt-4 mb-0 pt-4 pb-0">
-						<div class="detail-item d-flex  w-100 py-3 px-2 mx-2" data-id="1">
-							<span class="detail-label ps-4"
-								style="width: 50%; padding-left: 10%;">Full Name</span>
-							<div class="inputDiv w-40">
-								<input required id="fullname"
-									class="accNumberInput rounded p-1 px-2 w-30"
-									style="border: 1px solid #555; color: #2b5ab3; font-weight: bold;"
-									type="text" placeholder="Gurusakthivel V" />
-							</div>
+				<div class="d-flex row" style="flex-direction: column;">
+
+					<div class="detail-item d-flex w-100 py-3 px-2 mx-2"
+						style="border-bottom: 1px solid #ccc;">
+						<span class="detail-label"
+							style="width: 39%; color: #34495e; margin-left: 17%;">Branch
+							id:</span>
+						<div class="inputDiv d-flex"
+							style="width: 40%; position: relative;">
+							<input class="mb-0 px-2 py-1" id="accountbranchId" disabled
+								oninput="fetchDropdownOptions(this.value)"
+								style="color: #2c3e50; border: 0; border-radius: 10px; width: 75%; font-size: 16px; font-weight: 600; font-family: 'Arial', sans-serif;"
+								autocomplete="off">
+							<div id="dropdown" class="dropdown-menu"
+								style="display: none; position: absolute; top: 100%; left: 0; width: 100%; background: white; border: 1px solid #ddd; border-radius: 5px; z-index: 10;"></div>
+							<img onclick="updateBranch()" id="branchEdit"
+								style="margin-top: 5px; margin-left: auto; cursor: pointer; display: none;"
+								src="./images/editOne.svg" width="20px" height="20px"
+								alt="brancheditbutton" /> <img id="branchSave"
+								onclick="saveBranch()"
+								style="margin-top: 5px; display: none; margin-left: auto; cursor: pointer"
+								src="./images/save.svg" width="20px" height="20px" alt="" />
 						</div>
-						<div class="detail-item d-flex w-100 py-3 px-2 mx-2" data-id="2">
-							<span class="detail-label ps-4"
-								style="width: 50%; padding-left: 10%;">Email:</span>
-							<div class="inputDiv w-40">
-								<input required id="email"
-									class="accNumberInput rounded p-1 px-2 w-30"
-									style="border: 1px solid #555; color: #2b5ab3; font-weight: bold;"
-									type="email" placeholder="guru@gmail.com" />
-							</div>
-						</div>
-						<div class="detail-item d-flex  w-100 py-3 px-2 mx-2" data-id="3">
-							<span class="detail-label ps-4"
-								style="width: 50%; padding-left: 10%;">Phone:</span>
-							<div class="inputDiv w-40">
-								<input required id="phone"
-									class="accNumberInput rounded p-1 px-2 w-30"
-									style="border: 1px solid #555; color: #2b5ab3; font-weight: bold;"
-									type="text" placeholder="9361409778" />
-							</div>
-						</div>
-						<div id="branchIdDiv" class="detail-item w-100 py-3 px-2 mx-2"
-							style="display: none">
-							<span class="detail-label ps-4"
-								style="width: 50%; padding-left: 10%;">Branch id:</span>
-							<div class="inputDiv w-40">
-								<input class="rounded p-1 px-2 w-30" id="branchId" required
-									oninput="fetchDropdownOptions(this.value)" placeholder="7"
-									style="font-family: 'Arial', sans-serif;; font-weight: bold;"
-									autocomplete="off">
-								<div id="dropdown" class="dropdown-menu w-30"
-									style="display: none; background: white; border: 1px solid #ddd; border-radius: 5px; z-index: 10;"></div>
-							</div>
-						</div>
-						<div class="detail-item d-flex w-100 py-3 px-2 mx-2" data-id="4">
-							<span class="detail-label ps-4"
-								style="width: 50%; padding-left: 10%;">Username:</span>
-							<div class="inputDiv w-40">
-								<input required id="username"
-									class="accNumberInput rounded p-1 px-2 w-30"
-									style="border: 1px solid #555; color: #2b5ab3; font-weight: bold;"
-									type="text" placeholder="guru" />
-							</div>
-						</div>
-						<div class="detail-item d-flex w-100 py-3 px-2 mx-2" data-id="12">
-							<span class="detail-label ps-4"
-								style="width: 50%; padding-left: 10%;">Status:</span>
-							<div class="inputDiv w-20">
-								<div class="accounts-dropdown">
-									<input required id="status" readonly
-										class="accNumberInput rounded p-1 px-2 ms-4 w-20"
-										style="border: 1px solid #555; color: #2b5ab3;; font-weight: bold;"
-										id="accountDropdown" data-bs-toggle="dropdown-menu"
-										aria-expanded="false" placeholder="Active" />
-									<ul class="dropdown-menu shadow text-center"
-										aria-labelledby="accountDropdown"
-										style="display: none; width: 217px; margin-left: 25px;">
-										<li><a class="dropdown-item active" href="#">Active</a></li>
-										<li><a class="dropdown-item" href="#">Inactive</a></li>
-									</ul>
-								</div>
-							</div>
-						</div>
-						<div class="detail-item w-100 py-3 px-2 mx-2" data-id="12"
-							id="roleDiv" style="display: none;">
-							<span class="detail-label ps-4"
-								style="width: 50%; padding-left: 10%;">Role:</span>
-							<div class="inputDiv w-20">
-								<div class="accounts-dropdown">
-									<input required id="role" readonly
-										class="accNumberInput rounded p-1 px-2 ms-4 w-20"
-										style="border: 1px solid #555; color: #2b5ab3;; font-weight: bold;"
-										id="accountDropdown" data-bs-toggle="dropdown-menu"
-										aria-expanded="false" placeholder="Employee" />
-									<ul class="dropdown-menu shadow text-center"
-										aria-labelledby="accountDropdown"
-										style="display: none; width: 217px; margin-left: 25px;">
-										<li><a class="dropdown-item active" href="#">Employee</a></li>
-										<li><a class="dropdown-item" href="#">Manager</a></li>
-									</ul>
-								</div>
-							</div>
-						</div>
-						<div class="detail-item w-100 py-3 px-2 mx-2" data-id="6"
-							id="addressDiv" style="display: flex;">
-							<span class="detail-label ps-4"
-								style="width: 50%; padding-left: 10%;">Address:</span>
-							<div class="inputDiv w-40">
-								<textarea required rows="1.5" cols="21" id="address"
-									class="accNumberInput rounded p-1 px-2 w-30"
-									placeholder="2/45 KK Nagar, Chennai"
-									style="border: 1px solid #555; color: #2b5ab3; font-weight: bold;"></textarea>
-							</div>
-						</div>
+
 					</div>
-					<div id="customerDetails" style="display: block"
-						class="w-100 mt-4 mb-0 pt-4 pb-0 ms-5 me-4">
-						<div class="detail-item d-flex  w-100 py-3 pe-2 me-2" data-id="7">
-							<span class="detail-label ps-4"
-								style="width: 50%; padding-left: 10%;">Pan Number:</span>
-							<div class="inputDiv w-40">
-								<input required id="panNumber"
-									class="accNumberInput rounded p-1 px-2 ms-4 w-30"
-									style="border: 1px solid #555; color: #2b5ab3; font-weight: bold;"
-									type="text" placeholder="xxxxxxi897641" />
-							</div>
-						</div>
-						<div class="detail-item d-flex  w-100 py-3 pe-2 me-2" data-id="8">
-							<span class="detail-label ps-4"
-								style="width: 50%; padding-left: 10%;">Aadhar Number:</span>
-							<div class="inputDiv w-40">
-								<input required id="aadharNumber"
-									class="accNumberInput rounded p-1 px-2 ms-4 w-30"
-									style="border: 1px solid #555; color: #2b5ab3; font-weight: bold;"
-									type="text" placeholder="9051 4378 4318" />
-							</div>
-						</div>
-						<div class="detail-item d-flex  w-100 py-3 pe-2 me-2" data-id="9">
-							<span class="detail-label ps-4"
-								style="width: 50%; padding-left: 10%;">DOB:</span>
-							<div class="inputDiv w-40">
-								<input id="dob" required
-									class="accNumberInput rounded p-1 px-2 ms-4 w-30"
-									style="border: 1px solid #555; color: #2b5ab3; font-weight: bold;"
-									type="text" placeholder="08/06/2004" />
-							</div>
-						</div>
-						<div class="detail-item d-flex  w-100 py-3 pe-2 me-2" data-id="10">
-							<span class="detail-label ps-4"
-								style="width: 50%; padding-left: 10%;">Father name:</span>
-							<div class="inputDiv w-40">
-								<input id="fatherName" required
-									class="accNumberInput rounded p-1 px-2 ms-4 w-30"
-									style="border: 1px solid #555; color: #2b5ab3; font-weight: bold;"
-									type="text" placeholder="Vijayakumar G" />
-							</div>
-						</div>
-						<div class="detail-item d-flex  w-100 py-3 pe-2 me-2" data-id="11">
-							<span class="detail-label ps-4"
-								style="width: 50%; padding-left: 10%;">Mother name:</span>
-							<div class="inputDiv w-40">
-								<input id="motherName"
-									class="accNumberInput rounded p-1 px-2 ms-4 w-30" required
-									style="color: green; border: 1px solid #555; color: #2b5ab3; font-weight: bold;"
-									type="text" placeholder="Kavitha V" />
-							</div>
-						</div>
-						<div class="detail-item d-flex w-100 py-3 pe-2 me-2 border-0"
-							data-id="12">
-							<span class="detail-label ps-4"
-								style="width: 50%; padding-left: 10%;">Marital status:</span>
-							<div class="inputDiv w-40">
-								<div class="accounts-dropdown">
-									<input required id="maritalStatus"
-										class="accNumberInput rounded p-1 px-2 ms-3 w-30"
-										style="border: 1px solid #555; color: #2b5ab3;; font-weight: bold;"
-										id="accountDropdown" data-bs-toggle="dropdown-menu"
-										aria-expanded="false" placeholder="Single" />
-									<ul class="dropdown-menu shadow text-center"
-										aria-labelledby="accountDropdown"
-										style="display: none; width: 217px; margin-left: 25px;">
-										<li><a class="dropdown-item active" href="#">Single</a></li>
-										<li><a class="dropdown-item" href="#">Married</a></li>
-									</ul>
-								</div>
-							</div>
+
+					<div class="detail-item d-flex w-100 py-3 px-2 mx-2"
+						style="border-bottom: 1px solid #ccc;">
+						<span class="detail-label"
+							style="width: 39%; color: #34495e; margin-left: 17%;">Account
+							Holder:</span>
+						<div class="inputDiv" style="width: 40%;">
+							<p class="mb-0" id="accountfullname"
+								style="color: #4677bd; font-size: 16px; font-weight: 600; font-family: 'Arial', sans-serif;"></p>
 						</div>
 					</div>
 
+					<div class="detail-item d-flex w-100 py-3 px-2 mx-2"
+						style="border-bottom: 1px solid #ccc;">
+						<span class="detail-label"
+							style="width: 39%; color: #34495e; margin-left: 17%;">Account
+							Number:</span>
+						<div class="inputDiv" style="width: 40%;">
+							<p class="mb-0" id="accountNumber2"
+								style="color: #2c3e50; font-size: 16px; font-weight: 600; font-family: 'Arial', sans-serif;"></p>
+						</div>
+					</div>
+
+
+
+					<div class="detail-item d-flex w-100 py-3 px-2 mx-2"
+						style="border-bottom: 1px solid #ccc;">
+						<span class="detail-label"
+							style="width: 39%; color: #34495e; margin-left: 17%;">Contact:</span>
+						<div class="inputDiv" style="width: 40%;">
+							<p class="mb-0" id="accountphone"
+								style="color: #4677bd; font-size: 16px; font-weight: 600; font-family: 'Arial', sans-serif;"></p>
+						</div>
+					</div>
+
+					<div class="detail-item d-flex w-100 py-3 px-2 mx-2">
+						<span class="detail-label"
+							style="width: 39%; color: #34495e; margin-left: 17%;">Status:</span>
+						<div class="inputDiv d-flex"
+							style="width: 40%; position: relative;">
+							<input class="mb-0 px-2 py-1" id="accountStatus" disabled
+								onclick="toggleDropdown()"
+								style="color: #2c3e50; border: 0; border-radius: 10px; width: 75%; font-size: 16px; font-weight: 600; font-family: 'Arial', sans-serif;"
+								autocomplete="off" />
+							<div id="dropdownStatus" class="dropdown-menu"
+								style="display: none; position: absolute; top: 100%; left: 0; width: 100%; background: white; border: 1px solid #ddd; border-radius: 5px; z-index: 10;"></div>
+							<img onclick="updateStatus()" id="statusEdit"
+								style="margin-top: 5px; margin-left: auto; cursor: pointer; display: block;"
+								src="./images/editOne.svg" width="20px" height="20px"
+								alt="statuseditbutton" /> <img id="statusSave"
+								onclick="saveStatus()"
+								style="margin-top: 5px; display: none; margin-left: auto; cursor: pointer"
+								src="./images/save.svg" width="20px" height="20px" alt="" />
+						</div>
+
+
+					</div>
+					<p id="errorUpdate" class="tex-center"
+						style="display: none; padding: 15px; color: red; font-size: 16px; z-index: 1000;">
+						Error occured.</p>
+
 				</div>
-				<p id="errorMessage" style="display: none;"
-					class="text-danger text-center w-100 mb-4">Enter a unique
-					username and email.</p>
-				<button class="mx-auto" onclick="newUser()" id="newUserButton"
-					style="width: max-content; display: none; align-items: center; justify-content: center; background-color: #2980b9; color: white; font-size: 16px; font-family: Arial, sans-serif; font-weight: bold; padding: 10px 20px; border: none; border-radius: 8px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); cursor: pointer; transition: background-color 0.3s ease, transform 0.2s ease;"
-					onmouseover="this.style.backgroundColor='#2471A3'; this.style.transform='scale(1.05)';"
-					onmouseout="this.style.backgroundColor='#2980b9'; this.style.transform='scale(1)';">
-					<img src="./images/savewhite.svg" alt="Save Icon"
-						style="width: 20px; height: 20px; margin-right: 10px;"> Save
-				</button>
 			</div>
 		</div>
 
@@ -429,13 +403,8 @@
 					<div style='font-family: sans-serif;'
 						class="d-flex column mb-3 align-items-center align-items-baseline">
 						<h3 class="my-auto"
-							style="font-family: sans-serif; font-weight: 900; color: #2b0444; font-size: larger;">Users</h3>
-						<img class="my-auto ms-2 createButton" onclick="createButton()"
-							style="cursor: pointer;" width="34px" height="30px"
-							src="./images/new.svg" alt="" />
-						<div id="dynamicButtons" class="dropdown-container"
-							style="margin-top: -10px;"></div>
-
+							style="font-family: sans-serif; font-weight: 900; color: #2b0444; font-size: larger;">Activity
+							Logs</h3>
 						<div class="account-filter d-flex my-auto flex-wrap ms-auto">
 							<div id="customeridfilter" style="display: flex;"
 								class="id-dropdown align-items-baseline me-3 mb-3">
@@ -444,36 +413,33 @@
 									id="customerIdsearchInput" placeholder="Customer Id"
 									aria-expanded="false">
 							</div>
-							<div id="branchidfilter" style="display: flex;"
-								class="id-dropdown align-items-baseline me-3 mb-3">
-								<label style="font-family: sans-serif;"
-									class="fw-bold pe-3 text-dark">Branch Id:</label> <input
-									style="width: 150px;" class="form-control" type="text"
-									id="branchIdsearchInput" placeholder="Branch Id"
+
+							<div class="id-dropdown d-flex align-items-baseline me-3 mb-3">
+								<label class="fw-bold me-2 text-dark">Account:</label> <input
+									class="form-control" type="text" style="width: 150px;"
+									id="accountsearchInput" placeholder="Account number"
 									aria-expanded="false">
 							</div>
 							<div class="id-dropdown d-flex align-items-baseline me-3 mb-3">
-								<label class="fw-bold me-2 text-dark">Status:</label> <select
-									class="form-control" id="userStatussearchInput"
-									aria-expanded="false" style="width: 150px;">
-									<option value="" selected>Select Status</option>
-									<option value="Active">Active</option>
-									<option value="Inactive">Inactive</option>
-									<option value="Pending">Pending</option>
-								</select>
-							</div>
-
-							<div class="id-dropdown d-flex align-items-baseline me-3 mb-3">
 								<label class="fw-bold me-2 text-dark">Type:</label> <select
-									class="form-control" id="userTypesearchInput"
+									class="form-control" id="accountTypesearchInput"
 									style="width: 150px;" aria-expanded="false">
 									<option value="" selected>Select Type</option>
-									<option value="Customer">Customer</option>
-									<option value="Manager">Manager</option>
-									<option value="Employee">Employee</option>
+									<option value="Active">Insert</option>
+									<option value="Inactive">Update</option>
+									<option value="Pending">Delete</option>
+									<option value="Pending">Login</option>
+									<option value="Pending">Logout</option>
 								</select>
 							</div>
-
+							<div class="id-dropdown d-flex align-items-baseline me-3 mb-3">
+								<label class="fw-bold  me-2 text-dark">From:</label> <input
+									class="form-control" type="date" id="FromDatesearchInput">
+							</div>
+							<div class="id-dropdown d-flex align-items-baseline mb-3">
+								<label class="fw-bold me-2 text-dark">To:</label> <input
+									class="form-control" type="date" id="ToDatesearchInput">
+							</div>
 						</div>
 					</div>
 
@@ -481,21 +447,22 @@
 						<div
 							style="background-color: #2b0444; color: white; font-weight: 900; padding: 10px; border-radius: 10px;"
 							class="account-item mb-3">
-							<p class="userid" style="font-size: larger;">User Id</p>
-							<p class="username">Name</p>
-							<p class="useremail" style="font-size: larger; margin-left: 0px">Email</p>
-							<p class="userphone"
-								style="font-size: larger; color: white; margin-left: 2px">Phone</p>
-							<p class="userusername"
-								style="font-size: larger; margin-left: 0px">Username</p>
-							<p class="userstatus"
-								style="font-size: larger; margin-left: -2px;">Status</p>
-							<p class="usercreatedAt"
-								style="font-size: larger; margin-left: -2px;">Created At</p>
+							<p class="userId" style="font-size: larger;">User Id</p>
+							<p class="accountNumber">Account Number</p>
+							<p class="branchId" style="font-size: larger; margin-left: -20px">Row
+								Id</p>
+							<p class="accbalance"
+								style="font-size: larger; color: white; margin-left: 25px">Table name</p>
+							<p class="branchId" style="font-size: larger; margin-left: -25px">Row key</p>
+							<p class="acctype" style="margin-left: 90px;">Type</p>
+							<p class="branchName"
+								style="font-size: larger; margin-left: -12px;">Message</p>
+
+							<p class="accountcreatedat" style="margin-left: -18px">Timestamp</p>
 						</div>
 
 						<!-- Repeatable transaction rows -->
-						<div class="user-data"></div>
+						<div class="account-data"></div>
 
 					</div>
 				</div>
@@ -518,6 +485,6 @@
 	<script
 		src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 	<script src="./js/profile.js" type="text/javascript"></script>
-	<script src="./js/user-details.js" type="text/javascript"></script>
+	<script src="./js/log.js" type="text/javascript"></script>
 </body>
 </html>

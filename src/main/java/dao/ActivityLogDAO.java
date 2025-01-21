@@ -24,10 +24,6 @@ public class ActivityLogDAO implements DAO<ActivityLog> {
 		logger.info("Inserting log details...");
 
 		Helper.checkNullValues(activityLog);
-		Long userId = (Long) Helper.getThreadLocalValue("id");
-		
-		activityLog.setTimestamp(System.currentTimeMillis()).setPerformedBy(userId);
-
 		Long logId;
 		try {
 			logId = ((BigInteger) SQLHelper.insert(activityLog)).longValue();

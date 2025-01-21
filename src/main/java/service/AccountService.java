@@ -12,11 +12,13 @@ import org.apache.logging.log4j.Logger;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 
+import Enum.Constants.AccountType;
 import Enum.Constants.HttpStatusCodes;
 import Enum.Constants.LogType;
+import Enum.Constants.Role;
+import Enum.Constants.Status;
 import cache.CacheUtil;
 import dao.AccountDAO;
-import dao.ActivityLogDAO;
 import dao.DAO;
 import dao.DAOJoin;
 import model.Account;
@@ -25,18 +27,22 @@ import model.ColumnCriteria;
 import model.JoinObject;
 import util.CustomException;
 import util.Helper;
+import util.ValidationUtil;
 
 public class AccountService {
 
 	private final Logger logger = LogManager.getLogger(AccountService.class);
+
 	private final CacheUtil cacheUtil = new CacheUtil();
+
 	private DAO<Account> accountDAO = new AccountDAO();
+
 	private final AuthorizationService authService = new AuthorizationService();
-	private final DAO<ActivityLog> activityLogDAO = new ActivityLogDAO();
-	private final TaskExecutorService taskExecutorService = new TaskExecutorService();
 
 	public void updateAccount(Long accountNumber, Map<String, Object> accountMap) throws CustomException {
 		logger.info("Attempting to update account details.");
+
+		ValidationUtil.validateUpdateFields(accountMap, Account.class);
 
 		List<String> fields = new ArrayList<>(Arrays.asList("modifiedAt", "performedBy"));
 		List<Object> values = new ArrayList<>(
@@ -70,20 +76,13 @@ public class AccountService {
 
 		accountDAO.update(columnCriteria, accountMap);
 
-		ActivityLog activityLog = new ActivityLog();
-		activityLog.setLogMessage(logMessage.toString() + " " + logValues.toString()).setLogType(LogType.Update)
-				.setUserAccountNumber(accountNumber).setRowId(accountNumber).setTableName("Account").setUserId(null);
+		ActivityLog activityLog = new ActivityLog().setLogMessage(logMessage.toString() + " " + logValues.toString())
+				.setLogType(LogType.Update).setUserAccountNumber(accountNumber).setRowId(accountNumber)
+				.setTableName("Account").setUserId(null);
 
-		taskExecutorService.submitTask(() -> {
-			try {
-				activityLogDAO.create(activityLog);
-			} catch (CustomException e) {
-				System.err.println("Error occurred while saving activity log: " + e.getMessage());
-				throw new RuntimeException(e);
-			}
-		});
+		TaskExecutorService.getInstance().submit(activityLog);
 
-		cacheUtil.delete("Accounts");
+		cacheUtil.delete("accountInfo");
 		logger.info("Account successfully updated with account number: {}", accountNumber);
 	}
 
@@ -114,8 +113,8 @@ public class AccountService {
 	private void addDefaultFilters(Map<String, Object> accountMap) throws CustomException {
 		Long branchId = Helper.parseLong(accountMap.getOrDefault("branchId", "0"));
 		Long customerId = Helper.parseLong(accountMap.getOrDefault("userId", "0"));
-		String role = (String) Helper.getThreadLocalValue("role");
-		if (!(accountMap.containsKey("accountNumber") || branchId > 0 && role.equals("Manager"))) {
+		Role role = Role.fromString((String) Helper.getThreadLocalValue("role"));
+		if (!(accountMap.containsKey("accountNumber") || branchId > 0 && role == Role.Manager)) {
 			if (customerId == null || customerId == -1) {
 				accountMap.put("userId", (Long) Helper.getThreadLocalValue("id"));
 			}
@@ -123,8 +122,11 @@ public class AccountService {
 				accountMap.put("branchId", (Long) Helper.getThreadLocalValue("branchId"));
 			}
 		}
-		if ("Employee".equals(role)) {
+		if (role == Role.Employee) {
 			accountMap.put("branchId", (Long) Helper.getThreadLocalValue("branchId"));
+		}
+		if (!accountMap.containsKey("status")) {
+			accountMap.put("status", Status.Active);
 		}
 	}
 
@@ -156,6 +158,7 @@ public class AccountService {
 		if (!authService.isAuthorized("account", accounts)) {
 			throw new CustomException("Not authorized to access account details", HttpStatusCodes.UNAUTHORIZED);
 		}
+
 		accountsResult.put("accounts", accounts);
 		if (accountMap.containsKey("accountNumber")) {
 			cacheUtil.save(key + accountMap.get("accountNumber"), accounts);
@@ -164,20 +167,25 @@ public class AccountService {
 
 	@SuppressWarnings("unchecked")
 	public void createAccount(Map<String, Object> accountMap) throws CustomException {
+		logger.info("Creating account..");
 
 		Map<String, Object> accountFetchMap = new HashMap<>();
 		accountFetchMap.put("userId", Helper.parseLong(accountMap.get("userId")));
 		List<Account> accounts = (List<Account>) getAccountDetails(accountFetchMap).get("accounts");
 
+		logger.info(accounts);
+
 		accountMap.put("minBalance", new BigDecimal(500));
 		accountMap.put("branchId", Helper.getThreadLocalValue("branchId"));
 		accountMap.put("accountNumber", 7018120L);
-		accountMap.put("status", "Active");
+		accountMap.put("status", Status.Active);
 		accountMap.put("performedBy", Helper.getThreadLocalValue("id"));
 
-		if (accountMap.get("accountType").equals("Operational") && accounts.size() > 0) {
+		AccountType accountType = AccountType.fromString((String) accountMap.get("accountType"));
+		if (accountType == AccountType.Operational && accounts.size() > 0) {
 			throw new CustomException("Operational account already exists for the id", HttpStatusCodes.BAD_REQUEST);
 		}
+		accountMap.put("accountType", accountType);
 		accountMap.put("isPrimary", accounts.isEmpty());
 
 		Account account = Helper.createPojoFromMap(accountMap, Account.class);
@@ -185,18 +193,10 @@ public class AccountService {
 		Long accountId = accountDAO.create(account);
 		logger.info("Account successfully created with accountId: {}", accountId);
 
-		ActivityLog activityLog = new ActivityLog();
-		activityLog.setLogMessage("account created").setLogType(LogType.Insert).setRowId(accountId)
-				.setTableName("Account").setUserId((Long) accountMap.get("userId"));
+		ActivityLog activityLog = new ActivityLog().setLogMessage("Account created").setLogType(LogType.Insert)
+				.setRowId(accountId).setTableName("Account").setUserId(Long.getLong((String) accountMap.get("userId")));
 
-		taskExecutorService.submitTask(() -> {
-			try {
-				activityLogDAO.create(activityLog);
-			} catch (CustomException e) {
-				System.err.println("Error occurred while saving activity log: " + e.getMessage());
-				throw new RuntimeException(e);
-			}
-		});
+		TaskExecutorService.getInstance().submit(activityLog);
 
 	}
 

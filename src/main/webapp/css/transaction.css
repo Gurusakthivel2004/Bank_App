@@ -148,3 +148,28 @@ nav a.logout {
 	background-color: #3b1457 !important;
 	color: white !important;
 }
+button:hover {
+	transform: scale(1.1);
+	box-shadow: 0px 6px 12px rgba(0, 0, 0, 0.3);
+}
+
+/* Button active effect */
+button:active {
+	transform: scale(1);
+	box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* Button pop animation */
+@keyframes buttonPop {
+	0% {
+		transform: scale(0.8);
+		opacity: 0;
+	}
+	50% {
+		transform: scale(1.2);
+		opacity: 1;
+	}
+	100% {
+		transform: scale(1);
+	}
+}

@@ -299,23 +299,17 @@ const updateAccount = async accountUpdateData => {
 	});
 	const result = await response.json();
 	console.log(result);
-	const successPop = document.getElementById('updateSuccessPopup');
+	const successPop = document.getElementById('successModal');
 	console.log(successPop);
 	if (result.message == 'success') {
-		successPop.innerHTML = "Account updated!";
-		successPop.style.backgroundColor = '#4CAF50';
-		successPop.style.color = 'white';
-		successPop.style.display = 'block';
+		document.getElementById('successMessage').innerHTML = "Account updated successfully!";
+		successPop.style.display = 'flex';
+		toggleModal('accountDetailsModal')
 	} else {
-		successPop.innerHTML = result.message;
-		successPop.style.backgroundColor = 'red';
-		successPop.style.color = 'white';
+		const errorUpdate = document.getElementById('errorUpdate');
+		errorUpdate.innerHTML = result.message;
 		successPop.style.display = 'block';
 	}
-	setTimeout(() => {
-		successPop.style.display = 'none';
-		location.reload();
-	}, 3000);
 }
 
 let validUserIds = [];
@@ -373,19 +367,14 @@ async function saveAccount() {
 	});
 	const result = await response.json();
 	console.log(result);
-	const successPop = document.getElementById('createSuccessPopup');
 	if (result.message == 'success') {
-		successPop.textContent = "Account created!";
-		successPop.style.backgroundColor = '#4CAF50';
-		successPop.style.color = 'white';
-		successPop.style.display = 'block';
-		setTimeout(() => {
-			successPop.style.display = 'none';
-			userIdInput.value = '';
-			balanceInput.value = '0.0';
-			accountTypeSelect.value = '';
-			toggleModal('newAccountModal');
-		}, 3000);
+		const successPop = document.getElementById('successModal');
+		document.getElementById('successMessage').innerHTML = "Account created successfully!";
+		toggleModal('newAccountModal');
+		successPop.style.display = 'flex';
+		userIdInput.value = '';
+		balanceInput.value = '0.0';
+		accountTypeSelect.value = '';
 	} else {
 		const errorMessage = document.getElementById('accountMessage');
 		errorMessage.style.display = 'block';
@@ -427,7 +416,7 @@ function fetchUserIdDetails(query) {
 				return;
 			}
 			validUserIds = [];
-			data["userDetail"].forEach((user, index) => {
+			data["users"].forEach((user, index) => {
 				if (role == "Employee" && user.role == "Manager") return;
 				if (localStorage.getItem('email') == user.email) return;
 				const option = document.createElement('div');

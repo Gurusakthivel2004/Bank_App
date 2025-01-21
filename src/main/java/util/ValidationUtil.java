@@ -3,6 +3,7 @@ package util;
 import java.lang.reflect.Field;
 import java.math.BigDecimal;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -150,7 +151,9 @@ public class ValidationUtil {
 			return false;
 		}
 		BranchService branchService = new BranchService();
-		Branch branchDetails = branchService.getBranchDetails(branchId, false).get(0);
+		Map<String, Object> branchMap = new HashMap<>();
+		branchMap.put("branchId", branchId);
+		Branch branchDetails = branchService.getBranchDetails(branchMap).get(0);
 		return transactions.stream().allMatch(transaction -> transaction.getIfsc() == branchDetails.getIfscCode());
 	}
 

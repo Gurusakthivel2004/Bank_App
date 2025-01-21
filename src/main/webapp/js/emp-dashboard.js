@@ -296,19 +296,14 @@ const sendToServer = async branchData => {
 	});
 	const result = await response.json();
 	console.log(result);
-	const successPop = document.getElementById('successPopup');
 	if (result.message == 'success') {
-		successPop.textContent = "Account created!";
-		successPop.style.backgroundColor = '#4CAF50';
-		successPop.style.color = 'white';
-		successPop.style.display = 'block';
-		setTimeout(() => {
-			successPop.style.display = 'none';
-			userIdInput.value = '';
-			balanceInput.value = '0.0';
-			accountTypeSelect.value = '';
-			toggleModal('newAccountModal');
-		}, 3000);
+		toggleModal('branchDetailsModal');
+		const successPop = document.getElementById('successModal');
+		document.getElementById('successMessage').innerHTML = "Branch created successully";
+		successPop.style.display = 'flex';
+		userIdInput.value = '';
+		balanceInput.value = '0.0';
+		accountTypeSelect.value = '';
 	} else {
 		const errorMessage = document.getElementById('branchMessage');
 		errorMessage.style.display = 'block';

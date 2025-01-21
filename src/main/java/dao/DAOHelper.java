@@ -9,6 +9,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import Enum.Constants.HttpStatusCodes;
+import Enum.Constants.Role;
 import model.Account;
 import model.ActivityLog;
 import model.ColumnCriteria;
@@ -83,7 +84,11 @@ public class DAOHelper {
 	public static void addConditionIfPresent(Criteria criteria, Map<String, Object> map, String mapKey, String column,
 			String operator, Object defaultValue) {
 		Object value = map.getOrDefault(mapKey, defaultValue);
+		List<String> enumKeys = Arrays.asList("role", "status", "accountType", "transactionType");
 		if (value != defaultValue) {
+			if (enumKeys.contains(mapKey)) {
+				value = value.toString();
+			}
 			addCondition(criteria, true, column, operator, value);
 		}
 		if (criteria.getColumn().size() > 0) {
@@ -234,8 +239,7 @@ public class DAOHelper {
 		DAOHelper.addConditionIfPresent(criteria, txMap, "customerId", "customer_id", "EQUAL_TO", 0L);
 		DAOHelper.addConditionIfPresent(criteria, txMap, "from", "transaction_time", "GREATER_THAN", 0L);
 		DAOHelper.addConditionIfPresent(criteria, txMap, "to", "transaction_time", "LESS_THAN", 0L);
-		DAOHelper.addCondition(criteria, txMap.get("transactionType") != null, "transaction_type", "EQUAL_TO",
-				txMap.get("transactionType"));
+		DAOHelper.addConditionIfPresent(criteria, txMap, "transactionType", "transaction_type", "EQUAL_TO", "");
 	}
 
 	public static void applyLogFilters(Criteria criteria, Map<String, Object> logMap) {
@@ -251,10 +255,8 @@ public class DAOHelper {
 		DAOHelper.addConditionIfPresent(criteria, accountMap, "userId", "user_id", "EQUAL_TO", 0L);
 		DAOHelper.addConditionIfPresent(criteria, accountMap, "branchId", "branch_id", "EQUAL_TO", 0L);
 		DAOHelper.addConditionIfPresent(criteria, accountMap, "accountCreated", "created_at", "EQUAL_TO", 0L);
-		DAOHelper.addCondition(criteria, accountMap.get("accountType") != null, "account_type", "EQUAL_TO",
-				accountMap.get("accountType"));
-		DAOHelper.addCondition(criteria, accountMap.get("status") != null, "status", "EQUAL_TO",
-				accountMap.get("status"));
+		DAOHelper.addConditionIfPresent(criteria, accountMap, "accountType", "account_type", "EQUAL_TO", "");
+		DAOHelper.addConditionIfPresent(criteria, accountMap, "status", "status", "EQUAL_TO", "");
 		DAOHelper.applyAccountNumberFilter(criteria, accountMap);
 	}
 
@@ -263,7 +265,7 @@ public class DAOHelper {
 		String idColumn = clazz == User.class ? "user.id" : "user_id";
 		DAOHelper.addConditionIfPresent(criteria, userMap, "userId", idColumn, "EQUAL_TO", 0L);
 		DAOHelper.addConditionIfPresent(criteria, userMap, "username", "user.username", "EQUAL_TO", "");
-		DAOHelper.addConditionIfPresent(criteria, userMap, "role", "user.role", "EQUAL_TO", 0L);
+		DAOHelper.addConditionIfPresent(criteria, userMap, "role", "user.role", "EQUAL_TO", "");
 		DAOHelper.addConditionIfPresent(criteria, userMap, "status", "user.status", "EQUAL_TO", "");
 	}
 
@@ -290,7 +292,7 @@ public class DAOHelper {
 	}
 
 	public static <T extends User> Criteria buildUserCriteria(Map<String, Object> userMap, Class<T> clazz,
-			boolean notExact) {
+			boolean notExact) throws CustomException {
 		Criteria criteria = new Criteria();
 		if (notExact) {
 			Long userId = (Long) userMap.get("userId");
@@ -298,9 +300,9 @@ public class DAOHelper {
 					.setOperator(Arrays.asList("EQUAL_TO", "LIKE")).setValue(Arrays.asList(userId, "%" + userId + "%"))
 					.setLimitValue(5).setLogicalOperator("OR");
 		} else if (userMap.containsKey("role") && userMap.containsKey("userId")) {
-			String role = (String) userMap.get("role");
+			Role role = (Role) userMap.get("role");
 			Long userId = (Long) userMap.get("userId");
-			if (role.equals("Customer")) {
+			if (role == Role.Customer) {
 				criteria = DAOHelper.buildJoinCriteria(CustomerDetail.class, Arrays.asList("customer", "user"),
 						Arrays.asList("customerDetail.user_id", "customer.user_id"),
 						Arrays.asList("EQUAL_TO", "EQUAL_TO"), Arrays.asList("customer.user_id", "user.id"),

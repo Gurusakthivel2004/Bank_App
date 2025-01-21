@@ -71,7 +71,7 @@ public class AuthorizationService {
 	@SuppressWarnings("unchecked")
 	public boolean isAccountAuthorized(List<? extends MarkedClass> accounts) throws CustomException {
 
-		if (accounts.isEmpty() || !(accounts.get(0) instanceof Account)) {
+		if (!accounts.isEmpty() && !(accounts.get(0) instanceof Account)) {
 			throw new CustomException("Invalid Account data", HttpStatusCodes.BAD_REQUEST);
 		}
 		Role role = Role.fromString((String) Helper.getThreadLocalValue("role"));

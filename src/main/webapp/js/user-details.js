@@ -114,7 +114,7 @@ document.addEventListener("DOMContentLoaded", () => {
 	} else if (role === "Customer") {
 		alert("You do not have permission to access this page.");
 		window.history.back();
-	} 
+	}
 	fetchUsers();
 	document.getElementById("customerIdsearchInput").addEventListener("input", applyFilters);
 	document.getElementById("branchIdsearchInput").addEventListener("input", applyFilters);
@@ -203,7 +203,7 @@ const userClick = async user => {
 	}
 	toggleModal('newUserModal');
 	if (!userResult) return;
-	userFields['userId'] = Number(userResult.id);
+	userFields['userId'] = userResult.id + '';
 	userFields['role'] = userResult.role;
 	Object.keys(userResult).forEach(key => {
 		const inputField = document.getElementById(key);
@@ -323,7 +323,7 @@ const newUser = _ => {
 	console.log("valid: ", validBranchIds);
 	inputElements.forEach(input => {
 		const key = input.id;
-		console.log(key);
+		if ((key == "role" || key == "branchId") && userRole == "Customer") return;
 		const value = input.value.trim();
 
 		const formattedKey = key
@@ -366,9 +366,8 @@ const createNewUser = async data => {
 	});
 	const result = await userDetailsResponse.json();
 	console.log(result);
-	const successPop = document.getElementById('successPopup');
 	if (result.message == 'success') {
-		successDisplayWithMsg(successPop, "User created successfully.");
+		successDisplayWithMsg("User created successfully.");
 	} else {
 		const errorMessageElement = document.getElementById('errorMessage');
 		errorMessageElement.style.display = "block";
@@ -538,8 +537,8 @@ const toggleSaveAll = () => {
 		inputField.style.border = "0px";
 	});
 	userFields.updatedValues = updatedValues;
+	userFields.userId = userFields['userId'];
 	sendToServer(userFields);
-	toggleModal('newUserModal');
 };
 
 const validateEmail = (email) => {
@@ -552,16 +551,11 @@ const validatePhone = (phone) => {
 	return phoneRegex.test(phone);
 };
 
-const successDisplayWithMsg = (successPop, msg) => {
-	successPop.textContent = msg;
-	successPop.style.backgroundColor = 'green';
-	successPop.style.display = 'block';
-}
-
-const successDisplay = (successPop) => {
-	successPop.textContent = 'Updated successfully!';
-	successPop.style.backgroundColor = 'green';
-	successPop.style.display = 'block';
+const successDisplayWithMsg = (msg) => {
+	toggleModal('newUserModal')
+	const successPop = document.getElementById('successModal');
+	document.getElementById('successMessage').innerHTML = msg;
+	successPop.style.display = 'flex';
 }
 
 const errorDisplay = (successPop, message) => {
@@ -584,7 +578,7 @@ const sendToServer = async data => {
 	const result = await userDetailsResponse.json();
 	const successPop = document.getElementById('successPopup');
 	if (result.message == 'success') {
-		successDisplay(successPop);
+		successDisplayWithMsg('Updated successfully!');
 	} else {
 		errorDisplay(successPop, result.message);
 	}
@@ -592,6 +586,3 @@ const sendToServer = async data => {
 		successPop.style.display = 'none';
 	}, 3000);
 };
-
-document.getElementById('saveButton').addEventListener('click', toggleSaveAll);
-

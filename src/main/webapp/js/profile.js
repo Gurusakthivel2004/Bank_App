@@ -25,7 +25,13 @@ const logout = async _ => {
 		console.error('Error during fetch or processing:', error);
 	}
 }
-
+function closeModal() {
+	const modal = document.getElementById('successModal');
+	modal.style.animation = 'fadeOut 0.5s ease-out';
+	setTimeout(() => {
+		modal.style.display = 'none';
+	}, 500);
+}
 const toggleProfilePanel = _ => {
 	const panel = document.getElementById('profilePanel');
 	panel.classList.toggle('open');
@@ -66,6 +72,7 @@ const toggleModal = modalId => {
 		document.getElementById('dropdownStatus').style.display = "none";
 	}
 	if (modalId == "newUserModal") {
+		console.log('hi');
 		document.getElementById('saveButton').style.display = 'none';
 		document.getElementById('editButton').style.display = 'block';
 		document.getElementById('newUserButton').style.display = 'none';
@@ -109,10 +116,12 @@ const submitPasswordChange = async _ => {
 	const newPassword = document.getElementById('newPassword').value;
 	const confirmPassword = document.getElementById('confirmPassword').value;
 	if (newPassword != confirmPassword) {
+		document.getElementById('passwordmessage').style.display = 'block';
 		document.getElementById('passwordmessage').textContent = 'Passwords do not match. Try again.';
 		return;
 	}
 	if (newPassword == currentPassword) {
+		document.getElementById('passwordmessage').style.display = 'block';
 		document.getElementById('passwordmessage').textContent = 'Please enter a new password.';
 		return;
 	}
@@ -123,7 +132,7 @@ const submitPasswordChange = async _ => {
 	console.log(passwordData)
 	try {
 		const token = localStorage.getItem('token')
-		const response = await fetch('http://localhost:8080/Bank_Application/api/Profile', {
+		const response = await fetch('http://localhost:8080/Bank_Application/api/User', {
 			method: 'PUT',
 			headers: {
 				'Content-Type': 'application/json',
@@ -132,17 +141,17 @@ const submitPasswordChange = async _ => {
 			body: JSON.stringify(passwordData)
 		});
 		const result = await response.json();
-		if (result.success) {
+		console.log(result)
+		const passwordMessage = document.getElementById('passwordmessage');
+		if (result.message == "success") {
 			localStorage.setItem('passwordChangeSuccess', 'true');
 			window.location.href = 'index.html';
 		} else {
-			const passwordMessage = document.getElementById('passwordmessage');
-			passwordMessage.textContent = result.error;
-			passwordMessage.style.backgroundColor = 'red';
-			passwordMessage.style.color = 'white';
+			passwordMessage.style.display = 'block'
+			passwordMessage.textContent = result.message;
 		}
 	} catch (error) {
-		document.getElementById('passwordmessage').textContent = 'An error occured. Try again.';
+		passwordMessage.textContent = 'An error occured. Try again.';
 		return;
 	}
 }

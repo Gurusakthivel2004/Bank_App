@@ -14,6 +14,9 @@ public class ActivityLog extends MarkedClass {
 	private Long timestamp;
 	private Long performedBy;
 
+	public ActivityLog() {
+	}
+
 	public Long getId() {
 		return id;
 	}
