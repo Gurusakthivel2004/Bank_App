@@ -8,19 +8,21 @@ import javax.servlet.http.HttpServletResponse;
 
 import com.google.gson.JsonObject;
 
-import service.AccountService;
+import service.ActivityLogService;
 import util.CustomException;
 import util.Helper;
 
 public class LogController {
 
-	AccountService accountService = new AccountService();
+	ActivityLogService logService = new ActivityLogService();
 
 	public void handleGet(HttpServletRequest request, HttpServletResponse response, Map<String, Object> logMap)
 			throws IOException {
 		try {
-			Object accounts = accountService.getAccountDetails(logMap);
+
+			Object accounts = logService.getLogDetails(logMap);
 			Helper.sendSuccessResponse(response, accounts);
+
 		} catch (CustomException e) {
 			Helper.sendErrorResponse(response, e);
 		} catch (Exception e) {
@@ -29,9 +31,11 @@ public class LogController {
 	}
 
 	public void handlePost(HttpServletRequest request, HttpServletResponse response) throws IOException {
+
 		JsonObject jsonObject = Helper.parseRequestBody(request);
 		Map<String, Object> logMap = Helper.mapJsonObject(jsonObject);
 		handleGet(request, response, logMap);
+
 	}
 
 }

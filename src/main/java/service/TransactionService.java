@@ -97,6 +97,8 @@ public class TransactionService {
 		Map<String, Object> accountMap = new HashMap<>();
 		long branchId = Long.parseLong((String) transactionMap.get("branchId"));
 		long accountNumber = Long.parseLong((String) transactionMap.get("accountNumber"));
+		Long userId = (Long) Helper.getThreadLocalValue("id");
+		Role role = Role.fromString((String) Helper.getThreadLocalValue("role"));
 
 		accountMap.put("accountNumber", accountNumber);
 		accounts = new AccountDAO().get(accountMap);
@@ -112,15 +114,17 @@ public class TransactionService {
 		} catch (NumberFormatException e) {
 			throw new CustomException("Invalid amount format", HttpStatusCodes.BAD_REQUEST);
 		}
-		Role role = Role.fromString((String) Helper.getThreadLocalValue("role"));
+
 		if (role == Role.Employee) {
+			if (!(transactionMap.get("type") == "Debit") && account.getUserId() != userId) {
+				throw new CustomException("Unauthorized account found", HttpStatusCodes.UNAUTHORIZED);
+			}
 			if (account.getBranchId() != branchId) {
 				logger.warn("Branch ID mismatch for account number: {}", accountNumber);
 				throw new CustomException("Invalid account", HttpStatusCodes.BAD_REQUEST);
 			}
 		}
-		Long id = (Long) Helper.getThreadLocalValue("id");
-		if (role == Role.Customer && account.getUserId() != id) {
+		if (role == Role.Customer && account.getUserId() != userId) {
 			throw new CustomException("Unauthorized account found", HttpStatusCodes.UNAUTHORIZED);
 		}
 

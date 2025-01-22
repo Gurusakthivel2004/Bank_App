@@ -20,18 +20,25 @@ async function login(event) {
 
 		const result = await response.json();
 		console.log(result);
-		if (result.message == "success") {
-			localStorage.setItem('token', result.token); 
-			localStorage.setItem('fullname', result.fullname);
-			localStorage.setItem('email', result.email);
-			localStorage.setItem('phone', result.phone);
-			localStorage.setItem('status', result.status);
-			localStorage.setItem('role', result.role);
-			localStorage.setItem('id', result.id);
-			if(result.branchId !== null) {
-				localStorage.setItem('branchId', result.branchId);
-			} 
 
+		if (result.message === "success") {
+			// Set sessionStorage values
+			sessionStorage.setItem('token', result.token);
+			sessionStorage.setItem('fullname', result.fullname);
+			sessionStorage.setItem('email', result.email);
+			sessionStorage.setItem('phone', result.phone);
+			sessionStorage.setItem('status', result.status);
+			sessionStorage.setItem('role', result.role);
+			sessionStorage.setItem('id', result.id);
+
+			if (result.branchId !== null) {
+				sessionStorage.setItem('branchId', result.branchId);
+			}
+
+			// Explicit wait to ensure session storage is set
+			await new Promise(resolve => setTimeout(resolve, 50));
+
+			// Handle password change modal or redirection
 			if (password === 'default') {
 				toggleModal('passwordChangeModal');
 			} else {
@@ -42,12 +49,14 @@ async function login(event) {
 				}
 			}
 		} else {
+			// Display error message
 			document.getElementById('errormessage').textContent = result.message || 'Login failed.';
 		}
 	} catch (error) {
 		console.error('Error during login:', error);
 	}
 }
+
 
 
 const toggleModal = modalId => {
@@ -86,7 +95,7 @@ const submitPasswordChange = async _ => {
 		newPassword: newPassword
 	};
 	try {
-		const token = localStorage.getItem('token');
+		const token = sessionStorage.getItem('token');
 		const response = await fetch('http://localhost:8080/Bank_Application/api/Profile', {
 			method: 'PUT',
 			headers: {
@@ -97,7 +106,7 @@ const submitPasswordChange = async _ => {
 		});
 		const result = await response.json();
 		if (result.success) {
-			localStorage.setItem('passwordChangeSuccess', 'true');
+			sessionStorage.setItem('passwordChangeSuccess', 'true');
 			window.location.href = 'index.html';
 		} else {
 			const passwordMessage = document.getElementById('passwordmessage');
@@ -112,21 +121,21 @@ const submitPasswordChange = async _ => {
 }
 
 window.onload = () => {
-	const successMessage = localStorage.getItem('passwordChangeSuccess');
-	const errorMessage = localStorage.getItem('error');
+	const successMessage = sessionStorage.getItem('passwordChangeSuccess');
+	const errorMessage = sessionStorage.getItem('error');
 	if (errorMessage) {
 		document.getElementById('successPopup').style.display = 'block';
 		document.getElementById('successPopup').style.backgroundColor = 'red';
 		document.getElementById('successPopup').style.color = 'white';
 		document.getElementById('successPopup').textContent = errorMessage;
-		localStorage.removeItem('error');
+		sessionStorage.removeItem('error');
 		setTimeout(() => {
 			document.getElementById('successPopup').style.display = 'none';
 		}, 3000);
 	}
 	if (successMessage) {
 		document.getElementById('successPopup').style.display = 'block';
-		localStorage.removeItem('passwordChangeSuccess');
+		sessionStorage.removeItem('passwordChangeSuccess');
 		setTimeout(() => {
 			document.getElementById('successPopup').style.display = 'none';
 		}, 3000);

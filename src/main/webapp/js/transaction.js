@@ -1,5 +1,5 @@
 let newfilterTo = false;
-let role = localStorage.getItem("role");
+let role = sessionStorage.getItem("role");
 
 let filterId = -1;
 let filterAccount = '';
@@ -27,7 +27,7 @@ async function fetchTransactions() {
 			if (filterType) transactionData.transactionType = filterType;
 			if (filterFromDate) transactionData.from = filterFromDate;
 			if (filterToDate) transactionData.to = filterToDate;
-			const token = localStorage.getItem('token')
+			const token = sessionStorage.getItem('token')
 			const response = await fetch('http://localhost:8080/Bank_Application/api/Transaction', {
 				method: 'POST',
 				headers: {
@@ -106,6 +106,7 @@ function applyFilters() {
 	filterAccount = accountInput;
 	filterFromDate = fromDateInput;
 	filterBranch = branchInput;
+	filterFromDate = fromDateInput;
 	filterToDate = toDateInput;
 	if (previousAccount != accountInput || previousBranch != branchInput || previousId != idInput || previousFrom != fromDateInput || previousTo != toDateInput || previousType != filterType) {
 		if (!(filterAccount.length > 0 && filterAccount.length < 4) && Number.isFinite(Number(filterAccount))) {

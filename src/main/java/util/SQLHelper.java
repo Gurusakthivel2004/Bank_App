@@ -56,7 +56,9 @@ public class SQLHelper {
 					field.setAccessible(true);
 					String columnName = fieldMapping.getColumnName();
 					Object columnValue = resultSet.getObject(columnName);
-
+					if (resultSet.wasNull()) {
+						continue;
+					}
 					if (field.getType().isEnum() && columnValue instanceof String) {
 						String enumValue = (String) columnValue;
 						Object enumConstant = Enum.valueOf((Class<Enum>) field.getType(), enumValue);

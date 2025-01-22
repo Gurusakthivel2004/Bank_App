@@ -1,7 +1,7 @@
 let originalValue = '';
 let originalActiveItem = null;
 let validAccounts = [];
-const token = localStorage.getItem('token')
+const token = sessionStorage.getItem('token')
 
 const handleSubmit = async (event) => {
 	event.preventDefault();
@@ -16,7 +16,7 @@ const handleSubmit = async (event) => {
 		bankName = document.querySelector('#bank').value;
 		transactionIfsc = document.querySelector('#ifsc').value;
 	}
-	const role = localStorage.getItem("role");
+	const role = sessionStorage.getItem("role");
 
 	const transactionAccountNumber = document.getElementById('transAcc').value;
 	const amount = document.getElementById('amount').value;
@@ -121,7 +121,7 @@ const displayInvalidAccount = msg => {
 }
 
 document.getElementById('type').addEventListener("change", function(event) {
-	const role = localStorage.getItem("role");
+	const role = sessionStorage.getItem("role");
 	console.log(this.value)
 	if (role !== "Customer") {
 		document.getElementById('paymentmode').style.display = 'flex';
@@ -195,7 +195,7 @@ const handleInputDropdown = accountInput => {
 							method: 'POST',
 							headers: {
 								'Content-Type': 'application/json',
-								'Authorization': `Bearer ${localStorage.getItem("token")}`
+								'Authorization': `Bearer ${sessionStorage.getItem("token")}`
 							},
 							body: JSON.stringify(accountData)
 						}
@@ -279,7 +279,7 @@ const handleInputDropdown = accountInput => {
 }
 
 document.addEventListener("DOMContentLoaded", async _ => {
-	const role = localStorage.getItem("role");
+	const role = sessionStorage.getItem("role");
 	if (role === "Customer") {
 		document.getElementById('customerAccount').style.display = 'flex';
 		document.getElementById('accounts-tree').style.display = 'none';

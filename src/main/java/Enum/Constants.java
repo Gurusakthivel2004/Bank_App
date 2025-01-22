@@ -20,7 +20,8 @@ public class Constants {
 		ACCOUNT_CRUD("^/Account$", Arrays.asList("Customer")),
 		GET_USER_WITH_ROLE("^/User\\?userId=\\d+&role=\\w+$", Arrays.asList("Customer")),
 		GET_USERDASHBOARD("^/UserDashboard$", null), UPDATE_PROFILE("^/api/Profile$", null),
-		TRANSACTION_CRUD("^/Transaction$", null), LOGOUT("^/Logout$", null);
+		TRANSACTION_CRUD("^/Transaction$", null), LOGOUT("^/Logout$", null),
+		LOG("^/Log$", Arrays.asList("Customer", "Employee"));
 
 		private final String regexPattern;
 		private final List<String> restrictedForRole;
@@ -101,6 +102,54 @@ public class Constants {
 		}
 	}
 
+	public enum SelectFields {
+		USER("User",
+				Arrays.asList("id", "email", "phone", "role", "username", "fullname", "status", "created_at",
+						"modified_at", "performed_by")),
+		CUSTOMER("Customer", combineFields(USER.fields, Arrays.asList("user_id", "pan_number", "aadhar_number"))),
+		CUSTOMERDETAIL("CustomerDetail",
+				combineFields(CUSTOMER.fields,
+						Arrays.asList("user_id", "dob", "father_name", "mother_name", "address", "marital_status"))),
+		STAFF("Staff", combineFields(USER.fields, Arrays.asList("user_id", "branch_id")));
+
+		private final String tableName;
+		private final List<String> fields;
+
+		SelectFields(String tableName, List<String> fields) {
+			this.tableName = tableName;
+			this.fields = fields;
+		}
+
+		public String getTableName() {
+			return tableName;
+		}
+
+		public List<String> getFields() {
+			return fields;
+		}
+
+		public static SelectFields fromTableName(String tableName) {
+			for (SelectFields userField : SelectFields.values()) {
+				if (userField.tableName.equalsIgnoreCase(tableName)) {
+					return userField;
+				}
+			}
+			throw new IllegalArgumentException("No enum constant for table name: " + tableName);
+		}
+
+		public static List<String> getSelectFields(String tableName) {
+			SelectFields userField = fromTableName(tableName);
+			return userField.fields;
+		}
+
+		private static List<String> combineFields(List<String> baseFields, List<String> additionalFields) {
+			List<String> combinedFields = new ArrayList<>(baseFields);
+			combinedFields.addAll(additionalFields);
+			return combinedFields;
+		}
+
+	}
+
 	@SuppressWarnings("serial")
 	public enum RolePermission {
 
@@ -113,7 +162,8 @@ public class Constants {
 				put("UserDashboard", new ArrayList<>(Arrays.asList("GET")));
 				put("Logout", new ArrayList<>(Arrays.asList("DELETE")));
 			}
-		}, new ArrayList<>()), ROLE_EMPLOYEE("Employee", new HashMap<String, List<String>>() {
+		}, new ArrayList<>(Arrays.asList("userId", "role", "branchId"))),
+		ROLE_EMPLOYEE("Employee", new HashMap<String, List<String>>() {
 			{
 				put("Account", new ArrayList<>(Arrays.asList("GET", "POST", "PUT")));
 				put("User", new ArrayList<>(Arrays.asList("GET", "POST", "PUT")));
@@ -130,6 +180,7 @@ public class Constants {
 				put("Transaction", new ArrayList<>(Arrays.asList("GET", "POST")));
 				put("UserDashboard", new ArrayList<>(Arrays.asList("GET")));
 				put("Logout", new ArrayList<>(Arrays.asList("DELETE")));
+				put("Log", new ArrayList<>(Arrays.asList("POST")));
 			}
 		}, new ArrayList<>());
 

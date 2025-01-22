@@ -1,8 +1,8 @@
 let filterId = '', filterAccount = '', filterBranch = '', filterStatus = '', filterType = '';
 const usersPerPage = 8;
 let cachedAccounts = [], usersCount, currentPageIndex = 0; filterOffset = 0;
-const role = localStorage.getItem("role");
-const token = localStorage.getItem('token');
+const role = sessionStorage.getItem('role');
+const token = sessionStorage.getItem('token');
 
 async function fetchUsers() {
 	try {
@@ -18,7 +18,7 @@ async function fetchUsers() {
 			if (filterStatus) userData.status = filterStatus;
 
 			console.log(userData);
-			const token = localStorage.getItem('token')
+			const token = sessionStorage.getItem('token')
 			const response = await fetch('http://localhost:8080/Bank_Application/api/User', {
 				method: 'POST',
 				headers: {
@@ -108,7 +108,7 @@ function applyFilters() {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
-	console.log(role);
+	console.log("Role: ", role);
 	if (role == null) {
 		window.history.back();
 	} else if (role === "Customer") {

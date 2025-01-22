@@ -10,6 +10,7 @@ import java.util.regex.Pattern;
 
 import Enum.Constants.HttpStatusCodes;
 import Enum.Constants.Role;
+import Enum.Constants.SelectFields;
 import model.Account;
 import model.ActivityLog;
 import model.ColumnCriteria;
@@ -296,9 +297,9 @@ public class DAOHelper {
 		Criteria criteria = new Criteria();
 		if (notExact) {
 			Long userId = (Long) userMap.get("userId");
-			criteria.setClazz(clazz).setSelectColumn(Arrays.asList("*")).setColumn(Arrays.asList("id", "id"))
-					.setOperator(Arrays.asList("EQUAL_TO", "LIKE")).setValue(Arrays.asList(userId, "%" + userId + "%"))
-					.setLimitValue(5).setLogicalOperator("OR");
+			criteria.setClazz(clazz).setSelectColumn(SelectFields.getSelectFields(clazz.getSimpleName()))
+					.setColumn(Arrays.asList("id", "id")).setOperator(Arrays.asList("EQUAL_TO", "LIKE"))
+					.setValue(Arrays.asList(userId, "%" + userId + "%")).setLimitValue(5).setLogicalOperator("OR");
 		} else if (userMap.containsKey("role") && userMap.containsKey("userId")) {
 			Role role = (Role) userMap.get("role");
 			Long userId = (Long) userMap.get("userId");
@@ -307,19 +308,19 @@ public class DAOHelper {
 						Arrays.asList("customerDetail.user_id", "customer.user_id"),
 						Arrays.asList("EQUAL_TO", "EQUAL_TO"), Arrays.asList("customer.user_id", "user.id"),
 						Arrays.asList("customerDetail.user_id"), Arrays.asList("EQUAL_TO"), Arrays.asList(userId));
-				criteria.setJoin(" JOIN ");
+				criteria.setJoin(" JOIN ").setSelectColumn(SelectFields.getSelectFields(clazz.getSimpleName()));
 			} else {
 				criteria = DAOHelper.buildJoinCriteria(Staff.class, Arrays.asList("user"),
 						Arrays.asList("staff.user_id"), Arrays.asList("EQUAL_TO"), Arrays.asList("user.id"),
 						Arrays.asList("staff.user_id"), Arrays.asList("EQUAL_TO"), Arrays.asList(userId));
-				criteria.setJoin(" JOIN ");
+				criteria.setJoin(" JOIN ").setSelectColumn(SelectFields.getSelectFields(clazz.getSimpleName()));
 			}
 		} else if (userMap.containsKey("username")) {
 			criteria = DAOHelper.buildCriteria(clazz, Arrays.asList("user.username"), Arrays.asList("EQUAL_TO"),
 					Arrays.asList(userMap.get("username"))).setSelectColumn(Arrays.asList("user.*"));
 //			criteria = DAOHelper.applyUserFilterBranch(criteria, userMap);
 		} else {
-			criteria.setSelectColumn(Arrays.asList("*")).setClazz(clazz);
+			criteria.setSelectColumn(SelectFields.getSelectFields(clazz.getSimpleName())).setClazz(clazz);
 			criteria = DAOHelper.applyUserFilterBranch(criteria, userMap);
 			applyUserFilters(criteria, userMap, clazz);
 		}

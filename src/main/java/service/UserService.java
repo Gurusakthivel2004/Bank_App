@@ -60,7 +60,8 @@ public class UserService {
 			}
 
 			ActivityLog activityLog = new ActivityLog().setLogMessage("Login").setLogType(LogType.Login)
-					.setUserAccountNumber(null).setRowId(null).setTableName("User").setUserId(user.getId());
+					.setUserAccountNumber(null).setRowId(user.getId()).setTableName("User").setUserId(user.getId())
+					.setPerformedBy(user.getId());
 
 			TaskExecutorService.getInstance().submit(activityLog);
 
@@ -109,6 +110,7 @@ public class UserService {
 			users = userDao.get(userMap);
 
 			User user = users.get(0);
+			System.out.println(users);
 			if (user.getStatus() != "Active") {
 				logger.error("User suspended: {}", username);
 				throw new CustomException("User suspended", HttpStatusCodes.UNAUTHORIZED);
@@ -260,6 +262,8 @@ public class UserService {
 			if (!userMap.containsKey("updatedValues")) {
 				throw new CustomException("Provide the values to update", HttpStatusCodes.BAD_REQUEST);
 			}
+
+			Long userId = Long.parseLong((String) userMap.get("userId"));
 			Map<String, Object> updatedValues = (Map<String, Object>) userMap.get("updatedValues");
 			Helper.convertMapValuesToLong(updatedValues);
 
@@ -298,6 +302,12 @@ public class UserService {
 			}
 			userMap.remove("updatedValues");
 
+			// Use validation check.
+			List<User> users = (List<User>) getUserDetails(userMap);
+			if (users == null || users.isEmpty()) {
+				throw new CustomException("User not found.", HttpStatusCodes.BAD_REQUEST);
+			}
+
 			ColumnCriteria columnCriteria = new ColumnCriteria().setFields(fields).setValues(values);
 			if (role == Role.Customer) {
 				userMap.put("userClass", CustomerDetail.class);
@@ -308,11 +318,6 @@ public class UserService {
 			}
 			cacheUtil.delete("userDetails");
 			logger.info("User details updated successfully.");
-
-			Long userId = Long.parseLong((String) userMap.get("userId"));
-			System.out.println(userId);
-			System.out.println(userMap.keySet());
-			System.out.println(userMap.values());
 
 			ActivityLog activityLog = new ActivityLog()
 					.setLogMessage(logMessage.toString() + " " + logValues.toString()).setLogType(LogType.Update)

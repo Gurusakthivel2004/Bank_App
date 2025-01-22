@@ -1,4 +1,4 @@
-const userRole = localStorage.getItem("role");
+const userRole = sessionStorage.getItem("role");
 if (userRole == "Customer") {
 	const createButton = document.getElementById("create-user-item");
 	if (createButton != null) {
@@ -8,7 +8,7 @@ if (userRole == "Customer") {
 
 const logout = async _ => {
 	try {
-		const token = localStorage.getItem('token');
+		const token = sessionStorage.getItem('token');
 		const response = await fetch('http://localhost:8080/Bank_Application/api/Logout', {
 			method: 'DELETE',
 			headers: {
@@ -18,7 +18,7 @@ const logout = async _ => {
 		});
 		const result = await response.json();
 		if (result) {
-			localStorage.clear();
+			sessionStorage.clear();
 			window.location.href = 'index.html';
 		}
 	} catch (error) {
@@ -39,7 +39,7 @@ const toggleProfilePanel = _ => {
 
 document.querySelectorAll('.createOption').forEach(item => {
 	item.addEventListener('click', _ => {
-		localStorage.setItem("createUserRole", item.innerHTML);
+		sessionStorage.setItem("createUserRole", item.innerHTML);
 		window.location.href = "create-user.html";
 	})
 })
@@ -131,7 +131,7 @@ const submitPasswordChange = async _ => {
 	};
 	console.log(passwordData)
 	try {
-		const token = localStorage.getItem('token')
+		const token = sessionStorage.getItem('token')
 		const response = await fetch('http://localhost:8080/Bank_Application/api/User', {
 			method: 'PUT',
 			headers: {
@@ -144,7 +144,7 @@ const submitPasswordChange = async _ => {
 		console.log(result)
 		const passwordMessage = document.getElementById('passwordmessage');
 		if (result.message == "success") {
-			localStorage.setItem('passwordChangeSuccess', 'true');
+			sessionStorage.setItem('passwordChangeSuccess', 'true');
 			window.location.href = 'index.html';
 		} else {
 			passwordMessage.style.display = 'block'
@@ -156,11 +156,11 @@ const submitPasswordChange = async _ => {
 	}
 }
 
-let keys = Object.keys(localStorage), i = keys.length;
+let keys = Object.keys(sessionStorage), i = keys.length;
 while (i--) {
 	const profileElement = document.getElementById('profile-' + keys[i]);
 	if (profileElement != null) {
-		profileElement.textContent = localStorage.getItem(keys[i]);
+		profileElement.textContent = sessionStorage.getItem(keys[i]);
 	}
 }
 

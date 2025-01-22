@@ -2,8 +2,8 @@
 let branchDetails, account;
 document.addEventListener("DOMContentLoaded", async _ => {
 	try {
-		const token = localStorage.getItem('token');
-		const role = localStorage.getItem('role');
+		const token = sessionStorage.getItem('token');
+		const role = sessionStorage.getItem('role');
 		if (role == 'Employee') {
 			document.getElementById('createBranchButton').style.display = 'none';
 		}
@@ -285,7 +285,7 @@ function saveBranch() {
 }
 
 const sendToServer = async branchData => {
-	const token = localStorage.getItem('token');
+	const token = sessionStorage.getItem('token');
 	const response = await fetch('http://localhost:8080/Bank_Application/api/Branch', {
 		method: 'POST',
 		headers: {

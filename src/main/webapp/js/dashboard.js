@@ -1,12 +1,12 @@
 // dashboard api fetch
 document.addEventListener("DOMContentLoaded", async _ => {
-	const role = localStorage.getItem("role");
-	console.log(role)
+	const role = sessionStorage.getItem('role');
 	if (role != null && role !== 'Customer') {
 		window.location.href = "emp-dashboard.html"
 	}
+	console.log("Role: ", role);
 	try {
-		const token = localStorage.getItem('token');
+		const token = sessionStorage.getItem('token');
 		const response = await fetch('http://localhost:8080/Bank_Application/api/UserDashboard', {
 			method: 'GET',
 			headers: {
@@ -19,9 +19,9 @@ document.addEventListener("DOMContentLoaded", async _ => {
 		const userDetails = result.userDetail[0];
 		try {
 			if (result.account.length == 0) {
-				localStorage.clear();
+				sessionStorage.clear();
 				window.location.href = "index.html"
-				localStorage.setItem('error', "Account doesn't exists.");
+				sessionStorage.setItem('error', "Account doesn't exists.");
 			}
 
 			setValues(userDetails);

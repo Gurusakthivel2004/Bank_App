@@ -42,6 +42,8 @@ public class AccountService {
 	public void updateAccount(Long accountNumber, Map<String, Object> accountMap) throws CustomException {
 		logger.info("Attempting to update account details.");
 
+		getAccountDetails(accountMap);
+
 		ValidationUtil.validateUpdateFields(accountMap, Account.class);
 
 		List<String> fields = new ArrayList<>(Arrays.asList("modifiedAt", "performedBy"));
@@ -72,8 +74,20 @@ public class AccountService {
 		}
 
 		ColumnCriteria columnCriteria = new ColumnCriteria().setFields(fields).setValues(values);
+		accountMap = new HashMap<>();
 		accountMap.put("accountNumber", accountNumber);
 
+		// Account validation check.
+		List<Account> accounts = accountDAO.get(accountMap);
+		if (accounts == null || accounts.isEmpty()) {
+			throw new CustomException("Account not found.", HttpStatusCodes.BAD_REQUEST);
+		}
+		Role role = Role.fromString((String) Helper.getThreadLocalValue("role"));
+		if (role == Role.Employee) {
+			if (accounts.get(0).getUserId() != Helper.getThreadLocalValue("")) {
+				throw new CustomException("Not authorized to update the account", HttpStatusCodes.BAD_REQUEST);
+			}
+		}
 		accountDAO.update(columnCriteria, accountMap);
 
 		ActivityLog activityLog = new ActivityLog().setLogMessage(logMessage.toString() + " " + logValues.toString())

@@ -1,14 +1,16 @@
 let filterId = '';
-let filterAccount = '';
+let filterlog = '';
 let filterStatus = '';
 let filterType = '';
+let filterToDate = '';
+let filterFromDate = '';
 const logsPerPage = 8;
 let cachedLogs = [];
 let logsCount;
 let currentPageIndex = 0;
 let filterOffset = 0;
-const role = localStorage.getItem("role");
-const token = localStorage.getItem('token');
+const role = sessionStorage.getItem("role");
+const token = sessionStorage.getItem('token');
 
 async function fetchLogs() {
 	try {
@@ -18,14 +20,15 @@ async function fetchLogs() {
 				get: true,
 				limit: logsPerPage,
 			}
-			if (filterId && filterId != '-1') logsData.userId = Number(filterId);
-			if (filterAccount && Number.isFinite(Number(filterAccount))) logsData.accountNumber = Number(filterAccount);
-			if (filterType) logsData.accountType = filterType;
-			if (filterStatus) logsData.status = filterStatus;
+			if (filterId) logsData.userId = Number(filterId);
+			if (filterlog && Number.isFinite(Number(filterlog))) logsData.accountNumber = Number(filterlog);
+			if (filterType) logsData.logType = filterType;
+			if (filterFromDate) transactionData.from = filterFromDate;
+			if (filterToDate) transactionData.to = filterToDate;
 
 			console.log(logsData);
-			const token = localStorage.getItem('token')
-			const response = await fetch('http://localhost:8080/Bank_Application/api/Logs', {
+			const token = sessionStorage.getItem('token')
+			const response = await fetch('http://localhost:8080/Bank_Application/api/Log', {
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json',
@@ -87,40 +90,38 @@ function prevPage() {
 	}
 }
 
-let previousId = '', previousAccount = '', branchIdInput = '', previousType = '', previousStatus = '';
+let previousId = '', previouslog = '', branchIdInput = '', previousType = '', previousStatus = '', previousFrom = '', previousTo = '';
 
 function applyFilters() {
 	const idInput = document.getElementById("customerIdsearchInput").value.trim();
-	const accountInput = document.getElementById("logsearchInput").value.trim();
-	const statusInput = document.getElementById("logstatussearchInput").value.trim();
-	const typeInput = document.getElementById("accountTypesearchInput").value.trim();
-	if (accountInput == '') {
-		filterId = idInput ? idInput : -1;
-	} else {
-		filterId = idInput ? idInput : role != "Customer" ? 0 : -1;
-	}
-	filterAccount = accountInput;
-	filterStatus = statusInput;
+	const logInput = document.getElementById("accountsearchInput").value.trim();
+	const typeInput = document.getElementById("logTypesearchInput").value.trim();
+	const fromDateInput = document.getElementById("FromDatesearchInput").value.trim();
+	const toDateInput = document.getElementById("ToDatesearchInput").value.trim();
+
+	filterId = idInput;
+	filterlog = logInput;
 	filterType = typeInput;
+	filterFromDate = fromDateInput;
+	filterToDate = toDateInput;
 	console.log(previousId, idInput);
 
-	if (previousAccount != accountInput || previousId != idInput || previousStatus != statusInput || previousType != typeInput) {
-		console.log('here1');
-		if (!(filterAccount.length > 0 && filterAccount.length < 4) && Number.isFinite(Number(filterAccount))) {
-			console.log('here');
+	if (previouslog != logInput || previousId != idInput || previousType != typeInput || previousFrom != fromDateInput || previousTo != toDateInput) {
+		if (!(filterlog.length > 0 && filterlog.length < 4) && Number.isFinite(Number(filterlog))) {
 			cachedLogs = [];
 			currentPageIndex = 0;
 			filterOffset = 0;
 			fetchLogs();
 		}
 	}
-	if (Number.isFinite(Number(filterAccount))) {
-		previousAccount = filterAccount;
+	if (Number.isFinite(Number(filterlog))) {
+		previouslog = filterlog;
 	}
-	previousAccount = accountInput;
+	previouslog = logInput;
 	previousId = idInput;
 	previousType = typeInput;
-	previousStatus = statusInput;
+	previousFrom = filterFromDate;
+	previousTo = filterToDate
 }
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -133,9 +134,10 @@ document.addEventListener("DOMContentLoaded", () => {
 	}
 	fetchLogs();
 	document.getElementById("customerIdsearchInput").addEventListener("input", applyFilters);
-	document.getElementById("logsearchInput").addEventListener("input", applyFilters);
-	document.getElementById("logstatussearchInput").addEventListener("input", applyFilters);
-	document.getElementById("accountTypesearchInput").addEventListener("input", applyFilters);
+	document.getElementById("accountsearchInput").addEventListener("input", applyFilters);
+	document.getElementById("logTypesearchInput").addEventListener("input", applyFilters);
+	document.getElementById("FromDatesearchInput").addEventListener("input", applyFilters);
+	document.getElementById("ToDatesearchInput").addEventListener("input", applyFilters);
 });
 
 const getDate = (millis, time) => {
@@ -153,43 +155,81 @@ const getDate = (millis, time) => {
 
 
 function renderlogs(logs) {
-	const accountHistory = document.querySelector(".account-data");
-	accountHistory.innerHTML = '';
+	const logHistory = document.querySelector(".log-data");
+	logHistory.innerHTML = '';
 	if (logs == null || logs.length === 0) {
 		document.getElementById('buttons').style.display = "none";
-		const accountDiv = document.createElement("div");
-		accountDiv.className = "account-item d-flex row mb-1";
-		accountDiv.style = "background-color: #ffffff; height: 650px; padding: 10px; border-bottom: 1px solid #ddd; border-radius: 10px;";
-		accountDiv.innerHTML = `
+		const logDiv = document.createElement("div");
+		logDiv.className = "account-item d-flex row mb-1";
+		logDiv.style = "background-color: #ffffff; height: 650px; padding: 10px; border-bottom: 1px solid #ddd; border-radius: 10px;";
+		logDiv.innerHTML = `
 						<img height="500px" style="margin:auto;width: 50%" src="./images/notfound.avif" alt="" />
 			          `;
-		accountHistory.appendChild(accountDiv);
+		logHistory.appendChild(logDiv);
 		return;
 	}
 	for (let i = 0; i < logs.length; i++) {
-		let account = logs[i].instance;
-		let branch = logs[i].joinedFields;
+		let log = logs[i];
 		document.getElementById('buttons').style.display = "flex";
-		const accountDiv = document.createElement("div");
-		accountDiv.onclick = () => accountClick(account);
-		accountDiv.className = "account-item d-flex align-items-center my-2";
-		accountDiv.style = "background-color: white; padding: 10px; border-bottom: 1px solid #ddd; border-radius: 10px;cursor: pointer;";
-		accountDiv.innerHTML = `
-							<p class="userId"
-								style="width: 5%; margin-left:10px; font-weight: bold; color: #2b0444;">${account.userId}</p>
-							<p class="accountNumber" style="width: 15%; color: #2b0444;">${account.accountNumber}</p>
-							<p class="branchId"
-									style="width: 5%; font-weight: bold; color: #2b0444;">${account.branchId}</p>		
-							<p class="accbalance"
-								style="width: 10%; font-weight: bold; color: #4677bd;">${account.balance.toLocaleString()}</p>
-								<p class="branchName" style="width: 5%; font-weight: bold; color: #6c757d;">${branch.name}</p>
-								
-								<p class="acctype" style="width: 15%; font-weight: bold; color: #2b0444;">${account.accountType}</p>
-								<p class="accstatus"
-								style="width: 15%; font-weight: bold; color: ${account.status === 'Active' ? '#28a745' : 'red'};">${account.status}</p>
-							<p class="accountcreatedat" style="width: 15%; font-weight: bold; color: #6c757d;">${getDate(account.createdAt, false)}</p>
-						</div>`;
+		const logDiv = document.createElement("div");
+		logDiv.className = "account-item d-flex align-items-center my-2";
+		logDiv.style = "background-color: white; padding: 10px; border-bottom: 1px solid #ddd; border-radius: 10px;";
 
-		accountHistory.appendChild(accountDiv);
+		// Determine log type color
+		let logTypeColor = '';
+		switch (log.logType) {
+			case 'Insert':
+				logTypeColor = '#28a745'; // Green
+				break;
+			case 'Update':
+				logTypeColor = '#4677bd'; // Blue 
+				break;
+			case 'Delete':
+				logTypeColor = '#dc3545'; // Red
+				break;
+			case 'Login':
+				logTypeColor = '#28a745'; // Green
+				break;
+			case 'Logout':
+				logTypeColor = '#dc3545'; // Red
+				break;
+			default:
+				logTypeColor = '#6c757d'; // Default Gray
+		}
+
+		logDiv.innerHTML = `
+	        <p class="userId" style="font-weight: bold; color: #2b0444;">${log.userId ?? "-"}</p>
+	        <p class="tableName" style="font-weight: bold; color: #2b0444;">${log.tableName ?? "-"}</p>
+	        <p class="rowId" style="font-weight: bold; color: #2b0444;">${log.rowId ?? "-"}</p>
+	        <p class="logtype" style="font-weight: bold; color: ${logTypeColor};">${log.logType ?? "-"}</p>
+	        <p class="accountNumber" style="color: #2b0444; padding-left: 20px;">${log.userAccountNumber ?? "-"}</p>
+			<p class="logBy" style="margin-left: 10px; font-weight: bold; color: #6c757d;">${log.performedBy ?? "-"}</p>
+			<div class="logMessage-wrapper" style="width: 24%; position: relative;">
+	            <p class="logMessage" 
+	               style="font-weight: bold; color: #2b0444; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer;">
+	               ${log.logMessage ?? "-"}
+	            </p>
+	            <div class="tooltip" style="visibility: hidden; opacity: 0; color: #fff; position: absolute; top: 100%; left: 0; background-color: #343a40; border-radius: 5px; padding: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); z-index: 10; white-space: normal; max-width: 300px; transition: opacity 0.3s, visibility 0.3s;">
+	               ${log.logMessage ?? "-"}
+	            </div>
+	        </div>
+			 <p class="logcreatedat" style="width: 15%;margin-left: 50px; font-weight: bold; color: #6c757d;">${getDate(log.timestamp, false) ?? "-"}</p>`;
+
+		const logMessage = logDiv.querySelector('.logMessage');
+		const tooltip = logDiv.querySelector('.tooltip');
+
+		// Tooltip hover effect
+		logMessage.addEventListener('mouseenter', () => {
+			tooltip.style.visibility = 'visible';
+			tooltip.style.opacity = '1';
+		});
+
+		logMessage.addEventListener('mouseleave', () => {
+			tooltip.style.visibility = 'hidden';
+			tooltip.style.opacity = '0';
+		});
+
+		logHistory.appendChild(logDiv);
 	}
+
 }

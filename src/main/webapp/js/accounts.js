@@ -8,8 +8,8 @@ let cachedAccounts = [];
 let accountsCount;
 let currentPageIndex = 0;
 let filterOffset = 0;
-const role = localStorage.getItem("role");
-const token = localStorage.getItem('token');
+const role = sessionStorage.getItem("role");
+const token = sessionStorage.getItem('token');
 
 async function fetchAccounts() {
 	try {
@@ -26,7 +26,7 @@ async function fetchAccounts() {
 			if (filterStatus) accountData.status = filterStatus;
 
 			console.log(accountData);
-			const token = localStorage.getItem('token')
+			const token = sessionStorage.getItem('token')
 			const response = await fetch('http://localhost:8080/Bank_Application/api/Account', {
 				method: 'POST',
 				headers: {
@@ -418,7 +418,7 @@ function fetchUserIdDetails(query) {
 			validUserIds = [];
 			data["users"].forEach((user, index) => {
 				if (role == "Employee" && user.role == "Manager") return;
-				if (localStorage.getItem('email') == user.email) return;
+				if (sessionStorage.getItem('email') == user.email) return;
 				const option = document.createElement('div');
 				option.className = 'dropdown-option py-2 px-3';
 				option.style = `

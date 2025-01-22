@@ -140,7 +140,7 @@ public class ValidationUtil {
 
 	public static boolean getAssignedBranches(List<Account> accounts, Long branchId) {
 		if (accounts == null || accounts.isEmpty()) {
-			return false;
+			return true;
 		}
 		return accounts.stream().anyMatch(account -> account.getBranchId().equals(branchId));
 	}
@@ -148,13 +148,13 @@ public class ValidationUtil {
 	public static boolean getAssignedTransactions(List<Transaction> transactions, Long branchId)
 			throws CustomException {
 		if (transactions == null || transactions.isEmpty()) {
-			return false;
+			return true;
 		}
 		BranchService branchService = new BranchService();
 		Map<String, Object> branchMap = new HashMap<>();
 		branchMap.put("branchId", branchId);
 		Branch branchDetails = branchService.getBranchDetails(branchMap).get(0);
-		return transactions.stream().allMatch(transaction -> transaction.getIfsc() == branchDetails.getIfscCode());
+		return transactions.stream().allMatch(transaction -> transaction.getIfsc().equals(branchDetails.getIfscCode()));
 	}
 
 }
