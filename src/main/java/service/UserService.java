@@ -109,8 +109,11 @@ public class UserService {
 			userMap.put("userClass", User.class);
 			users = userDao.get(userMap);
 
+			if (users == null || users.size() == 0) {
+				throw new CustomException("User not found", HttpStatusCodes.BAD_REQUEST);
+			}
+
 			User user = users.get(0);
-			System.out.println(users);
 			if (user.getStatus() != "Active") {
 				logger.error("User suspended: {}", username);
 				throw new CustomException("User suspended", HttpStatusCodes.UNAUTHORIZED);
@@ -134,6 +137,8 @@ public class UserService {
 		try {
 			String currentPassword = (String) passwordMap.get("currentPassword"),
 					newPassword = (String) passwordMap.get("newPassword");
+
+			ValidationUtil.validatePassword(newPassword);
 			Map<String, Object> userMap = new HashMap<>();
 			Long userId = (Long) Helper.getThreadLocalValue("id");
 			userMap.put("userId", userId);
@@ -234,9 +239,11 @@ public class UserService {
 			Long userId;
 			if (role == Role.Customer) {
 				CustomerDetail customerDetail = Helper.createPojoFromMap(userMap, CustomerDetail.class);
+				ValidationUtil.validateCustomerModel(customerDetail);
 				userId = userDao.create(customerDetail);
 			} else {
 				Staff staff = Helper.createPojoFromMap(userMap, Staff.class);
+				ValidationUtil.validateStaffModel(staff);
 				userId = userDao.create(staff);
 			}
 			logger.info("User created successfully.");
@@ -259,7 +266,7 @@ public class UserService {
 				updatePassword(userMap);
 				return;
 			}
-			if (!userMap.containsKey("updatedValues")) {
+			if (!userMap.containsKey("updatedValues") || !userMap.containsKey("userId")) {
 				throw new CustomException("Provide the values to update", HttpStatusCodes.BAD_REQUEST);
 			}
 
@@ -303,7 +310,7 @@ public class UserService {
 			userMap.remove("updatedValues");
 
 			// Use validation check.
-			List<User> users = (List<User>) getUserDetails(userMap);
+			List<User> users = (List<User>) getUserDetails(userMap).get("users");
 			if (users == null || users.isEmpty()) {
 				throw new CustomException("User not found.", HttpStatusCodes.BAD_REQUEST);
 			}

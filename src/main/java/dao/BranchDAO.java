@@ -1,7 +1,6 @@
 package dao;
 
 import java.math.BigInteger;
-import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -48,7 +47,9 @@ public class BranchDAO implements DAO<Branch> {
 		try {
 			SQLHelper.update(columnCriteria, criteria);
 			logger.info("IFSC code updated successfully: " + ifscCode);
-		} catch (SQLException e) {
+		} catch (CustomException e) {
+			throw e;
+		} catch (Exception e) {
 			logger.error("Error while updating IFSC code", e);
 			throw new CustomException("Failed to update IFSC code for branch ID: " + branchId,
 					HttpStatusCodes.INTERNAL_SERVER_ERROR);
@@ -62,6 +63,8 @@ public class BranchDAO implements DAO<Branch> {
 		try {
 			SQLHelper.update(columnCriterias, criteria);
 			logger.info("Branch details updated successfully");
+		} catch (CustomException e) {
+			throw e;
 		} catch (Exception e) {
 			logger.error("Error while updating branch details. ", e);
 			throw new CustomException("Failed to update branch details.", HttpStatusCodes.INTERNAL_SERVER_ERROR);
@@ -84,7 +87,9 @@ public class BranchDAO implements DAO<Branch> {
 			}
 			logger.info("Branch details fetched successfully for ID: " + branchId);
 			return branches;
-		} catch (SQLException e) {
+		} catch (CustomException e) {
+			throw e;
+		} catch (Exception e) {
 			logger.error("Error while fetching branch details for ID: " + branchId, e);
 			throw new CustomException("Failed to fetch branch details for ID: " + branchId,
 					HttpStatusCodes.INTERNAL_SERVER_ERROR);

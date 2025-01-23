@@ -55,6 +55,7 @@ async function fetchLogs() {
 		updatePagination();
 	} catch (error) {
 		console.log(error);
+		history.back()
 	}
 }
 

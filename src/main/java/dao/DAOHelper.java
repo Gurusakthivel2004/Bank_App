@@ -169,15 +169,15 @@ public class DAOHelper {
 		return "Duplicate entry error occurred.";
 	}
 
-	public static void applyPagination(Criteria criteria, Map<String, Object> txMap) {
-		Long limitValue = (Long) txMap.getOrDefault("limit", 0L);
-		Long offset = (Long) txMap.getOrDefault("offset", -1L);
+	public static void applyPagination(Criteria criteria, Map<String, Object> map) {
+		Long limitValue = (Long) map.getOrDefault("limit", 0L);
+		Long offset = (Long) map.getOrDefault("offset", -1L);
 
 		if (limitValue > 0) {
 			criteria.setLimitValue(limitValue);
 		}
 		if (offset >= 0) {
-			criteria.setOffsetValue(offset == 0 ? -1L : offset);
+			criteria.setOffsetValue(offset);
 		}
 	}
 
@@ -204,22 +204,6 @@ public class DAOHelper {
 				.setSelectColumn(Collections.singletonList("user.*"));
 		DAOHelper.addJoinCondition(criteria, true, "account.user_id", "EQUAL_TO", "user.id");
 		DAOHelper.addConditionIfPresent(criteria, userMap, "branchId", "account.branch_id", "EQUAL_TO", 0L);
-		return criteria;
-	}
-
-	public static Criteria applyLogFilterBranch(Criteria criteria, Map<String, Object> logMap) {
-		if (!logMap.containsKey("branchId")) {
-			return criteria;
-		}
-		List<String> joinTable = new ArrayList<>(Arrays.asList("account", "staff"));
-		criteria = DAOHelper
-				.buildJoinCriteria(ActivityLog.class, joinTable, new ArrayList<>(), new ArrayList<>(),
-						new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), " JOIN ", true)
-				.setSelectColumn(Collections.singletonList("activityLog.*"));
-		DAOHelper.addJoinCondition(criteria, true, "account.account_number", "EQUAL_TO",
-				"activityLog.user_account_number");
-		DAOHelper.addJoinCondition(criteria, true, "staff.branch_id", "EQUAL_TO", "account.branch_id");
-		DAOHelper.addConditionIfPresent(criteria, logMap, "branchId", "staff.branch_id", "EQUAL_TO", 0L);
 		return criteria;
 	}
 
@@ -275,20 +259,14 @@ public class DAOHelper {
 		criteria = DAOHelper.applyAccountFilterBranch(criteria, accountMap);
 		DAOHelper.applyAccountFilters(criteria, accountMap);
 		DAOHelper.applyPagination(criteria, accountMap);
-		if (accountMap.containsKey("offset")) {
-			criteria.setOffsetValue((Long) accountMap.get("offset"));
-		}
 		return criteria;
 	}
 
 	public static Criteria getLogCriteria(Map<String, Object> logMap) throws CustomException {
 		Criteria criteria = DAOHelper.initializeCriteria(ActivityLog.class);
-		criteria = DAOHelper.applyLogFilterBranch(criteria, logMap);
-		DAOHelper.applyLogFilterBranch(criteria, logMap);
+		DAOHelper.applyLogFilters(criteria, logMap);
 		DAOHelper.applyPagination(criteria, logMap);
-		if (logMap.containsKey("offset")) {
-			criteria.setOffsetValue((Long) logMap.get("offset"));
-		}
+		criteria.setOrderByField("timestamp").setOrderBy("DESC");
 		return criteria;
 	}
 

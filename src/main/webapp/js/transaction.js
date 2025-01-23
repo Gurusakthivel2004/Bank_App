@@ -54,6 +54,7 @@ async function fetchTransactions() {
 		updatePagination();
 	} catch (error) {
 		console.error('Error during fetch or processing:', error);
+		history.back()
 	}
 }
 

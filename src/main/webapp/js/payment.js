@@ -53,10 +53,12 @@ const handleSubmit = async (event) => {
 		displayInvalidAccount("Cannot make a transaction to same account.");
 		return;
 	}
-	if (validAccounts.includes(accountNumber) == false) {
+	if (validAccounts.includes(accountNumber) == false && !role == "Customer") {
+		console.log('1');
 		displayInvalidAccount("Enter valid account number.");
 		return;
-	} else if (bankName == "Horizon" && !validAccounts.includes(transactionAccountNumber)) {
+	} else if (bankName == "Horizon" && !validAccounts.includes(transactionAccountNumber) && !role == "Customer") {
+		console.log('2');
 		displayInvalidAccount("Enter valid account number.");
 		return;
 	} else {
@@ -181,7 +183,7 @@ const handleInputDropdown = accountInput => {
 
 		clearTimeout(timeoutId);
 
-		if (inputValue.length >= 4) {
+		if (inputValue.length >= 4 && role != "Customer") {
 			timeoutId = setTimeout(async () => {
 				try {
 					const accountData = {
@@ -312,6 +314,7 @@ document.addEventListener("DOMContentLoaded", async _ => {
 		});
 	} catch (error) {
 		console.log(error);
+		history.back()
 	}
 
 });

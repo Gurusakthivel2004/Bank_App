@@ -12,9 +12,11 @@ import java.sql.SQLException;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.Period;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -78,6 +80,12 @@ public class Helper {
 		}
 	}
 
+	public static void checkNullValues(Object inputObject, String key) throws CustomException {
+		if (inputObject == null) {
+			throw new CustomException(key, HttpStatusCodes.BAD_REQUEST);
+		}
+	}
+
 	public static void checkNull(Object obj, String message) throws CustomException {
 		if (obj == null) {
 			throw new CustomException(message, HttpStatusCodes.BAD_REQUEST);
@@ -122,10 +130,101 @@ public class Helper {
 	}
 
 	public static void checkPhoneNumber(String number) throws CustomException {
-		checkNullValues(number);
+		checkNullValues(number, "Please enter phone number.");
 		String patternString = "^\\d{10}$";
 		if (!Pattern.matches(patternString, number)) {
 			throw new CustomException("Error: Mobile number must have 10 digits!", HttpStatusCodes.BAD_REQUEST);
+		}
+	}
+
+	public static void checkUsername(String username) throws CustomException {
+		checkNullValues(username, "Please enter username.");
+
+		String patternString = "^(?=.*[a-zA-Z])[a-zA-Z0-9_]{5,}$";
+
+		if (!Pattern.matches(patternString, username)) {
+			throw new CustomException(
+					"Error: Username must be at least 5 characters long, contain at least one alphabet, and can only include letters, numbers, and underscores!",
+					HttpStatusCodes.BAD_REQUEST);
+		}
+	}
+
+	public static void checkPanNumber(String panNumber) throws CustomException {
+		checkNullValues(panNumber, "Please enter pan number.");
+		String patternString = "^[a-zA-Z0-9]{10,}$";
+		if (!Pattern.matches(patternString, panNumber)) {
+			throw new CustomException(
+					"Error: pan number must be at least 10 characters long and can only contain numbers.",
+					HttpStatusCodes.BAD_REQUEST);
+		}
+	}
+
+	public static void checkAddress(String address) throws CustomException {
+		checkNullValues(address, "Please enter address.");
+		String patternString = "^(?!.*\\s{2,})[a-zA-Z0-9.,\\s]{10,100}$";
+
+		if (!address.contains(" ")) {
+			throw new CustomException("Error: Address must contain at least one space!", HttpStatusCodes.BAD_REQUEST);
+		}
+
+		if (!Pattern.matches(patternString, address)) {
+			throw new CustomException(
+					"Error: Address must be between 10 and 100 characters, can only include letters, numbers, spaces, commas, and periods, and must not contain consecutive spaces or special characters!",
+					HttpStatusCodes.BAD_REQUEST);
+		}
+	}
+
+	public static void checkFullName(String fullname) throws CustomException {
+		checkNullValues(fullname, "Please enter full name.");
+
+		String patternString = "^[A-Za-z]+(?: [A-Za-z]+)*$";
+
+		if (fullname.length() < 10 || fullname.length() > 20) {
+			throw new CustomException("Error: Full name must be between 10 and 20 characters long.",
+					HttpStatusCodes.BAD_REQUEST);
+		}
+
+		if (!Pattern.matches(patternString, fullname)) {
+			throw new CustomException(
+					"Error: Full name can only contain alphabets and single spaces between words. No special characters are allowed.",
+					HttpStatusCodes.BAD_REQUEST);
+		}
+	}
+
+	public static void checkAadharNumber(String aadharNumber) throws CustomException {
+		checkNullValues(aadharNumber, "Please enter aadhar number.");
+		String patternString = "^[0-9]{10,}$";
+		if (!Pattern.matches(patternString, aadharNumber)) {
+			throw new CustomException(
+					"Error: aadhar number must be at least 10 characters long and can only contain letters and numbers.",
+					HttpStatusCodes.BAD_REQUEST);
+		}
+	}
+
+	public static void checkDOB(String dob) throws CustomException {
+		Helper.checkNullValues(dob, "Please enter dob.");
+		DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+		LocalDate birthDate;
+
+		try {
+			birthDate = LocalDate.parse(dob, formatter);
+		} catch (DateTimeParseException e) {
+			throw new CustomException("Error: Date of birth must be in dd/MM/yyyy format!",
+					HttpStatusCodes.BAD_REQUEST);
+		}
+
+		LocalDate today = LocalDate.now();
+
+		if (birthDate.isAfter(today)) {
+			throw new CustomException("Error: Date of birth cannot be in the future!", HttpStatusCodes.BAD_REQUEST);
+		}
+
+		int age = Period.between(birthDate, today).getYears();
+		if (age < 18) {
+			throw new CustomException("Error: Age must be at least 18 years old!", HttpStatusCodes.BAD_REQUEST);
+		}
+		if (age > 150) {
+			throw new CustomException("Error: Enter valid age!", HttpStatusCodes.BAD_REQUEST);
 		}
 	}
 
@@ -138,8 +237,10 @@ public class Helper {
 	}
 
 	public static void checkEmail(String email) throws CustomException {
-		checkNullValues(email);
-		String patternString = "^[a-zA-Z0-9._-]+@[a-zA-Z0-9-]+\\.[a-zA-Z.]{2,18}$";
+		checkNullValues(email, "Please enter email.");
+
+		String patternString = "^(?=.{1,254}$)[a-zA-Z0-9]+(?:[._%+-][a-zA-Z0-9]+)*@([a-zA-Z0-9-]+)\\.([a-zA-Z]{2,18})$";
+
 		if (!Pattern.matches(patternString, email)) {
 			throw new CustomException("Error: Email is not valid", HttpStatusCodes.BAD_REQUEST);
 		}

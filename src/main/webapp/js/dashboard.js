@@ -2,7 +2,7 @@
 document.addEventListener("DOMContentLoaded", async _ => {
 	const role = sessionStorage.getItem('role');
 	if (role != null && role !== 'Customer') {
-		window.location.href = "emp-dashboard.html"
+		window.location.href = "emp-dashboard.html";
 	}
 	console.log("Role: ", role);
 	try {
@@ -62,7 +62,7 @@ document.addEventListener("DOMContentLoaded", async _ => {
 
 	} catch (error) {
 		console.error('Error during fetch or processing:', error);
-		window.location = "index.html";
+		history.back()
 	}
 });
 

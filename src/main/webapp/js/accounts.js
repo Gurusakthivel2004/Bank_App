@@ -54,6 +54,7 @@ async function fetchAccounts() {
 		updatePagination();
 	} catch (error) {
 		console.log(error);
+		history.back()
 	}
 }
 
@@ -300,15 +301,14 @@ const updateAccount = async accountUpdateData => {
 	const result = await response.json();
 	console.log(result);
 	const successPop = document.getElementById('successModal');
-	console.log(successPop);
 	if (result.message == 'success') {
+		toggleModal('accountDetailsModal')
 		document.getElementById('successMessage').innerHTML = "Account updated successfully!";
 		successPop.style.display = 'flex';
-		toggleModal('accountDetailsModal')
 	} else {
 		const errorUpdate = document.getElementById('errorUpdate');
+		errorUpdate.style.display = 'block';
 		errorUpdate.innerHTML = result.message;
-		successPop.style.display = 'block';
 	}
 }
 

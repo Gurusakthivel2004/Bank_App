@@ -58,22 +58,29 @@ public class AccountController {
 			JsonObject jsonObject = Helper.parseRequestBody(request);
 			Map<String, Object> accountMap = Helper.mapJsonObject(jsonObject);
 
-			String branchId = null, status = null;
-			Long accountNumber = Long.parseLong((String) accountMap.get("accountNumber"));
+			if (!accountMap.containsKey("accountNumber")) {
+				Helper.sendErrorResponse(response, "Enter accountNumber to update account.");
+			}
+
+			String status = null;
+			Long accountNumber = Long.parseLong((String) accountMap.get("accountNumber")), branchId = null;
 
 			Map<String, Object> accMap = new HashMap<>();
 			if (accountMap.containsKey("branchId")) {
-				branchId = (String) accountMap.get("branchId");
+				branchId = Long.parseLong((String) accountMap.get("branchId"));
 				accMap.put("branchId", branchId);
-				accountService.updateAccount(accountNumber, accMap);
-			} else if (accountMap.containsKey("status")) {
+			}
+			if (accountMap.containsKey("status")) {
 				status = (String) accountMap.get("status");
 				accMap.put("status", status);
-				accountService.updateAccount(accountNumber, accMap);
 			}
+
+			accountService.updateAccount(accountNumber, accMap);
 			Helper.sendSuccessResponse(response, "success");
 		} catch (CustomException exception) {
 			Helper.sendErrorResponse(response, exception);
+		} catch (Exception e) {
+			Helper.sendErrorResponse(response, "Unexpected error occured");
 		}
 	}
 }

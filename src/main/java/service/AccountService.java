@@ -42,7 +42,9 @@ public class AccountService {
 	public void updateAccount(Long accountNumber, Map<String, Object> accountMap) throws CustomException {
 		logger.info("Attempting to update account details.");
 
-		getAccountDetails(accountMap);
+		if (accountMap == null || accountMap.size() == 0) {
+			throw new CustomException("Please enter fields to update", HttpStatusCodes.BAD_REQUEST);
+		}
 
 		ValidationUtil.validateUpdateFields(accountMap, Account.class);
 
@@ -182,6 +184,8 @@ public class AccountService {
 	@SuppressWarnings("unchecked")
 	public void createAccount(Map<String, Object> accountMap) throws CustomException {
 		logger.info("Creating account..");
+
+		ValidationUtil.validateCreateAccount(accountMap);
 
 		Map<String, Object> accountFetchMap = new HashMap<>();
 		accountFetchMap.put("userId", Helper.parseLong(accountMap.get("userId")));

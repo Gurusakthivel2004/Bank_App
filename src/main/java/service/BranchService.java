@@ -17,6 +17,7 @@ import model.ActivityLog;
 import model.Branch;
 import util.CustomException;
 import util.Helper;
+import util.ValidationUtil;
 
 public class BranchService {
 
@@ -68,6 +69,7 @@ public class BranchService {
 		logger.info("Creating a new branch with data: {}", branchMap);
 
 		Branch branch = Helper.createPojoFromMap(branchMap, Branch.class);
+		ValidationUtil.validateBranchModel(branch);
 		Long branchId = branchDAO.create(branch);
 		logger.info("Branch successfully created with name: {}", branch.getName());
 

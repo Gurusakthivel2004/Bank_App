@@ -106,10 +106,12 @@ public class Constants {
 		USER("User",
 				Arrays.asList("id", "email", "phone", "role", "username", "fullname", "status", "created_at",
 						"modified_at", "performed_by")),
-		CUSTOMER("Customer", combineFields(USER.fields, Arrays.asList("user_id", "pan_number", "aadhar_number"))),
+		CUSTOMER("Customer",
+				combineFields(USER.fields, Arrays.asList("customer.user_id", "pan_number", "aadhar_number"))),
 		CUSTOMERDETAIL("CustomerDetail",
 				combineFields(CUSTOMER.fields,
-						Arrays.asList("user_id", "dob", "father_name", "mother_name", "address", "marital_status"))),
+						Arrays.asList("customerDetail.user_id", "dob", "father_name", "mother_name", "address",
+								"marital_status"))),
 		STAFF("Staff", combineFields(USER.fields, Arrays.asList("user_id", "branch_id")));
 
 		private final String tableName;

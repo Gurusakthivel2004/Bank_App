@@ -131,7 +131,7 @@ public class SQLHelper {
 					connection.rollback();
 					logger.info("Transaction rolled back due to error.");
 				}
-			} catch (SQLException rollbackException) {
+			} catch (Exception rollbackException) {
 				logger.error("Rollback failed for the transaction. Query could not be rolled back. Error details: {}",
 						rollbackException.getMessage(), rollbackException);
 				throw new CustomException("Transaction failed. Please try again later.",

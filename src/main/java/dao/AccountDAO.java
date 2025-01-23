@@ -1,7 +1,6 @@
 package dao;
 
 import java.math.BigInteger;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -30,7 +29,9 @@ public class AccountDAO implements DAO<Account>, DAOJoin<Account> {
 			DAOHelper.addConditionIfPresent(criteria, accountMap, "accountId", "account_id", "EQUAL_TO", 0l);
 
 			SQLHelper.update(columnCriteria, criteria);
-		} catch (SQLException e) {
+		} catch (CustomException e) {
+			throw e;
+		} catch (Exception e) {
 			logger.error("Error updating account.", e);
 			throw new CustomException("Failed to update account", HttpStatusCodes.INTERNAL_SERVER_ERROR);
 		}
@@ -40,7 +41,9 @@ public class AccountDAO implements DAO<Account>, DAOJoin<Account> {
 		Criteria criteria = DAOHelper.getAccountCriteria(accountMap);
 		try {
 			return SQLHelper.get(criteria, Account.class);
-		} catch (SQLException e) {
+		} catch (CustomException e) {
+			throw e;
+		} catch (Exception e) {
 			logger.error("Error while fetching account details: ", e);
 			throw new CustomException("Failed to fetch account details: ", HttpStatusCodes.INTERNAL_SERVER_ERROR);
 		}
@@ -56,7 +59,7 @@ public class AccountDAO implements DAO<Account>, DAOJoin<Account> {
 						HttpStatusCodes.INTERNAL_SERVER_ERROR);
 			}
 			return count;
-		} catch (SQLException e) {
+		} catch (Exception e) {
 			logger.error("Error while fetching account details: ", e);
 			throw new CustomException("Failed to fetch account details: ", HttpStatusCodes.INTERNAL_SERVER_ERROR);
 		}
@@ -70,10 +73,13 @@ public class AccountDAO implements DAO<Account>, DAOJoin<Account> {
 
 		DAOHelper.addJoinCondition(branchJoinCriteria, true, "account.branch_id", "EQUAL_TO", "branch.id");
 		DAOHelper.applyAccountFilters(branchJoinCriteria, accountMap);
+		DAOHelper.applyPagination(branchJoinCriteria, accountMap);
 
 		try {
 			return SQLHelper.getJoinedObjects(branchJoinCriteria, Account.class);
-		} catch (SQLException e) {
+		} catch (CustomException e) {
+			throw e;
+		} catch (Exception e) {
 			logger.error("Error while fetching account details: ", e);
 			throw new CustomException("Failed to fetch account details: ", HttpStatusCodes.INTERNAL_SERVER_ERROR);
 		}

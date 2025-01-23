@@ -46,7 +46,7 @@ async function fetchUsers() {
 		updatePagination();
 	} catch (error) {
 		console.log(error);
-		window.location.href = "index.html";
+		history.back()
 	}
 }
 
@@ -373,9 +373,6 @@ const createNewUser = async data => {
 		errorMessageElement.style.display = "block";
 		errorMessageElement.innerHTML = result.message;
 	}
-	setTimeout(() => {
-		successPop.style.display = 'none';
-	}, 3000);
 };
 
 document.querySelectorAll('.accNumberInput').forEach(item => {
@@ -542,9 +539,11 @@ const toggleSaveAll = () => {
 };
 
 const validateEmail = (email) => {
-	const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-	return emailRegex.test(email);
+	const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+	return emailRegex.test(email.trim());
 };
+
+
 
 const validatePhone = (phone) => {
 	const phoneRegex = /^\d{10}$/;

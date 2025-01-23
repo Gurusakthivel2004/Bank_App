@@ -6,6 +6,8 @@ document.addEventListener("DOMContentLoaded", async _ => {
 		const role = sessionStorage.getItem('role');
 		if (role == 'Employee') {
 			document.getElementById('createBranchButton').style.display = 'none';
+		} if (role == 'Customer') {
+			history.back()
 		}
 		const response = await fetch('http://localhost:8080/Bank_Application/api/UserDashboard', {
 			method: 'GET',
@@ -55,7 +57,6 @@ document.addEventListener("DOMContentLoaded", async _ => {
 		}
 	} catch (error) {
 		console.error('Error during fetch or processing:', error);
-
 	}
 });
 

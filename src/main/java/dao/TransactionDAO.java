@@ -48,9 +48,7 @@ public class TransactionDAO implements DAO<Transaction> {
 		DAOHelper.applyTransactionFilters(criteria, txMap);
 		DAOHelper.applyAccountNumberFilter(criteria, txMap);
 		DAOHelper.applyPagination(criteria, txMap);
-		if (txMap.containsKey("offset")) {
-			criteria.setOffsetValue((Long) txMap.get("offset"));
-		}
+
 		System.out.println(criteria);
 		return criteria;
 	}
