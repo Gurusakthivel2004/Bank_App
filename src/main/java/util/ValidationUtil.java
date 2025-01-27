@@ -6,15 +6,12 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.PrimitiveIterator.OfDouble;
 import java.util.regex.Pattern;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import Enum.Constants.HttpStatusCodes;
-import Enum.Constants.Role;
-import Enum.Constants.Status;
 import dao.BranchDAO;
 import dao.DAO;
 import dao.UserDAO;
@@ -181,7 +178,7 @@ public class ValidationUtil {
 		Helper.checkUsername(user.getUsername());
 		Helper.checkAadharNumber(user.getAadharNumber().toString());
 		Helper.checkPanNumber(user.getPanNumber());
-		Helper.checkFullName(user.getFullname());
+		Helper.checkName(user.getFullname());
 		Helper.checkDOB(user.getDob());
 		Helper.checkAddress(user.getAddress());
 	}
@@ -194,8 +191,8 @@ public class ValidationUtil {
 
 	public static void validateBranchModel(Branch branch) throws CustomException {
 		Helper.checkPhoneNumber(branch.getContactNumber().toString());
-		Helper.checkNullValues(branch.getName(), "Please enter branch name.");
-		Helper.checkNullValues(branch.getAddress(), "Please enter branch address.");
+		Helper.checkName(branch.getName());
+		Helper.checkAddress(branch.getAddress());
 	}
 
 	public static void userExists(Long userId) throws CustomException {
@@ -222,41 +219,46 @@ public class ValidationUtil {
 	public static void validateCreateAccount(Map<String, Object> accountMap) throws CustomException {
 		if (!accountMap.containsKey("userId")) {
 			throw new CustomException("User Id not found!. Please enter user id", HttpStatusCodes.BAD_REQUEST);
-		} else if (!accountMap.containsKey("balance")) {
-			throw new CustomException("Please enter balance", HttpStatusCodes.BAD_REQUEST);
 		} else if (!accountMap.containsKey("accountType")) {
 			throw new CustomException("Account type not found!. Please enter account type",
 					HttpStatusCodes.BAD_REQUEST);
 		}
 		ValidationUtil.userExists(Long.parseLong((String) accountMap.get("userId")));
+		Helper.checkStartingBalance((long) accountMap.get("balance"), 500);
+
 	}
 
 	public static void validatePassword(String password) throws CustomException {
 		Helper.checkNullValues(password, "Please enter password.");
 		String patternString = "^[0-9a-zA-Z_]{5,}$";
 		if (!Pattern.matches(patternString, password)) {
-			throw new CustomException("Password must atleast 5 characters containing alphabets, numbers and underscre.",
+			throw new CustomException(
+					"Password must be atleast 5 characters containing alphabets, numbers and underscore.",
 					HttpStatusCodes.BAD_REQUEST);
 		}
 	}
 
 	public static void validateKey(String key, Object value) throws CustomException {
+		logger.info(key + " " + value);
 		switch (key) {
 		case "email":
 			Helper.checkEmail(value.toString());
 			break;
 		case "phone":
 		case "contactNumber":
-			Helper.checkPhoneNumber(key);
+			Helper.checkPhoneNumber(value.toString());
 			break;
 		case "branchId":
 			branchExists((Long) value);
+			break;
 		case "fullname":
 		case "motherName":
 		case "fatherName":
-			Helper.checkFullName(value.toString());
+			Helper.checkName(value.toString());
+			break;
 		case "address":
 			Helper.checkAddress(value.toString());
+			break;
 		default:
 			break;
 		}

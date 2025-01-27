@@ -36,8 +36,12 @@ async function fetchLogs() {
 				},
 				body: JSON.stringify(logsData)
 			});
-
 			const logsResult = await response.json();
+			if (logsResult.message == 'Invalid token') {
+				document.querySelector('body').style.display = 'none';
+				window.location.href = "error.html";
+			}
+
 			const logs = logsResult["logs"];
 			console.log(logsResult);
 
@@ -47,15 +51,16 @@ async function fetchLogs() {
 				filterOffset += logsPerPage;
 			} else {
 				console.error('Error fetching logs:', response.message || 'Unknown error');
-				renderlogs([]);
+				document.querySelector('body').style.display = 'none';
 			}
 		}
 		renderlogs(cachedLogs[currentPageIndex]);
 		document.getElementById("prevButton").disabled = currentPageIndex === 0;
 		updatePagination();
+		document.querySelector('body').style.display = 'block';
 	} catch (error) {
 		console.log(error);
-		history.back()
+		document.querySelector('body').style.display = 'none';
 	}
 }
 
@@ -127,11 +132,9 @@ function applyFilters() {
 
 document.addEventListener("DOMContentLoaded", () => {
 	console.log(role);
-	if (role == null) {
-		window.history.back();
-	} else if (role === "Customer" || role == "Employee") {
-		alert("You do not have permission to access this page.");
-		window.history.back();
+	if (role == null || role === "Customer" || role == "Employee") {
+		document.querySelector('body').style.display = 'none';
+		window.location.href = "error.html";
 	}
 	fetchLogs();
 	document.getElementById("customerIdsearchInput").addEventListener("input", applyFilters);

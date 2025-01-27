@@ -49,7 +49,6 @@ public class TransactionDAO implements DAO<Transaction> {
 		DAOHelper.applyAccountNumberFilter(criteria, txMap);
 		DAOHelper.applyPagination(criteria, txMap);
 
-		System.out.println(criteria);
 		return criteria;
 	}
 
@@ -69,7 +68,18 @@ public class TransactionDAO implements DAO<Transaction> {
 		}
 	}
 
-	public void update(ColumnCriteria columnCriteria, Map<String, Object> map) throws CustomException {
-		throw new CustomException("Transaction cannot be altered.", HttpStatusCodes.INTERNAL_SERVER_ERROR);
+	public void update(ColumnCriteria columnCriteria, Map<String, Object> txMap) throws CustomException {
+		try {
+			Criteria criteria = new Criteria().setClazz(Transaction.class);
+			criteria.setSelectColumn(Arrays.asList("status")).setValue(Arrays.asList(txMap.get("status").toString()));
+			DAOHelper.addConditionIfPresent(criteria, txMap, "id", "id", "EQUAL_TO", 0l);
+
+			SQLHelper.update(columnCriteria, criteria);
+		} catch (CustomException e) {
+			throw e;
+		} catch (Exception e) {
+			logger.error("Error updating failed transaction.", e);
+			throw new CustomException("Failed to update failed transaction", HttpStatusCodes.INTERNAL_SERVER_ERROR);
+		}
 	}
 }

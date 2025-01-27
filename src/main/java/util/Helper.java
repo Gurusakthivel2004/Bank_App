@@ -131,7 +131,9 @@ public class Helper {
 
 	public static void checkPhoneNumber(String number) throws CustomException {
 		checkNullValues(number, "Please enter phone number.");
-		String patternString = "^\\d{10}$";
+		number = number.trim();
+
+		String patternString = "^[6-9]\\d{9}$";
 		if (!Pattern.matches(patternString, number)) {
 			throw new CustomException("Error: Mobile number must have 10 digits!", HttpStatusCodes.BAD_REQUEST);
 		}
@@ -159,34 +161,42 @@ public class Helper {
 		}
 	}
 
+	public static void checkStartingBalance(long amount, long minBalance) throws CustomException {
+		checkNullValues(amount, "Please enter amount.");
+		if (amount < minBalance) {
+			throw new CustomException("Error: Must be greater than minimum balance.", HttpStatusCodes.BAD_REQUEST);
+		}
+	}
+
 	public static void checkAddress(String address) throws CustomException {
 		checkNullValues(address, "Please enter address.");
-		String patternString = "^(?!.*\\s{2,})[a-zA-Z0-9.,\\s]{10,100}$";
+		address = address.trim();
+		String patternString = "^[a-zA-Z0-9.,\\-/()\\s]+$";
+		logger.debug(address);
+		logger.debug(Pattern.matches(patternString, address));
+
+		if (!Pattern.matches(patternString, address) || address.length() < 10 || address.length() > 100) {
+			throw new CustomException("Error: Enter a valid address.", HttpStatusCodes.BAD_REQUEST);
+		}
 
 		if (!address.contains(" ")) {
 			throw new CustomException("Error: Address must contain at least one space!", HttpStatusCodes.BAD_REQUEST);
 		}
-
-		if (!Pattern.matches(patternString, address)) {
-			throw new CustomException(
-					"Error: Address must be between 10 and 100 characters, can only include letters, numbers, spaces, commas, and periods, and must not contain consecutive spaces or special characters!",
-					HttpStatusCodes.BAD_REQUEST);
-		}
 	}
 
-	public static void checkFullName(String fullname) throws CustomException {
+	public static void checkName(String fullname) throws CustomException {
 		checkNullValues(fullname, "Please enter full name.");
 
 		String patternString = "^[A-Za-z]+(?: [A-Za-z]+)*$";
 
-		if (fullname.length() < 10 || fullname.length() > 20) {
-			throw new CustomException("Error: Full name must be between 10 and 20 characters long.",
+		if (fullname.length() < 2 || fullname.length() > 20) {
+			throw new CustomException("Error: Full name must be between 2 and 20 characters long.",
 					HttpStatusCodes.BAD_REQUEST);
 		}
 
 		if (!Pattern.matches(patternString, fullname)) {
 			throw new CustomException(
-					"Error: Full name can only contain alphabets and single spaces between words. No special characters are allowed.",
+					"Error: Name must only contain alphabets and single spaces between words. No special characters are allowed.",
 					HttpStatusCodes.BAD_REQUEST);
 		}
 	}

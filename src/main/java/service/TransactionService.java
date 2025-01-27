@@ -92,29 +92,48 @@ public class TransactionService {
 	}
 
 	public void prepareTransaction(Map<String, Object> transactionMap) throws CustomException {
+
 		logger.info("Initiating transaction creation...");
 		List<Account> accounts;
 		Map<String, Object> accountMap = new HashMap<>();
 		long branchId = Long.parseLong((String) transactionMap.get("branchId"));
 		long accountNumber = Long.parseLong((String) transactionMap.get("accountNumber"));
+		long transactionAccountNumber = Long.parseLong((String) transactionMap.get("transactionAccountNumber"));
 		Long userId = (Long) Helper.getThreadLocalValue("id");
 		Role role = Role.fromString((String) Helper.getThreadLocalValue("role"));
 
 		accountMap.put("accountNumber", accountNumber);
+		TransactionType transactionType = TransactionType.fromString((String) transactionMap.get("transactionType"));
+		if (transactionType == TransactionType.Withdraw) {
+			accountMap.put("accountNumber", transactionAccountNumber);
+			transactionMap.put("transactionType", "Default");
+		}
 		accounts = new AccountDAO().get(accountMap);
 		Account account = accounts.get(0);
 		long customerId = account.getUserId();
 		try {
-			String amountStr = transactionMap.get("amount").toString();
-			BigDecimal transactionAmount = new BigDecimal(amountStr);
+			double amount = Double.parseDouble((String) transactionMap.get("amount"));
+			BigDecimal transactionAmount = BigDecimal.valueOf(amount);
+			transactionMap.put("amount", transactionAmount);
 
-			if (account.getBalance().compareTo(transactionAmount) < 0) {
-				throw new CustomException("Insufficient balance", HttpStatusCodes.BAD_REQUEST);
+			if (transactionAmount.compareTo(BigDecimal.ZERO) <= 0) {
+				throw new CustomException("Enter an amount greater than 0.", HttpStatusCodes.BAD_REQUEST);
 			}
+
+			BigDecimal accountBalance = account.getBalance();
+			if (accountBalance.compareTo(transactionAmount) < 0) {
+				throw new CustomException("Insufficient balance.", HttpStatusCodes.BAD_REQUEST);
+			}
+
 		} catch (NumberFormatException e) {
 			throw new CustomException("Invalid amount format", HttpStatusCodes.BAD_REQUEST);
 		}
-
+		accountMap.put("accountNumber", accountNumber);
+		if (transactionMap.get("transactionType").equals("Default")) {
+			accounts = new AccountDAO().get(accountMap);
+			account = accounts.get(0);
+			customerId = account.getUserId();
+		}
 		if (role == Role.Employee) {
 			if (!(transactionMap.get("type") == "Debit") && account.getUserId() != userId) {
 				throw new CustomException("Unauthorized account found", HttpStatusCodes.UNAUTHORIZED);
@@ -140,10 +159,13 @@ public class TransactionService {
 		if (transactionMap.get("bankName").equals("Horizon")) {
 			logger.debug("Bank name is Horizon. Retrieving transaction IFSC...");
 			try {
-				long transactionAccountNumber = Long.parseLong((String) transactionMap.get("transactionAccountNumber"));
 				accountMap.put("accountNumber", transactionAccountNumber);
 				accounts = new AccountDAO().get(accountMap);
 				Account transactionAccount = accounts.get(0);
+
+				if (transactionAccount == null) {
+					throw new CustomException("Transaction Account does not exists", HttpStatusCodes.BAD_REQUEST);
+				}
 
 				branchMap.put("branchId", transactionAccount.getBranchId());
 
@@ -158,106 +180,122 @@ public class TransactionService {
 
 		transactionMap.put("customerId", customerId);
 		Transaction transaction = Helper.createPojoFromMap(transactionMap, Transaction.class);
-		logger.debug("Validating the transaction object...");
 		logger.info("Transaction object validation passed. Proceeding with transaction creation...");
 		// Make the transaction and invalidate cache
 		prepareRecipientTransaction(transaction, transaction.getBankName().equals("Horizon"));
 		logger.info("Transaction successfully created for account number: {}", transaction.getAccountNumber());
+
 	}
 
 	public void prepareRecipientTransaction(Transaction transaction, boolean thisBank) throws CustomException {
 		logger.info("Starting transaction processing...");
 		Long txId = createTransaction(transaction);
 		if (thisBank) {
+			AccountDAO accountDAO = new AccountDAO();
+			Long accountNumber = transaction.getAccountNumber();
+			Long transactionAccountNumber = transaction.getTransactionAccountNumber();
+			String transactionIfsc = transaction.getTransactionIfsc();
+			String ifsc = transaction.getIfsc();
+			Map<String, Object> accountMap = new HashMap<>();
+			accountMap.put("accountNumber", transactionAccountNumber);
+			List<Account> accounts = accountDAO.get(accountMap);
+			Helper.checkNullValues(accounts);
+
+			TransactionType txType = transaction.getTransactionTypeEnum();
+			Long transactionUserId = accounts.get(0).getUserId();
+
+			transaction.setIfsc(transactionIfsc);
+			transaction.setTransactionIfsc(ifsc);
+			transaction.setAccountNumber(transactionAccountNumber);
+			transaction.setTransactionAccountNumber(accountNumber);
+			transaction.setCustomerId(transactionUserId);
+			transaction.setId(txId);
+
+			if (txType == TransactionType.Debit) {
+				transaction.setTransactionTypeEnum(TransactionType.Credit);
+			} else if (txType == TransactionType.Default) {
+				transaction.setTransactionTypeEnum(TransactionType.Withdraw);
+			}
 			try {
-				AccountDAO accountDAO = new AccountDAO();
-				Long accountNumber = transaction.getAccountNumber();
-				Long transactionAccountNumber = transaction.getTransactionAccountNumber();
-				String transactionIfsc = transaction.getTransactionIfsc();
-				String ifsc = transaction.getIfsc();
-				Map<String, Object> accountMap = new HashMap<>();
-				accountMap.put("accountNumber", transactionAccountNumber);
-				List<Account> accounts = accountDAO.get(accountMap);
-				Helper.checkNullValues(accounts);
-
-				TransactionType txType = transaction.getTransactionTypeEnum();
-				Long transactionUserId = accounts.get(0).getUserId();
-
-				transaction.setIfsc(transactionIfsc);
-				transaction.setTransactionIfsc(ifsc);
-				transaction.setAccountNumber(transactionAccountNumber);
-				transaction.setTransactionAccountNumber(accountNumber);
-				transaction.setCustomerId(transactionUserId);
-				transaction.setId(txId);
-
-				if (txType == TransactionType.Debit) {
-					transaction.setTransactionTypeEnum(TransactionType.Credit);
-				}
-
 				createTransaction(transaction);
 			} catch (Exception e) {
-				logger.error("Error during intra-bank transaction, rolling back...", e);
-				throw new CustomException("Error occurred during transaction.", HttpStatusCodes.INTERNAL_SERVER_ERROR);
+				ColumnCriteria columnCriteria = new ColumnCriteria().setFields(Arrays.asList("status"))
+						.setValues(Arrays.asList(TransactionStatus.Cancelled));
+				Map<String, Object> txMap = new HashMap<String, Object>();
+				txMap.put("id", txId);
+				transactionDAO.update(columnCriteria, txMap);
 			}
 		}
 	}
 
 	public Long createTransaction(Transaction transaction) throws CustomException {
-		logger.info("Creating a new transaction...");
+		try {
+			logger.info("Creating a new transaction...");
 
-		AccountDAO accountDAO = new AccountDAO();
-		transaction.setTransactionStatusEnum(TransactionStatus.Completed);
-		transaction.setTransactionTime(System.currentTimeMillis());
-		transaction.setPerformedBy((Long) Helper.getThreadLocalValue("id"));
+			AccountDAO accountDAO = new AccountDAO();
+			transaction.setTransactionStatusEnum(TransactionStatus.Completed);
+			transaction.setTransactionTime(System.currentTimeMillis());
+			transaction.setPerformedBy((Long) Helper.getThreadLocalValue("id"));
 
-		TransactionType transactionType = transaction.getTransactionTypeEnum();
-		BigDecimal amount = transaction.getAmount();
-		Map<String, Object> accountMap = new HashMap<>();
-		accountMap.put("accountNumber", transaction.getAccountNumber());
-		List<Account> accounts = accountDAO.get(accountMap);
-		Helper.checkNullValues(accounts);
+			BigDecimal amount = transaction.getAmount();
+			Map<String, Object> accountMap = new HashMap<>();
+			accountMap.put("accountNumber", transaction.getAccountNumber());
+			List<Account> accounts = accountDAO.get(accountMap);
+			Helper.checkNullValues(accounts);
 
-		BigDecimal accountBalance = accounts.get(0).getBalance();
-		BigDecimal closingBalance;
+			BigDecimal accountBalance = accounts.get(0).getBalance();
+			BigDecimal closingBalance;
 
-		switch (transactionType) {
-		case Credit:
-			closingBalance = accountBalance.add(amount);
-			break;
-		case Withdraw:
-		case Debit:
-			closingBalance = accountBalance.subtract(amount);
-			break;
-		case Deposit:
-			closingBalance = computeDepositBalance(accountBalance, transaction, accountDAO);
-			break;
-		default:
-			logger.error("Invalid transaction type: " + transactionType);
-			throw new CustomException("Invalid transaction type: " + transactionType, HttpStatusCodes.BAD_REQUEST);
+			TransactionType transactionType = transaction.getTransactionTypeEnum();
+
+			System.out.println(transaction.getAccountNumber() + " " + transactionType.toString());
+			switch (transactionType) {
+			case Credit:
+				closingBalance = accountBalance.add(amount);
+				break;
+			case Withdraw:
+			case Debit:
+				closingBalance = accountBalance.subtract(amount);
+				break;
+			case Deposit:
+				closingBalance = computeDepositBalance(accountBalance, transaction, accountDAO);
+				break;
+			case Default:
+				closingBalance = accountBalance;
+				transaction.setTransactionTypeEnum(TransactionType.Withdraw);
+				break;
+			default:
+				logger.error("Invalid transaction type: " + transactionType);
+				throw new CustomException("Invalid transaction type: " + transactionType, HttpStatusCodes.BAD_REQUEST);
+			}
+			transaction.setClosingBalance(closingBalance);
+			logger.info("Transaction details: " + transaction);
+			ValidationUtil.validateModel(transaction, Transaction.class);
+
+			Long txId = transactionDAO.create(transaction);
+			logger.info("Transaction created with ID: " + txId);
+
+			ColumnCriteria columnCriteria = new ColumnCriteria().setFields(Arrays.asList("balance"))
+					.setValues(Arrays.asList(closingBalance));
+
+			accountDAO.update(columnCriteria, accountMap);
+
+			CacheUtil cacheUtil = new CacheUtil();
+			String accountkey = "accountInfo" + (transaction.getAccountNumber() % 10000);
+			cacheUtil.delete(accountkey);
+
+			ActivityLog activityLog = new ActivityLog().setLogMessage("Transaction created").setLogType(LogType.Insert)
+					.setUserAccountNumber(transaction.getAccountNumber()).setRowId(txId).setTableName("Transaction")
+					.setUserId(transaction.getCustomerId());
+
+			TaskExecutorService.getInstance().submit(activityLog);
+
+			return txId;
+		} catch (Exception e) {
+			logger.error("Unexpected error occurred while preparing transaction: {}", e.getMessage());
+			throw new CustomException("Error occured while processing. Please check your inputs.",
+					HttpStatusCodes.BAD_REQUEST);
 		}
-
-		transaction.setClosingBalance(closingBalance);
-		logger.info("Transaction details: " + transaction);
-		ValidationUtil.validateModel(transaction, Transaction.class);
-
-		Long txId = transactionDAO.create(transaction);
-		logger.info("Transaction created with ID: " + txId);
-
-		ActivityLog activityLog = new ActivityLog().setLogMessage("Transaction created").setLogType(LogType.Insert)
-				.setUserAccountNumber(transaction.getAccountNumber()).setRowId(txId).setTableName("Transaction")
-				.setUserId(transaction.getCustomerId());
-
-		TaskExecutorService.getInstance().submit(activityLog);
-
-		ColumnCriteria columnCriteria = new ColumnCriteria().setFields(Arrays.asList("balance"))
-				.setValues(Arrays.asList(closingBalance));
-
-		accountDAO.update(columnCriteria, accountMap);
-
-		CacheUtil cacheUtil = new CacheUtil();
-		String accountkey = "accountInfo" + (transaction.getAccountNumber() % 10000);
-		cacheUtil.delete(accountkey);
-		return txId;
 	}
 
 	private BigDecimal computeDepositBalance(BigDecimal accountBalance, Transaction transaction, AccountDAO accountDAO)

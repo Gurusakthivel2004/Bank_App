@@ -1,13 +1,23 @@
-// dashboard api fetch
+window.onload = _ => {
+	window.history.replaceState(null, null, window.location.href);
+	window.onpopstate = () => {
+		window.location.href = "index.html";
+	};
+}
 let branchDetails, account;
 document.addEventListener("DOMContentLoaded", async _ => {
+	const token = sessionStorage.getItem('token');
+	const role = sessionStorage.getItem('role');
+	if (role == null) {
+		document.querySelector('body').style.display = 'none';
+		window.location.href = "error.html";
+	}
 	try {
-		const token = sessionStorage.getItem('token');
-		const role = sessionStorage.getItem('role');
 		if (role == 'Employee') {
 			document.getElementById('createBranchButton').style.display = 'none';
 		} if (role == 'Customer') {
-			history.back()
+			document.querySelector('body').style.display = 'none';
+			window.location.href = "error.html";
 		}
 		const response = await fetch('http://localhost:8080/Bank_Application/api/UserDashboard', {
 			method: 'GET',
@@ -18,6 +28,10 @@ document.addEventListener("DOMContentLoaded", async _ => {
 		});
 		const result = await response.json();
 		console.log(result);
+		if (result.message == 'Invalid token') {
+			document.querySelector('body').style.display = 'none';
+			window.location.href = "index.html";
+		}
 		const userDetails = result.userDetail[0];
 		try {
 			setValues(userDetails);
@@ -52,11 +66,13 @@ document.addEventListener("DOMContentLoaded", async _ => {
 			setBranchDetails(result.branch, account.branchId);
 			getTransactionsByAccountNumber(result, account.accountNumber);
 			setFinanceDetails(result);
+			document.querySelector('body').style.display = 'block';
 		} catch (dropdownError) {
 			console.error('Error populating accounts dropdown:', dropdownError);
 		}
 	} catch (error) {
 		console.error('Error during fetch or processing:', error);
+		document.querySelector('body').style.display = 'none';
 	}
 });
 

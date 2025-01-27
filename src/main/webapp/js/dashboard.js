@@ -1,6 +1,10 @@
-// dashboard api fetch
+
 document.addEventListener("DOMContentLoaded", async _ => {
 	const role = sessionStorage.getItem('role');
+	if (role == null) {
+		document.querySelector('body').style.display = 'none';
+		window.location.href = "error.html";
+	}
 	if (role != null && role !== 'Customer') {
 		window.location.href = "emp-dashboard.html";
 	}
@@ -16,12 +20,20 @@ document.addEventListener("DOMContentLoaded", async _ => {
 		});
 		const result = await response.json();
 		console.log(result);
+		console.log(result.message);
+		console.log(result.message == 'Invalid token');
+		if (result.message == 'Invalid token') {
+			document.querySelector('body').style.display = 'none';
+			console.log(document.querySelector('body'));
+			window.location.href = "error.html";
+		}
 		const userDetails = result.userDetail[0];
 		try {
 			if (result.account.length == 0) {
 				sessionStorage.clear();
 				window.location.href = "index.html"
 				sessionStorage.setItem('error', "Account doesn't exists.");
+				document.querySelector('body').style.display = 'none';
 			}
 
 			setValues(userDetails);
@@ -56,13 +68,15 @@ document.addEventListener("DOMContentLoaded", async _ => {
 			setBranchDetails(result.branch, account.branchId);
 			getTransactionsByAccountNumber(result, account.accountNumber);
 			setFinanceDetails(result);
+			document.querySelector('body').style.display = 'block';
 		} catch (dropdownError) {
 			console.error('Error populating accounts dropdown:', dropdownError);
+			window.location.href = "error.html";
 		}
 
 	} catch (error) {
 		console.error('Error during fetch or processing:', error);
-		history.back()
+		document.querySelector('body').style.display = 'none';
 	}
 });
 

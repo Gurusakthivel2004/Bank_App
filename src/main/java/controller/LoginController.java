@@ -35,6 +35,8 @@ public class LoginController {
 			userDetails = userService.userLogin(username, password);
 		} catch (CustomException e) {
 			Helper.sendErrorResponse(response, e);
+		} catch (Exception exception) {
+			Helper.sendErrorResponse(response, "Unexpected error occurred.");
 		}
 
 		String jwtToken = Helper.generateJwtToken(userDetails);

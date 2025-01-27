@@ -1,7 +1,8 @@
 let originalValue = '';
 let originalActiveItem = null;
 let validAccounts = [];
-const token = sessionStorage.getItem('token')
+const token = sessionStorage.getItem('token');
+const role = sessionStorage.getItem("role");
 
 const handleSubmit = async (event) => {
 	event.preventDefault();
@@ -49,15 +50,19 @@ const handleSubmit = async (event) => {
 		transactionType: transactionType
 	}
 	console.log(transactionData);
+
 	if (accountNumber == transactionAccountNumber) {
 		displayInvalidAccount("Cannot make a transaction to same account.");
 		return;
-	}
-	if (validAccounts.includes(accountNumber) == false && !role == "Customer") {
+	} if (validAccounts.includes(accountNumber) == false && transactionType == 'Debit' && role != 'Customer') {
 		console.log('1');
 		displayInvalidAccount("Enter valid account number.");
 		return;
-	} else if (bankName == "Horizon" && !validAccounts.includes(transactionAccountNumber) && !role == "Customer") {
+	} if (validAccounts.includes(transactionAccountNumber) == false && role != "Customer") {
+		console.log('1');
+		displayInvalidAccount("Enter valid account number.");
+		return;
+	} if (bankName == "Horizon" && !validAccounts.includes(transactionAccountNumber) && role != "Customer") {
 		console.log('2');
 		displayInvalidAccount("Enter valid account number.");
 		return;
@@ -123,7 +128,6 @@ const displayInvalidAccount = msg => {
 }
 
 document.getElementById('type').addEventListener("change", function(event) {
-	const role = sessionStorage.getItem("role");
 	console.log(this.value)
 	if (role !== "Customer") {
 		document.getElementById('paymentmode').style.display = 'flex';
@@ -142,6 +146,9 @@ document.getElementById('type').addEventListener("change", function(event) {
 })
 
 document.addEventListener("DOMContentLoaded", () => {
+	if (role == null) {
+		window.location.href = "error.html";
+	}
 	const accountInput = document.getElementById("account");
 	const accountInput2 = document.getElementById("transAcc");
 	const otherBankCheckbox = document.querySelector('#otherBankCheckbox');
@@ -203,6 +210,10 @@ const handleInputDropdown = accountInput => {
 						}
 					);
 					const result = await response.json();
+					if (result.message == 'Invalid token') {
+						document.querySelector('body').style.display = 'none';
+						window.location.href = "error.html";
+					}
 					console.log(result);
 					// Clear previous suggestions
 					suggestionsBox.innerHTML = "";
@@ -281,7 +292,6 @@ const handleInputDropdown = accountInput => {
 }
 
 document.addEventListener("DOMContentLoaded", async _ => {
-	const role = sessionStorage.getItem("role");
 	if (role === "Customer") {
 		document.getElementById('customerAccount').style.display = 'flex';
 		document.getElementById('accounts-tree').style.display = 'none';
@@ -299,6 +309,9 @@ document.addEventListener("DOMContentLoaded", async _ => {
 		});
 		const result = await response.json(), accountsDropdown = document.querySelector('.accountsSelect');;
 		console.log(result);
+		if (result.message == 'Invalid token') {
+			window.location.href = "index.html";
+		}
 		result.accounts.forEach((account) => {
 			const option = document.createElement('option');
 			option.value = account.accountNumber;
@@ -314,7 +327,8 @@ document.addEventListener("DOMContentLoaded", async _ => {
 		});
 	} catch (error) {
 		console.log(error);
-		history.back()
+		document.querySelector('body').style.display = 'none';
+		window.location.href = "error.html";
 	}
 
 });

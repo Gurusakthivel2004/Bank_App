@@ -29,6 +29,9 @@ async function fetchUsers() {
 			});
 
 			const usersResult = await response.json();
+			if (usersResult.message == 'Invalid token') {
+				window.location.href = "error.html";
+			}
 			const users = usersResult['users'];
 			console.log(usersResult);
 
@@ -38,15 +41,16 @@ async function fetchUsers() {
 				filterOffset += usersPerPage;
 			} else {
 				console.error('Error fetching accounts:', response.message || 'Unknown error');
-				renderAccounts([]);
+				document.querySelector('body').style.display = 'none';
 			}
 		}
 		renderUsers(cachedAccounts[currentPageIndex]);
 		document.getElementById("prevButton").disabled = currentPageIndex === 0;
 		updatePagination();
+		document.querySelector('body').style.display = 'block';
 	} catch (error) {
 		console.log(error);
-		history.back()
+		document.querySelector('body').style.display = 'none';
 	}
 }
 
@@ -110,10 +114,11 @@ function applyFilters() {
 document.addEventListener("DOMContentLoaded", () => {
 	console.log("Role: ", role);
 	if (role == null) {
-		window.history.back();
+		document.querySelector('body').style.display = 'none';
+		window.location.href = "error.html";
 	} else if (role === "Customer") {
-		alert("You do not have permission to access this page.");
-		window.history.back();
+		document.querySelector('body').style.display = 'none';
+		window.location.href = "error.html";
 	}
 	fetchUsers();
 	document.getElementById("customerIdsearchInput").addEventListener("input", applyFilters);
@@ -477,7 +482,7 @@ document.addEventListener('click', (event) => {
 });
 
 
-const inputFieldsIds = ["email", "phone", "address", "maritalStatus", "status", "role", "branchId"];
+const inputFieldsIds = ["email", "phone", "address", "maritalStatus", "status", "role"];
 let validBranchIds = [];
 
 const toggleEditUser = () => {
@@ -498,21 +503,26 @@ const toggleSaveAll = () => {
 		const inputField = document.getElementById(id);
 		const newValue = inputField.value.trim();
 		if (!newValue) {
+			if (!(role == 'Customer') && (id == 'address' || id == 'maritalStatus')) return;
+			console.log(id, newValue);
 			isValid = false;
 			inputField.style.border = "1px solid red";
 			borderSet++;
 		}
 		else if (id === "email" && newValue && !validateEmail(newValue)) {
+			console.log('here2');
 			isValid = false;
 			inputField.style.border = '1px solid red';
 			borderSet++;
 		}
 		else if (id === "phone" && newValue && !validatePhone(newValue)) {
+			console.log('here3');
 			isValid = false;
 			inputField.style.border = '1px solid red';
 			borderSet++;
 		}
 		else if (id === "branchId" && !validBranchIds.includes(parseInt(newValue))) {
+			console.log('here4');
 			isValid = false;
 			inputField.style.border = '1px solid red';
 			borderSet++;
@@ -521,11 +531,10 @@ const toggleSaveAll = () => {
 		else if (newValue && newValue !== originalValues[id]) {
 			updatedValues[id] = newValue;
 			inputField.style.border = "0";
-		} else {
-			inputField.style.border = "0";
 		}
 	});
-	if (!isValid && borderSet > 0 && updatedValues.size == 0) return;
+	console.log(isValid, Object.keys(updatedValues).length, borderSet);
+	if (!isValid || borderSet > 0 || Object.keys(updatedValues).length == 0) return;
 	document.getElementById('saveButton').style.display = 'none';
 	document.getElementById('editButton').style.display = 'block';
 	inputFieldsIds.forEach(id => {
@@ -535,6 +544,7 @@ const toggleSaveAll = () => {
 	});
 	userFields.updatedValues = updatedValues;
 	userFields.userId = userFields['userId'];
+	updatedValues = {};
 	sendToServer(userFields);
 };
 

@@ -1,11 +1,22 @@
 const userRole = sessionStorage.getItem("role");
+const createNavButton = document.getElementById("create-user-item");
+const logButton = document.getElementById("log-item");
 if (userRole == "Customer") {
-	const createButton = document.getElementById("create-user-item");
-	if (createButton != null) {
-		createButton.style.display = "none";
+	let ele = document.getElementsByClassName('left-section');
+	for (let index = 0; index < ele.length; index++) {
+		ele[index].style.marginBottom = '350px';
+	}
+	if (createNavButton != null) {
+		createNavButton.style.display = "none";
+	}
+	if (logButton != null) {
+		logButton.style.display = "none";
+	}
+} else if (userRole == "Employee") {
+	if (logButton != null) {
+		logButton.style.display = "none";
 	}
 }
-
 const logout = async _ => {
 	try {
 		const token = sessionStorage.getItem('token');

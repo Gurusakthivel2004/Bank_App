@@ -36,8 +36,12 @@ async function fetchTransactions() {
 				},
 				body: JSON.stringify(transactionData)
 			});
-
 			const transactionsMap = await response.json();
+			console.log(transactionsMap)
+			if (transactionsMap.message == 'Invalid token') {
+				document.querySelector('body').style.display = 'none';
+				window.location.href = "error.html";
+			}
 			console.log(transactionsMap)
 			const transactions = transactionsMap["transactions"];
 			transactionsCount = filterOffset == 0 ? transactionsMap["count"] : transactionsCount;
@@ -46,15 +50,16 @@ async function fetchTransactions() {
 				filterOffset += transactionsPerPage;
 			} else {
 				console.error('Error fetching transactions:', response.message || 'Unknown error');
-				renderTransactions([]);
 			}
 		}
 		renderTransactions(cachedTransactions[currentPageIndex]);
 		document.getElementById("prevButton").disabled = currentPageIndex === 0;
 		updatePagination();
+		updatePagination();
+		document.querySelector('body').style.display = 'block';
 	} catch (error) {
 		console.error('Error during fetch or processing:', error);
-		history.back()
+		document.querySelector('body').style.display = 'none';
 	}
 }
 
@@ -128,6 +133,10 @@ function applyFilters() {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
+	if (role == null) {
+		document.querySelector('body').style.display = 'none';
+		window.location.href = "error.html";
+	}
 	const transactionHistory = document.querySelector(".transaction-data");
 	if (!transactionHistory) {
 		console.error('Transaction history element not found!');

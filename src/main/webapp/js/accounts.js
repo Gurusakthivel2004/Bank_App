@@ -35,8 +35,12 @@ async function fetchAccounts() {
 				},
 				body: JSON.stringify(accountData)
 			});
-
 			const accountsResult = await response.json();
+			if (accountsResult.message == 'Invalid token') {
+				document.querySelector('body').style.display = 'none';
+				window.location.href = "error.html";
+			}
+
 			const accounts = accountsResult["accounts"];
 			console.log(accountsResult);
 
@@ -46,15 +50,16 @@ async function fetchAccounts() {
 				filterOffset += accountsPerPage;
 			} else {
 				console.error('Error fetching accounts:', response.message || 'Unknown error');
-				renderAccounts([]);
+				document.querySelector('body').style.display = 'none';
 			}
 		}
 		renderAccounts(cachedAccounts[currentPageIndex]);
 		document.getElementById("prevButton").disabled = currentPageIndex === 0;
 		updatePagination();
+		document.querySelector('body').style.display = 'block';
 	} catch (error) {
 		console.log(error);
-		history.back()
+		document.querySelector('body').style.display = 'none';
 	}
 }
 
@@ -132,11 +137,9 @@ function applyFilters() {
 
 document.addEventListener("DOMContentLoaded", () => {
 	console.log(role);
-	if (role == null) {
-		window.history.back();
-	} else if (role === "Customer") {
-		alert("You do not have permission to access this page.");
-		window.history.back();
+	if (role == null || role === "Customer") {
+		document.querySelector('body').style.display = 'none';
+		window.location.href = "error.html";
 	} else if (role == "Employee") {
 		document.getElementById('branchidfilter').style.display = 'none';
 		filterBranch = '-1';

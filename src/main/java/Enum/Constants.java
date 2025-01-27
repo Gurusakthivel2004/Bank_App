@@ -355,7 +355,7 @@ public class Constants {
 	}
 
 	public enum TransactionType {
-		Credit, Debit, Deposit, Withdraw;
+		Credit, Debit, Deposit, Withdraw, Default;
 
 		@Override
 		public String toString() {

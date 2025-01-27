@@ -1,4 +1,0 @@
-2024-11-24 23:28:47 [http-nio-8080-exec-81] INFO  dblayer.dao.AccountDAO - Fetching accounts with userId: 34, accountNumber: 0, branchId: 0, accountCreated: 0, limitValue: 0
-2024-11-24 23:28:47 [http-nio-8080-exec-81] INFO  dblayer.dao.AccountDAO - Fetched 2 accounts successfully.
-2024-11-24 23:28:47 [http-nio-8080-exec-81] INFO  dblayer.dao.UserDAO - Fetching customers.
-2024-11-24 23:28:47 [http-nio-8080-exec-81] INFO  dblayer.dao.UserDAO - Fetched 1 customers successfully.

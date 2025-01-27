@@ -21,6 +21,7 @@ import model.Staff;
 import model.Transaction;
 import model.User;
 import util.CustomException;
+import util.Helper;
 
 public class DAOHelper {
 
@@ -85,6 +86,9 @@ public class DAOHelper {
 	public static void addConditionIfPresent(Criteria criteria, Map<String, Object> map, String mapKey, String column,
 			String operator, Object defaultValue) {
 		Object value = map.getOrDefault(mapKey, defaultValue);
+		if ((mapKey.equals("from") || mapKey.equals("to")) && (value != defaultValue)) {
+			value = Helper.convertDateToMillis(value.toString());
+		}
 		List<String> enumKeys = Arrays.asList("role", "status", "accountType", "transactionType");
 		if (value != defaultValue) {
 			if (enumKeys.contains(mapKey)) {

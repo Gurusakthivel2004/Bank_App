@@ -55,10 +55,16 @@ public class SQLHelper {
 					}
 					field.setAccessible(true);
 					String columnName = fieldMapping.getColumnName();
-					Object columnValue = resultSet.getObject(columnName);
-					if (resultSet.wasNull()) {
-						continue;
+					Object columnValue = null;
+					try {
+						columnValue = resultSet.getObject(columnName);
+						if (resultSet.wasNull()) {
+							continue;
+						}
+					} catch (SQLSyntaxErrorException e) {
+						logger.warn("Column '{}' not found in the result set, skipping.", columnName);
 					}
+
 					if (field.getType().isEnum() && columnValue instanceof String) {
 						String enumValue = (String) columnValue;
 						Object enumConstant = Enum.valueOf((Class<Enum>) field.getType(), enumValue);
