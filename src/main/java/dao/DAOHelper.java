@@ -305,6 +305,7 @@ public class DAOHelper {
 			criteria.setSelectColumn(SelectFields.getSelectFields(clazz.getSimpleName())).setClazz(clazz);
 			criteria = DAOHelper.applyUserFilterBranch(criteria, userMap);
 			applyUserFilters(criteria, userMap, clazz);
+			System.out.println(criteria);
 		}
 		if (userMap.containsKey("limit")) {
 			criteria.setLimitValue(userMap.get("limit"));
@@ -312,6 +313,10 @@ public class DAOHelper {
 		if (userMap.containsKey("offset")) {
 			criteria.setOffsetValue((Long) userMap.get("offset"));
 		}
+		if (userMap.containsKey("password")) {
+			criteria.setSelectColumn(Arrays.asList("*"));
+		}
+		System.out.println(criteria);
 		return criteria;
 	}
 }

@@ -69,6 +69,8 @@ public class UserDAO<T extends User> implements DAO<T> {
 		logger.info("Fetching {} details.", clazz.getSimpleName());
 		Criteria criteria = DAOHelper.buildUserCriteria(userMap, clazz, userMap.containsKey("notExact"));
 		try {
+			System.out.println(userMap.keySet());
+			System.out.println(userMap.values());
 			return SQLHelper.get(criteria, clazz);
 		} catch (SQLException e) {
 			logger.error("Error while fetching user details {}: ", clazz.getSimpleName(), e);

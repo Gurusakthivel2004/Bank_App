@@ -142,6 +142,7 @@ public class UserService {
 			Map<String, Object> userMap = new HashMap<>();
 			Long userId = (Long) Helper.getThreadLocalValue("id");
 			userMap.put("userId", userId);
+			userMap.put("password", true);
 			userMap.put("userClass", User.class);
 			List<User> users = userDao.get(userMap);
 
@@ -155,7 +156,7 @@ public class UserService {
 					.setValues(new ArrayList<>(Arrays.asList(Helper.hashPassword(newPassword))));
 
 			Role role = Role.fromString((String) Helper.getThreadLocalValue("role"));
-
+			
 			if (role == Role.Customer) {
 				userMap.put("userClass", CustomerDetail.class);
 				userDao.update(columnCriteria, userMap);

@@ -63,6 +63,87 @@ async function fetchTransactions() {
 	}
 }
 
+async function download() {
+	try {
+		const transactionData = {
+			get: true,
+		}
+		if (filterId) transactionData.customerId = Number(filterId);
+		if (filterBranch) transactionData.branchId = Number(filterBranch);
+		if (filterAccount && Number.isFinite(Number(filterAccount))) transactionData.accountNumber = Number(filterAccount);
+		if (filterType) transactionData.transactionType = filterType;
+		if (filterFromDate) transactionData.from = filterFromDate;
+		if (filterToDate) transactionData.to = filterToDate;
+
+		const token = sessionStorage.getItem('token');
+		const response = await fetch('http://localhost:8080/Bank_Application/api/Transaction', {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+				'Authorization': `Bearer ${token}`
+			},
+			body: JSON.stringify(transactionData)
+		});
+
+		if (response.ok) {
+			const result = await response.json();
+			console.log(result);
+			const format = document.getElementById('downloadFormat').value;
+			if (format === 'csv') {
+				downloadCSV(result.transactions);
+			} else if (format === 'pdf') {
+				downloadPDF(result.transactions);
+			}
+		} else {
+			console.error('Error fetching transactions for download:', response.statusText);
+		}
+	} catch (error) {
+		console.error('Error during transaction download:', error);
+	}
+}
+
+function downloadCSV(transactions) {
+	const csvRows = [];
+	const headers = Object.keys(transactions[0]);
+	csvRows.push(headers.join(','));
+
+	for (const transaction of transactions) {
+		const values = headers.map(header => transaction[header]);
+		csvRows.push(values.join(','));
+	}
+
+	const csvContent = csvRows.join('\n');
+	const blob = new Blob([csvContent], { type: 'text/csv' });
+	const url = URL.createObjectURL(blob);
+
+	const link = document.createElement('a');
+	link.href = url;
+	link.download = 'transactions.csv';
+	link.click();
+
+	URL.revokeObjectURL(url);
+}
+
+async function downloadPDF(transactions) {
+	const { jsPDF } = window.jspdf;
+
+	const doc = new jsPDF();
+	doc.setFontSize(14);
+	doc.text('Transaction Details', 10, 10);
+
+	const headers = [['Id', 'Account Number', 'Amount', 'Date', 'Status', 'Type', 'Transaction Account number']];
+	const data = transactions.map(tx => [tx.id, tx.accountNumber, tx.amount.toLocaleString(), getDate(tx.transactionTime, true), tx.transactionStatus, tx.transactionType, tx.transactionAccountNumber]);
+
+	doc.autoTable({
+		head: headers,
+		body: data,
+	});
+
+	doc.save('transactions.pdf');
+}
+
+
+
 let totalPages;
 
 function updatePagination() {

@@ -56,6 +56,8 @@ public class TransactionDAO implements DAO<Transaction> {
 		try {
 			Criteria criteria = getCriteria(txMap);
 			criteria.setOffsetValue(-1L).setAggregateFunction("COUNT").setAggregateOperator("*");
+			System.out.println(txMap.keySet());
+			System.out.println(txMap.values());
 			Long count = SQLHelper.getCount(criteria, Transaction.class);
 			if (count == 0) {
 				throw new CustomException("Unexpected error occured while fetching account details",
@@ -63,8 +65,8 @@ public class TransactionDAO implements DAO<Transaction> {
 			}
 			return count;
 		} catch (SQLException e) {
-			logger.error("Error while fetching account details: ", e);
-			throw new CustomException("Failed to fetch account details: ", HttpStatusCodes.INTERNAL_SERVER_ERROR);
+			logger.error("Error while fetching transaction details: ", e);
+			throw new CustomException("Failed to fetch transaction details: ", HttpStatusCodes.INTERNAL_SERVER_ERROR);
 		}
 	}
 

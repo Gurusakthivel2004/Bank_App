@@ -83,7 +83,7 @@ public class UserController {
 			logger.error("CustomException occurred while updating user details: {}", exception.getMessage());
 			Helper.sendErrorResponse(response, exception.getMessage());
 		} catch (Exception exception) {
-			logger.error("Unexpected error occurred while updating user details: {}", exception.getMessage());
+			logger.error("Unexpected error occurred while updating user details: {}", exception);
 			Helper.sendErrorResponse(response, "Unexpected error occurred while updating user.");
 		}
 	}
