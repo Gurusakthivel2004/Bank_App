@@ -17,6 +17,7 @@ import model.ColumnCriteria;
 import model.Criteria;
 import model.CustomerDetail;
 import model.MarkedClass;
+import model.Message;
 import model.Staff;
 import model.Transaction;
 import model.User;
@@ -197,6 +198,22 @@ public class DAOHelper {
 		return criteria;
 	}
 
+	public static Criteria applyMessageFilterBranch(Criteria criteria, Map<String, Object> userMap) {
+		if (!userMap.containsKey("branchId")) {
+			return criteria;
+		}
+		List<String> joinTable = new ArrayList<>(Arrays.asList("account", "branch"));
+		criteria = DAOHelper
+				.buildJoinCriteria(Message.class, joinTable, new ArrayList<>(), new ArrayList<>(), new ArrayList<>(),
+						new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), " JOIN ", true)
+				.setSelectColumn(Collections.singletonList("*"));
+		DAOHelper.addJoinCondition(criteria, true, "account.user_id", "EQUAL_TO", "message.sender_id");
+		DAOHelper.addJoinCondition(criteria, true, "branch.id", "EQUAL_TO", "account.branch_id");
+		DAOHelper.addConditionIfPresent(criteria, userMap, "branchId", "account.branch_id", "EQUAL_TO", 0L);
+		DAOHelper.addConditionIfPresent(criteria, userMap, "status", "message_status", "EQUAL_TO", "");
+		return criteria;
+	}
+
 	public static Criteria applyUserFilterBranch(Criteria criteria, Map<String, Object> userMap) {
 		if (!userMap.containsKey("branchId")) {
 			return criteria;
@@ -274,6 +291,13 @@ public class DAOHelper {
 		return criteria;
 	}
 
+	public static Criteria getMessageCriteria(Map<String, Object> messageMap) throws CustomException {
+		Criteria criteria = DAOHelper.initializeCriteria(Message.class);
+		criteria = DAOHelper.applyMessageFilterBranch(criteria, messageMap);
+		DAOHelper.applyPagination(criteria, messageMap);
+		return criteria;
+	}
+
 	public static <T extends User> Criteria buildUserCriteria(Map<String, Object> userMap, Class<T> clazz,
 			boolean notExact) throws CustomException {
 		Criteria criteria = new Criteria();
@@ -305,7 +329,6 @@ public class DAOHelper {
 			criteria.setSelectColumn(SelectFields.getSelectFields(clazz.getSimpleName())).setClazz(clazz);
 			criteria = DAOHelper.applyUserFilterBranch(criteria, userMap);
 			applyUserFilters(criteria, userMap, clazz);
-			System.out.println(criteria);
 		}
 		if (userMap.containsKey("limit")) {
 			criteria.setLimitValue(userMap.get("limit"));

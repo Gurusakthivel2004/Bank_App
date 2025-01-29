@@ -21,7 +21,8 @@ public class Constants {
 		GET_USER_WITH_ROLE("^/User\\?userId=\\d+&role=\\w+$", Arrays.asList("Customer")),
 		GET_USERDASHBOARD("^/UserDashboard$", null), UPDATE_PROFILE("^/api/Profile$", null),
 		TRANSACTION_CRUD("^/Transaction$", null), LOGOUT("^/Logout$", null),
-		LOG("^/Log$", Arrays.asList("Customer", "Employee"));
+		LOG("^/Log$", Arrays.asList("Customer", "Employee")), MESSAGE_CRUD("^/Message$", null);
+		;
 
 		private final String regexPattern;
 		private final List<String> restrictedForRole;
@@ -65,7 +66,8 @@ public class Constants {
 
 	public enum ValidQueryParams {
 		USERID_FILTER("userId", ""), NOT_EXACT_VALUES("notExact", "true"), BRANCH_ID_FETCH("branchId", ""),
-		ACCOUNT_FILTER("accountNumber", ""), USER_ROLE_FILTER("role", "");
+		ACCOUNT_FILTER("accountNumber", ""), USER_ROLE_FILTER("role", ""), LIMIT("limit", ""), STATUS("status", ""),
+		OFFSET("offset", "");
 
 		private final String param;
 		private final String field;
@@ -163,6 +165,7 @@ public class Constants {
 				put("Transaction", Arrays.asList("GET", "POST"));
 				put("UserDashboard", new ArrayList<>(Arrays.asList("GET")));
 				put("Logout", new ArrayList<>(Arrays.asList("DELETE")));
+				put("Message", new ArrayList<>(Arrays.asList("GET", "POST")));
 			}
 		}, new ArrayList<>(Arrays.asList("userId", "role", "branchId"))),
 		ROLE_EMPLOYEE("Employee", new HashMap<String, List<String>>() {
@@ -173,6 +176,7 @@ public class Constants {
 				put("Transaction", new ArrayList<>(Arrays.asList("GET", "POST")));
 				put("UserDashboard", new ArrayList<>(Arrays.asList("GET")));
 				put("Logout", new ArrayList<>(Arrays.asList("DELETE")));
+				put("Message", new ArrayList<>(Arrays.asList("GET", "POST", "PUT")));
 			}
 		}, new ArrayList<>()), ROLE_MANAGER("Manager", new HashMap<String, List<String>>() {
 			{
@@ -183,6 +187,7 @@ public class Constants {
 				put("UserDashboard", new ArrayList<>(Arrays.asList("GET")));
 				put("Logout", new ArrayList<>(Arrays.asList("DELETE")));
 				put("Log", new ArrayList<>(Arrays.asList("POST")));
+				put("Message", new ArrayList<>(Arrays.asList("GET", "POST", "PUT")));
 			}
 		}, new ArrayList<>());
 
@@ -367,6 +372,40 @@ public class Constants {
 				return TransactionType.valueOf(transactionType);
 			} catch (IllegalArgumentException e) {
 				throw new CustomException("Invalid transaction type: " + transactionType, HttpStatusCodes.BAD_REQUEST);
+			}
+		}
+	}
+
+	public enum MessageType {
+		AccountRequest, TransactionRequest, UserRequest, Chat;
+
+		@Override
+		public String toString() {
+			return name();
+		}
+
+		public static MessageType fromString(String messageType) throws CustomException {
+			try {
+				return MessageType.valueOf(messageType);
+			} catch (IllegalArgumentException e) {
+				throw new CustomException("Invalid transaction type: " + messageType, HttpStatusCodes.BAD_REQUEST);
+			}
+		}
+	}
+
+	public enum MessageStatus {
+		Completed, Pending, Expired, Cancelled;
+
+		@Override
+		public String toString() {
+			return name();
+		}
+
+		public static MessageStatus fromString(String messageStatus) throws CustomException {
+			try {
+				return MessageStatus.valueOf(messageStatus);
+			} catch (IllegalArgumentException e) {
+				throw new CustomException("Invalid message status: " + messageStatus, HttpStatusCodes.BAD_REQUEST);
 			}
 		}
 	}

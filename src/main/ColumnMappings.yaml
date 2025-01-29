@@ -166,3 +166,21 @@ classes:
         columnName: "timestamp"
       performedBy:
         columnName: "performed_by"
+
+  model.Message:
+    tableName: "message"
+    fields:
+      id:
+        columnName: "id"
+      senderId:
+        columnName: "sender_id"
+      messageType:
+        columnName: "message_type"
+      messageContent:
+        columnName: "message_content"
+      messageStatus:
+        columnName: "message_status"
+      createdAt:
+        columnName: "created_at"
+      modifiedAt:
+        columnName: "modified_at"

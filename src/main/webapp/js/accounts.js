@@ -152,19 +152,6 @@ document.addEventListener("DOMContentLoaded", () => {
 	document.getElementById("accountTypesearchInput").addEventListener("input", applyFilters);
 });
 
-const getDate = (millis, time) => {
-	const date = new Date(millis);
-	const day = String(date.getDate()).padStart(2, '0');
-	const month = String(date.getMonth() + 1).padStart(2, '0');
-	const year = date.getFullYear();
-	if (!time) {
-		return `${day}/${month}/${year}`;
-	}
-	const hours = String(date.getHours()).padStart(2, '0');
-	const minutes = String(date.getMinutes()).padStart(2, '0');
-	return `${day}/${month}/${year}, ${hours}:${minutes}`;
-}
-
 const updateBranch = async _ => {
 	const branchId = document.getElementById('accountbranchId');
 	branchId.disabled = false;
@@ -198,6 +185,8 @@ const accountClick = async account => {
 function renderAccounts(accounts) {
 	const accountHistory = document.querySelector(".account-data");
 	accountHistory.innerHTML = '';
+	console.log(accounts);
+	var listed = 0;
 	if (accounts == null || accounts.length === 0) {
 		document.getElementById('buttons').style.display = "none";
 		const accountDiv = document.createElement("div");
@@ -215,6 +204,7 @@ function renderAccounts(accounts) {
 		if (role == "Employee" && account.accountType == "Operational") continue;
 		document.getElementById('buttons').style.display = "flex";
 		const accountDiv = document.createElement("div");
+		listed++;
 		accountDiv.onclick = () => accountClick(account);
 		accountDiv.className = "account-item d-flex align-items-center my-2";
 		accountDiv.style = "background-color: white; padding: 10px; border-bottom: 1px solid #ddd; border-radius: 10px;cursor: pointer;";
@@ -235,6 +225,17 @@ function renderAccounts(accounts) {
 						</div>`;
 
 		accountHistory.appendChild(accountDiv);
+	}
+	if (listed == 0) {
+		document.getElementById('buttons').style.display = "none";
+		const accountDiv = document.createElement("div");
+		accountDiv.className = "account-item d-flex row mb-1";
+		accountDiv.style = "background-color: #ffffff; height: 650px; padding: 10px; border-bottom: 1px solid #ddd; border-radius: 10px;";
+		accountDiv.innerHTML = `
+							<img height="500px" style="margin:auto;width: 50%" src="./images/notfound.avif" alt="" />
+				          `;
+		accountHistory.appendChild(accountDiv);
+		return;
 	}
 }
 

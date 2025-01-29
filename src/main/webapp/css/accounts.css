@@ -129,78 +129,78 @@ nav {
 	padding: 10px 20px;
 }
 
-	@keyframes fadeIn {
-		from {
-			opacity: 0;
-		}
-		to {
-			opacity: 1;
-		}
+@keyframes fadeIn {
+	from {
+		opacity: 0;
 	}
+	to {
+		opacity: 1;
+	}
+}
 
-	@keyframes scaleIn {
-		0% {
-			transform: scale(0.7);
-			opacity: 0.3;
-		}
-		100% {
-			transform: scale(1);
-			opacity: 1;
-		}
+@keyframes scaleIn {
+	0% {
+		transform: scale(0.7);
+		opacity: 0.3;
 	}
-
-	@keyframes pulse {
-		0% {
-			transform: scale(1);
-		}
-		50% {
-			transform: scale(1.1);
-		}
-		100% {
-			transform: scale(1);
-		}
-	}
-
-	@keyframes textAppear {
-		from {
-			transform: translateY(-20px);
-			opacity: 0;
-		}
-		to {
-			transform: translateY(0);
-			opacity: 1;
-		}
-	}
-	button:hover {
-		transform: scale(1.1);
-		box-shadow: 0px 6px 12px rgba(0, 0, 0, 0.3);
-	}
-
-	/* Button active effect */
-	button:active {
+	100% {
 		transform: scale(1);
-		box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.2);
+		opacity: 1;
 	}
+}
 
-	/* Button pop animation */
-	@keyframes buttonPop {
-		0% {
-			transform: scale(0.8);
-			opacity: 0;
-		}
-		50% {
-			transform: scale(1.2);
-			opacity: 1;
-		}
-		100% {
-			transform: scale(1);
-		}
+@keyframes pulse {
+	0% {
+		transform: scale(1);
 	}
-	@keyframes fadeOut {
-		0% {
-			opacity: 1;
-		}
-		100% {
-			opacity: 0;
-		}
+	50% {
+		transform: scale(1.1);
 	}
+	100% {
+		transform: scale(1);
+	}
+}
+
+@keyframes textAppear {
+	from {
+		transform: translateY(-20px);
+		opacity: 0;
+	}
+	to {
+		transform: translateY(0);
+		opacity: 1;
+	}
+}
+button:hover {
+	transform: scale(1.1);
+	box-shadow: 0px 6px 12px rgba(0, 0, 0, 0.3);
+}
+
+/* Button active effect */
+button:active {
+	transform: scale(1);
+	box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* Button pop animation */
+@keyframes buttonPop {
+	0% {
+		transform: scale(0.8);
+		opacity: 0;
+	}
+	50% {
+		transform: scale(1.2);
+		opacity: 1;
+	}
+	100% {
+		transform: scale(1);
+	}
+}
+@keyframes fadeOut {
+	0% {
+		opacity: 1;
+	}
+	100% {
+		opacity: 0;
+	}
+}

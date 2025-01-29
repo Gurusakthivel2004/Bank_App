@@ -310,7 +310,7 @@ document.addEventListener("DOMContentLoaded", async _ => {
 		const result = await response.json(), accountsDropdown = document.querySelector('.accountsSelect');;
 		console.log(result);
 		if (result.message == 'Invalid token') {
-			window.location.href = "index.html";
+			window.location.href = "error.html";
 		}
 		result.accounts.forEach((account) => {
 			const option = document.createElement('option');
@@ -328,7 +328,6 @@ document.addEventListener("DOMContentLoaded", async _ => {
 	} catch (error) {
 		console.log(error);
 		document.querySelector('body').style.display = 'none';
-		window.location.href = "error.html";
 	}
 
 });

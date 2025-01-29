@@ -38,15 +38,17 @@ public class TransactionService {
 		try {
 			Long customerId = (Long) txMap.get("customerId");
 			Long accountNumber = (Long) txMap.getOrDefault("accountNumber", 0L);
-
+			System.out.println(txMap.keySet());
+			System.out.println(txMap.values());
 			if (customerId != null && customerId == -1L) {
 				customerId = (Long) Helper.getThreadLocalValue("id");
 				txMap.put("customerId", customerId);
-				if (accountNumber == 0L) {
-					Account primaryAccount = fetchPrimaryAccount(customerId);
-					accountNumber = primaryAccount != null ? primaryAccount.getAccountNumber() : accountNumber;
-				}
 			}
+			if (accountNumber == 0L) {
+				Account primaryAccount = fetchPrimaryAccount(customerId);
+				accountNumber = primaryAccount != null ? primaryAccount.getAccountNumber() : accountNumber;
+			}
+			txMap.put("accountNumber", accountNumber);
 
 			setRoleBasedAccess(txMap);
 			Map<String, Object> txResult = new HashMap<>();

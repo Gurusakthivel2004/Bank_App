@@ -35,6 +35,8 @@ public class ValidationUtil {
 
 	private static final List<String> BRANCH_UPDATE_ALLOWED_FIELDS = Arrays.asList("contactNumber");
 
+	private static final List<String> MESSAGE_UPDATE_ALLOWED_FIELDS = Arrays.asList("messageStatus");
+
 	public static void validateUpdateFields(Map<String, Object> inputMap, Class<?> targetClass) throws CustomException {
 		logger.info("Starting field validation for class: {}", targetClass.getSimpleName());
 
@@ -71,6 +73,8 @@ public class ValidationUtil {
 			return ACCOUNT_UPDATE_ALLOWED_FIELDS;
 		} else if (className.contains("Branch")) {
 			return BRANCH_UPDATE_ALLOWED_FIELDS;
+		} else if (className.contains("Message")) {
+			return MESSAGE_UPDATE_ALLOWED_FIELDS;
 		} else {
 			logger.error("No allowed fields found for class: {}", className);
 			throw new IllegalArgumentException("No allowed fields found for class: " + className);
