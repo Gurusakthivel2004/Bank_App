@@ -110,26 +110,17 @@ public class TransactionService {
 		long accountNumber = Long.parseLong((String) transactionMap.get("accountNumber"));
 		long transactionAccountNumber = Long.parseLong((String) transactionMap.get("transactionAccountNumber"));
 
-		long firstLock = Math.min(accountNumber, transactionAccountNumber);
-		long secondLock = Math.max(accountNumber, transactionAccountNumber);
-
-		Object firstAccountLock = accountLocks.computeIfAbsent(firstLock, k -> new Object());
-		Object secondAccountLock = accountLocks.computeIfAbsent(secondLock, k -> new Object());
+		Object firstAccountLock = accountLocks.computeIfAbsent(accountNumber, k -> new Object());
+		Object secondAccountLock = accountLocks.computeIfAbsent(transactionAccountNumber, k -> new Object());
 
 		synchronized (firstAccountLock) {
 			synchronized (secondAccountLock) {
 				logger.info("Initiating transaction creation...");
 
 				long branchId = Long.parseLong((String) transactionMap.get("branchId"));
-				Long userId = (Long) Helper.getThreadLocalValue("id");
-				Role role = Role.fromString((String) Helper.getThreadLocalValue("role"));
 
 				Account account = getAccount(accountNumber);
 				long customerId = account.getUserId();
-
-				BigDecimal transactionAmount = parseTransactionAmount(transactionMap);
-				ValidationUtil.validateTransactionAmount(transactionAmount, account);
-				checkRoleAuthorization(role, transactionMap, account, userId, branchId);
 
 				String ifsc = getIfsc(branchId);
 				transactionMap.put("ifsc", ifsc);
@@ -144,7 +135,8 @@ public class TransactionService {
 				Transaction transaction = Helper.createPojoFromMap(transactionMap, Transaction.class);
 
 				logger.info("Transaction object validation passed. Proceeding with transaction creation...");
-				prepareRecipientTransaction(transaction, "Horizon".equals(transaction.getBankName()), account);
+				prepareRecipientTransaction(transaction, "Horizon".equals(transaction.getBankName()), account,
+						branchId);
 				logger.info("Transaction successfully created for account number: {}", transaction.getAccountNumber());
 			}
 		}
@@ -161,19 +153,10 @@ public class TransactionService {
 		return accounts.get(0);
 	}
 
-	private BigDecimal parseTransactionAmount(Map<String, Object> transactionMap) throws CustomException {
-		try {
-			double amount = Double.parseDouble((String) transactionMap.get("amount"));
-			return BigDecimal.valueOf(amount);
-		} catch (NumberFormatException e) {
-			throw new CustomException("Invalid amount format", HttpStatusCodes.BAD_REQUEST);
-		}
-	}
-
-	private void checkRoleAuthorization(Role role, Map<String, Object> transactionMap, Account account, Long userId,
-			long branchId) throws CustomException {
+	private void checkRoleAuthorization(Role role, Transaction transaction, Account account, Long userId, long branchId)
+			throws CustomException {
 		if (role == Role.Employee) {
-			if (!"Debit".equals(transactionMap.get("type")) && account.getUserId() != userId) {
+			if (!"Debit".equals(transaction.getTransactionType()) && account.getUserId() != userId) {
 				throw new CustomException("Unauthorized account found", HttpStatusCodes.UNAUTHORIZED);
 			}
 			if (account.getBranchId() != branchId) {
@@ -217,9 +200,12 @@ public class TransactionService {
 		transactionMap.put("transactionIfsc", transactionIfsc);
 	}
 
-	public void prepareRecipientTransaction(Transaction transaction, boolean thisBank, Account account)
+	public void prepareRecipientTransaction(Transaction transaction, boolean thisBank, Account account, long branchId)
 			throws CustomException {
 		logger.info("Starting transaction processing...");
+		Long userId = (Long) Helper.getThreadLocalValue("id");
+		Role role = Role.fromString((String) Helper.getThreadLocalValue("role"));
+		checkRoleAuthorization(role, transaction, account, userId, branchId);
 		Long txId = createTransaction(transaction, account);
 
 		if (thisBank) {

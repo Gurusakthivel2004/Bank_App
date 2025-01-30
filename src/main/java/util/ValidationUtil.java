@@ -268,15 +268,4 @@ public class ValidationUtil {
 		}
 	}
 
-	public static void validateTransactionAmount(BigDecimal transactionAmount, Account account) throws CustomException {
-		if (transactionAmount.compareTo(BigDecimal.ZERO) <= 0) {
-			throw new CustomException("Enter an amount greater than 0.", HttpStatusCodes.BAD_REQUEST);
-		}
-
-		BigDecimal accountBalance = account.getBalance();
-		if (accountBalance.compareTo(transactionAmount) < 0) {
-			throw new CustomException("Insufficient balance.", HttpStatusCodes.BAD_REQUEST);
-		}
-	}
-
 }
