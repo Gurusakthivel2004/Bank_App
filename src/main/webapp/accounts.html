@@ -21,31 +21,32 @@
 					style="padding-right: 50px; font-family: sans-serif; letter-spacing: -0.5px; font-weight: 990; font-size: xxx-large; color: #2b0444;">Horizon</h1>
 			</div>
 			<div class="d-flex justify-content-between">
-				<div class="d-flex justify-content-between">
-					<div class="me-2">
-						<img onclick="toggleModal('employeeChatBox')"
-							src="./images/startchat.png" alt="Chat Logo"
-							style="width: 132px; height: 58px; cursor: pointer;">
+				<div class="me-3">
+					<button onclick="toggleModal('employeeChatBox')" class="btn"
+						style="padding: 10px; border-radius: 15px;">
+						<img src="./images/support.svg" width="30px" height="30px"
+							title="support" />
+					</button>
+				</div>
+				<div class="me-3 position-relative">
+					<button id="notificationBell" class="btn"
+						style="padding: 10px; border-radius: 15px; position: relative;">
+						<img src="./images/bell.svg" width="30px" height="30px"
+							title="notification" /> <span id="notificationBadge"
+							class="badge">0</span>
+					</button>
+					<div id="notificationDropdown" class="notification-dropdown">
+						<div id="notificationList"></div>
+						<button id="loadMoreBtn" class="load-more-btn">Load More</button>
 					</div>
-					<div class="me-2 position-relative">
-						<button id="notificationBell" class="btn"
-							style="background-color: #2b0444; padding: 10px; border-radius: 15px; position: relative;">
-							<img src="./images/bell-white.svg" width="30px" height="30px"
-								alt="notification" /> <span id="notificationBadge"
-								class="badge">0</span>
-						</button>
-						<div id="notificationDropdown" class="notification-dropdown">
-							<div id="notificationList"></div>
-							<button id="loadMoreBtn" class="load-more-btn">Load More</button>
-						</div>
-					</div>
+				</div>
 
-					<div class="profile-dropdown">
-						<button class="btn" id="profileButton"
-							style="background-color: #2b0444; padding: 10px; border-radius: 15px;">
-							<img src="./images/profile.svg" width="30px" height="30px" alt="" />
-						</button>
-					</div>
+				<div class="profile-dropdown">
+					<button class="btn" id="profileButton"
+						style="padding: 10px; border-radius: 15px;">
+						<img src="./images/user.svg" width="30px" height="30px"
+							title="profile" />
+					</button>
 				</div>
 			</div>
 		</nav>

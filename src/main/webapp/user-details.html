@@ -21,31 +21,32 @@
 					style="padding-right: 50px; font-family: sans-serif; letter-spacing: -0.5px; font-weight: 990; font-size: xxx-large; color: #2b0444;">Horizon</h1>
 			</div>
 			<div class="d-flex justify-content-between">
-				<div class="d-flex justify-content-between">
-					<div class="me-2">
-						<img onclick="toggleModal('employeeChatBox')"
-							src="./images/startchat.png" alt="Chat Logo"
-							style="width: 132px; height: 58px; cursor: pointer;">
+				<div class="me-3">
+					<button onclick="toggleModal('employeeChatBox')" class="btn"
+						style="padding: 10px; border-radius: 15px;">
+						<img src="./images/support.svg" width="30px" height="30px"
+							title="support" />
+					</button>
+				</div>
+				<div class="me-3 position-relative">
+					<button id="notificationBell" class="btn"
+						style="padding: 10px; border-radius: 15px; position: relative;">
+						<img src="./images/bell.svg" width="30px" height="30px"
+							title="notification" /> <span id="notificationBadge"
+							class="badge">0</span>
+					</button>
+					<div id="notificationDropdown" class="notification-dropdown">
+						<div id="notificationList"></div>
+						<button id="loadMoreBtn" class="load-more-btn">Load More</button>
 					</div>
-					<div class="me-2 position-relative">
-						<button id="notificationBell" class="btn"
-							style="background-color: #2b0444; padding: 10px; border-radius: 15px; position: relative;">
-							<img src="./images/bell-white.svg" width="30px" height="30px"
-								alt="notification" /> <span id="notificationBadge"
-								class="badge">0</span>
-						</button>
-						<div id="notificationDropdown" class="notification-dropdown">
-							<div id="notificationList"></div>
-							<button id="loadMoreBtn" class="load-more-btn">Load More</button>
-						</div>
-					</div>
+				</div>
 
-					<div class="profile-dropdown">
-						<button class="btn" id="profileButton"
-							style="background-color: #2b0444; padding: 10px; border-radius: 15px;">
-							<img src="./images/profile.svg" width="30px" height="30px" alt="" />
-						</button>
-					</div>
+				<div class="profile-dropdown">
+					<button class="btn" id="profileButton"
+						style="padding: 10px; border-radius: 15px;">
+						<img src="./images/user.svg" width="30px" height="30px"
+							title="profile" />
+					</button>
 				</div>
 			</div>
 		</nav>
@@ -205,7 +206,7 @@
 				style="display: none; position: fixed; top: 120px; right: 20px; padding: 15px; background-color: #4CAF50; color: white; border-radius: 5px; font-size: 16px; z-index: 1000;">
 			</div>
 			<div class="usermodal-content account-details"
-				style="width: auto; border-radius: 10px; margin: 5% auto; height: max-content; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);">
+				style="width: auto; border-radius: 10px; margin: 5% auto; background-color: whitesmoke; height: max-content; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);">
 
 				<button class="close-btn mt-2" onclick="toggleModal('newUserModal')"
 					style="background: transparent; font-size: 30px; color: #e74c3c; cursor: pointer; position: absolute; top: 15px; right: 15px; border: none; border-radius: 50%; height: 40px; width: 40px; display: flex; align-items: center; justify-content: center; transition: background-color 0.3s ease, transform 0.3s ease;"
@@ -230,10 +231,9 @@
 							<span class="detail-label ps-4"
 								style="width: 50%; padding-left: 10%;">Full Name</span>
 							<div class="inputDiv w-40">
-								<input required id="fullname"
-									class="accNumberInput rounded p-1 px-2 w-30"
-									style="border: 1px solid #555; color: #2b5ab3; font-weight: bold;"
-									type="text" placeholder="Gurusakthivel V" />
+								<input required id="fullname" class="rounded p-1 px-2 w-30"
+									style="border: 1px solid grey; color: #2b5ab3; font-weight: bold;"
+									type="text" />
 							</div>
 						</div>
 						<div class="detail-item d-flex w-100 py-3 px-2 mx-2"
@@ -243,8 +243,8 @@
 							<div class="inputDiv w-40">
 								<input required id="email"
 									class="accNumberInput rounded p-1 px-2 w-30"
-									style="border: 1px solid #555; color: #2b5ab3; font-weight: bold;"
-									type="email" placeholder="guru@gmail.com" />
+									style="border: 1px solid grey; color: #2b5ab3; font-weight: bold;"
+									type="email" />
 							</div>
 						</div>
 						<div class="detail-item d-flex  w-100 py-3 px-2 mx-2"
@@ -254,8 +254,8 @@
 							<div class="inputDiv w-40">
 								<input required id="phone"
 									class="accNumberInput rounded p-1 px-2 w-30"
-									style="border: 1px solid #555; color: #2b5ab3; font-weight: bold;"
-									type="text" placeholder="9361409778" />
+									style="border: 1px solid grey; color: #2b5ab3; font-weight: bold;"
+									type="text" />
 							</div>
 						</div>
 						<div id="branchIdDiv" class="detail-item w-100 py-3 px-2 mx-2"
@@ -263,7 +263,7 @@
 							<span class="detail-label ps-4"
 								style="width: 50%; padding-left: 10%;">Branch id:</span>
 							<div class="inputDiv w-40">
-								<input class="rounded p-1 px-2 w-30" id="branchId" required
+								<input class="p-1 px-2 w-30 rounded" id="branchId" required
 									oninput="fetchDropdownOptions(this.value)" placeholder="7"
 									style="font-family: 'Arial', sans-serif;; font-weight: bold; color: #2b5ab3"
 									autocomplete="off">
@@ -278,8 +278,8 @@
 							<div class="inputDiv w-40">
 								<input required id="username"
 									class="accNumberInput rounded p-1 px-2 w-30"
-									style="border: 1px solid #555; color: #2b5ab3; font-weight: bold;"
-									type="text" placeholder="guru" />
+									style="border: 1px solid grey; color: #2b5ab3; font-weight: bold;"
+									type="text" />
 							</div>
 						</div>
 						<div class="detail-item d-flex w-100 py-3 px-2 mx-2"
@@ -290,9 +290,9 @@
 								<div class="accounts-dropdown">
 									<input required id="status" readonly
 										class="accNumberInput rounded p-1 px-2 ms-4 w-20"
-										style="border: 1px solid #555; color: #2b5ab3;; font-weight: bold;"
+										style="border: 1px solid grey; color: #2b5ab3;; font-weight: bold;"
 										id="accountDropdown" data-bs-toggle="dropdown-menu"
-										aria-expanded="false" placeholder="Active" />
+										aria-expanded="false" />
 									<ul class="dropdown-menu shadow text-center"
 										aria-labelledby="accountDropdown"
 										style="display: none; width: 217px; margin-left: 25px;">
@@ -310,9 +310,9 @@
 								<div class="accounts-dropdown">
 									<input required id="role" readonly
 										class="accNumberInput rounded p-1 px-2 ms-4 w-20"
-										style="border: 1px solid #555; color: #2b5ab3;; font-weight: bold;"
+										style="border: 1px solid grey; color: #2b5ab3;; font-weight: bold;"
 										id="accountDropdown" data-bs-toggle="dropdown-menu"
-										aria-expanded="false" placeholder="Employee" />
+										aria-expanded="false" />
 									<ul class="dropdown-menu shadow text-center"
 										aria-labelledby="accountDropdown"
 										style="display: none; width: 217px; margin-left: 25px;">
@@ -329,7 +329,6 @@
 							<div class="inputDiv w-40">
 								<textarea required rows="1.5" cols="21" id="address"
 									class="accNumberInput rounded p-1 px-2 w-30"
-									placeholder="2/45 KK Nagar, Chennai"
 									style="border: 1px solid #555; color: #2b5ab3; font-weight: bold;"></textarea>
 							</div>
 						</div>
@@ -343,8 +342,8 @@
 							<div class="inputDiv w-40">
 								<input required id="panNumber"
 									class="accNumberInput rounded p-1 px-2 ms-4 w-30"
-									style="border: 1px solid #555; color: #2b5ab3; font-weight: bold;"
-									type="text" placeholder="xxxxxxi897641" />
+									style="border: 1px solid grey; color: #2b5ab3; font-weight: bold;"
+									type="text" />
 							</div>
 						</div>
 						<div class="detail-item d-flex  w-100 py-3 pe-2 me-2"
@@ -353,9 +352,9 @@
 								style="width: 50%; padding-left: 10%;">Aadhar Number:</span>
 							<div class="inputDiv w-40">
 								<input required id="aadharNumber"
-									class="accNumberInput rounded p-1 px-2 ms-4 w-30"
-									style="border: 1px solid #555; color: #2b5ab3; font-weight: bold;"
-									type="text" placeholder="9051 4378 4318" />
+									class="accNumberInput rounded rounded p-1 px-2 ms-4 w-30"
+									style="border: 1px solid grey; color: #2b5ab3; font-weight: bold;"
+									type="text" />
 							</div>
 						</div>
 						<div class="detail-item d-flex  w-100 py-3 pe-2 me-2"
@@ -365,8 +364,8 @@
 							<div class="inputDiv w-40">
 								<input id="dob" required
 									class="accNumberInput rounded p-1 px-2 ms-4 w-30"
-									style="border: 1px solid #555; color: #2b5ab3; font-weight: bold;"
-									type="text" placeholder="08/06/2004" />
+									style="border: 1px solid grey; color: #2b5ab3; font-weight: bold;"
+									type="text" />
 							</div>
 						</div>
 						<div class="detail-item d-flex  w-100 py-3 pe-2 me-2"
@@ -376,8 +375,8 @@
 							<div class="inputDiv w-40">
 								<input id="fatherName" required
 									class="accNumberInput rounded p-1 px-2 ms-4 w-30"
-									style="border: 1px solid #555; color: #2b5ab3; font-weight: bold;"
-									type="text" placeholder="Vijayakumar G" />
+									style="border: 1px solid grey; color: #2b5ab3; font-weight: bold;"
+									type="text" />
 							</div>
 						</div>
 						<div class="detail-item d-flex  w-100 py-3 pe-2 me-2"
@@ -387,8 +386,8 @@
 							<div class="inputDiv w-40">
 								<input id="motherName"
 									class="accNumberInput rounded p-1 px-2 ms-4 w-30" required
-									style="color: green; border: 1px solid #555; color: #2b5ab3; font-weight: bold;"
-									type="text" placeholder="Kavitha V" />
+									style="color: green; border: 1px solid grey; color: #2b5ab3; font-weight: bold;"
+									type="text" />
 							</div>
 						</div>
 						<div class="detail-item d-flex w-100 py-3 pe-2 me-2 border-0"
@@ -399,9 +398,9 @@
 								<div class="accounts-dropdown">
 									<input required id="maritalStatus"
 										class="accNumberInput rounded p-1 px-2 ms-3 w-30"
-										style="border: 1px solid #555; color: #2b5ab3;; font-weight: bold;"
+										style="border: 1px solid grey; color: #2b5ab3;; font-weight: bold;"
 										id="accountDropdown" data-bs-toggle="dropdown-menu"
-										aria-expanded="false" placeholder="Single" />
+										aria-expanded="false" />
 									<ul class="dropdown-menu shadow text-center"
 										aria-labelledby="accountDropdown"
 										style="display: none; width: 217px; margin-left: 25px;">

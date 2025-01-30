@@ -22,15 +22,13 @@ public class MessageController {
 
 	public void handleGet(HttpServletRequest request, HttpServletResponse response, Map<String, Object> messageMap)
 			throws IOException {
-		System.out.println(messageMap.keySet());
-		System.out.println(messageMap.values());
 		try {
 			logger.info("Processing GET request for message details with messageMap: {}", messageMap);
-			Object messages = messageService.getMessageDetails(messageMap);
+			Map<String, Object> messages = messageService.getMessageDetails(messageMap);
 			Helper.sendSuccessResponse(response, messages);
 			logger.info("Successfully fetched message details for messageMap: {}", messageMap);
 		} catch (CustomException e) {
-			logger.warn("CustomException occurred while fetching message details: {}", e.getMessage());
+			logger.warn("CustomException occurred while fetching message details: {}", e);
 			Helper.sendErrorResponse(response, e);
 		} catch (Exception e) {
 			logger.error("Unexpected error occurred while fetching message details. messageMap: {}", messageMap, e);

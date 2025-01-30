@@ -19,10 +19,9 @@ public class Constants {
 		GET_ACCOUNT_BY_USERID("^/Account\\?userId=-?\\d+$", Arrays.asList("Customer")),
 		ACCOUNT_CRUD("^/Account$", Arrays.asList("Customer")),
 		GET_USER_WITH_ROLE("^/User\\?userId=\\d+&role=\\w+$", Arrays.asList("Customer")),
-		GET_USERDASHBOARD("^/UserDashboard$", null), UPDATE_PROFILE("^/api/Profile$", null),
-		TRANSACTION_CRUD("^/Transaction$", null), LOGOUT("^/Logout$", null),
-		LOG("^/Log$", Arrays.asList("Customer", "Employee")), MESSAGE_CRUD("^/Message$", null);
-		;
+		GET_USERDASHBOARD("^/UserDashboard$", null), TRANSACTION_CRUD("^/Transaction$", null),
+		LOGOUT("^/Logout$", null), LOG("^/Log$", Arrays.asList("Customer", "Employee")),
+		MESSAGE_CRUD("^/Message$", null);
 
 		private final String regexPattern;
 		private final List<String> restrictedForRole;

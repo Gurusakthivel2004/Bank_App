@@ -297,10 +297,10 @@ function handleCreateSelection(selectedValue) {
 	document.getElementById('newUserButton').style.display = 'flex';
 
 	document.getElementById('address').value = '';
-	document.getElementById('address').style.border = "1px solid black";
+	document.getElementById('address').style.border = "1px solid grey";
 	document.querySelectorAll("input").forEach(input => {
 		input.disabled = false;
-		input.style.border = "1px solid black";
+		input.style.border = "1px solid grey";
 		input.value = "";
 	})
 }
@@ -476,7 +476,7 @@ const toggleEditUser = () => {
 	inputFieldsIds.forEach(id => {
 		const inputField = document.getElementById(id);
 		inputField.disabled = false;
-		inputField.style.border = "1px solid";
+		inputField.style.border = "1px solid grey";
 		originalValues[id] = inputField.value;
 	})
 	document.getElementById('saveButton').style.display = 'block';

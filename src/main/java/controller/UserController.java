@@ -63,8 +63,9 @@ public class UserController {
 			logger.error("CustomException occurred while creating user: {}", exception.getMessage());
 			Helper.sendErrorResponse(response, exception.getMessage());
 		} catch (Exception exception) {
-			logger.error("Unexpected error occurred while creating user: {}", exception.getMessage());
-			Helper.sendErrorResponse(response, "Unexpected error occurred while creating user.");
+
+			logger.error("Unexpected error occurred while creating user: {}", exception);
+			Helper.sendErrorResponse(response, "Please check your inputs.");
 		}
 	}
 

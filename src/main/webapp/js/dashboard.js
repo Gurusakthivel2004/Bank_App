@@ -219,17 +219,18 @@ function addTransactionItems(transactions) {
 		transactionItem.style.padding = '10px';
 		transactionItem.style.borderRadius = '8px';
 		transactionItem.style.borderBottom = '1px solid #ddd;';
+		transactionItem.style.fontFamily = 'Roboto';
 		transactionItem.innerHTML = `
 			<p class="tid"
-				style="width: 10%; font-weight: bold; color: #2b0444;">${tx.id}</p>
-			<p class="tfrom" style="width: 20%; color: #2b0444;">${tx.transactionAccountNumber}</p>
+				style="width: 10%; font-weight: 500;  color: #2b0444;">${tx.id}</p>
+			<p class="tfrom" style="width: 20%;font-weight: bold;  color: #2b0444;">${tx.transactionAccountNumber}</p>
 			<p class="tamount"
 				style="width: 15%; font-weight: bold; color: #4677bd;">₹ ${tx.amount.toLocaleString()}</p>
 			<p class="ttimestamp"
 				style="width: 20%; font-weight: bold; color: #6c757d;">${getDate(tx.transactionTime, true)}</p>
 			<p class="tstatus"
-				style="width: 15%; font-weight: bold; color: #2b0444;">${tx.transactionStatus}</p>
-			<p class="ttype" style="width: 10%; color: ${tx.transactionType == 'Debit' ? 'red' : 'green'};">${tx.transactionType}</p>
+				style="width: 15%; color: #2b0444; font-weight: 500; ">${tx.transactionStatus}</p>
+			<p class="ttype" style="width: 10%; font-weight: bold; color: ${tx.transactionType == 'Debit' ? 'red' : 'green'};">${tx.transactionType}</p>
 			<p class="tremarks" style="width: 20%; color: #2b0444;">${tx.remarks}</p>			
         `;
 

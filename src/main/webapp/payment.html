@@ -9,8 +9,13 @@
 	rel="stylesheet">
 <link href="./css/payment.css" rel="stylesheet">
 <link href="./css/navProfile.css" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link
+	href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100..900;1,100..900&display=swap"
+	rel="stylesheet">
 </head>
-<body>
+<body style="font-family: 'Roboto'">
 	<div>
 		<nav style="background-color: white; color: #2b0444;"
 			class="d-flex justify-content-between align-items-center shadow">
@@ -18,18 +23,20 @@
 				<a class="m-0 p-0" href="dashboard.html"><img class="w-5 h-5"
 					width="100px" height="100px" src="./images/logo2.png" alt="" /></a>
 				<h1
-					style="padding-right: 50px; font-family: sans-serif; letter-spacing: -0.5px; font-weight: 990; font-size: xxx-large; color: #2b0444;">Horizon</h1>
+					style="padding-right: 50px; letter-spacing: -0.5px; font-size: xxx-large; color: #2b0444;">Horizon</h1>
 			</div>
-			<div class="d-flex justify-content-between" id="employeeChatbutton">
-				<div class="me-2">
-					<img onclick="toggleModal('employeeChatBox')"
-						src="./images/startchat.png" alt="Chat Logo"
-						style="width: 132px; height: 58px; cursor: pointer;">
+			<div class="d-flex justify-content-between">
+				<div class="me-3" id="employeeChatbutton">
+					<button onclick="toggleModal('employeeChatBox')" class="btn"
+						style="padding: 10px; border-radius: 15px;">
+						<img src="./images/support.svg" width="30px" height="30px"
+							title="support" />
+					</button>
 				</div>
 				<div class="me-2 position-relative" id="bellbutton">
 					<button id="notificationBell" class="btn"
-						style="background-color: #2b0444; padding: 10px; border-radius: 15px; position: relative;">
-						<img src="./images/bell-white.svg" width="30px" height="30px"
+						style="padding: 10px; border-radius: 15px; position: relative;">
+						<img src="./images/bell.svg" width="30px" height="30px"
 							alt="notification" /> <span id="notificationBadge" class="badge">0</span>
 					</button>
 					<div id="notificationDropdown" class="notification-dropdown">
@@ -37,23 +44,25 @@
 						<button id="loadMoreBtn" class="load-more-btn">Load More</button>
 					</div>
 				</div>
-				<div class="me-2" id="customerChatbutton">
-					<img onclick="toggleModal('chatBoxModel')"
-						src="./images/startchat.png" alt="Chat Logo"
-						style="width: 132px; height: 58px; cursor: pointer;">
+				<div class="me-3" id="customerChatbutton">
+					<button onclick="toggleModal('chatBoxModel')" class="btn"
+						style="padding: 10px; border-radius: 15px;">
+						<img src="./images/support.svg" width="30px" height="30px"
+							title="support" />
+					</button>
 				</div>
-				<div class="me-2" id="requestbutton">
-					<button class="btn"
-						style="background-color: #2b0444; padding: 10px; border-radius: 15px;">
+				<div class="me-3" id="requestbutton">
+					<button class="btn" style="padding: 10px; border-radius: 15px;">
 						<img onclick="toggleModal('newRequestModal')"
 							src="./images/request.svg" width="30px" height="30px"
-							alt="notification" />
+							title="notification" />
 					</button>
 				</div>
 				<div class="profile-dropdown">
 					<button class="btn" id="profileButton"
-						style="background-color: #2b0444; padding: 10px; border-radius: 15px;">
-						<img src="./images/profile.svg" width="30px" height="30px" alt="" />
+						style="padding: 10px; border-radius: 15px;">
+						<img src="./images/user.svg" width="30px" height="30px"
+							title="profile" />
 					</button>
 				</div>
 			</div>
@@ -76,7 +85,7 @@
 
 				<!-- Title -->
 				<h2 id="modalMessageType"
-					style="color: #2980b9; font-size: 24px; font-family: 'Arial', sans-serif; font-weight: 600; margin-bottom: 15px; text-transform: capitalize; text-align: center;">
+					style="color: #2980b9; font-size: 24px; margin-bottom: 15px; text-transform: capitalize; text-align: center;">
 				</h2>
 
 				<!-- Message details -->
@@ -161,8 +170,7 @@
 							style="width: 30px; height: 30px; margin-right: 10px;">
 					</div>
 
-					<p
-						style="font-size: 17px; text-align: center; margin-bottom: 0; font-family: sans-serif; font-weight: bold;">Support
+					<p style="font-size: 17px; text-align: center; margin-bottom: 0;">Support
 						Chat</p>
 
 					<button onclick="userClose()"
@@ -208,7 +216,7 @@
 					onmouseover="this.style.backgroundColor='rgba(231, 76, 60, 0.1)'; this.style.transform='scale(1.1)';"
 					onmouseout="this.style.backgroundColor='transparent'; this.style.transform='scale(1)';">&times;</button>
 				<h2 class="w-100 py-4 mb-4 text-center"
-					style="color: #2980b9; font-size: 24px; font-family: 'Arial', sans-serif; font-weight: 600;">Request
+					style="color: #2980b9; font-size: 24px; font-weight: 600;">Request
 					Details</h2>
 				<!-- Branch details -->
 				<div class="d-flex row mb-3" style="flex-direction: column;">
@@ -237,8 +245,8 @@
 							:</span>
 						<div class="inputDiv d-flex"
 							style="width: 45%; position: relative;">
-							<input class="mb-0 px-2 py-1" id="account" required
-								style="color: #2c3e50; border: 1px solid #ccc; border-radius: 10px; width: 75%; font-size: 16px; font-weight: 600; font-family: 'Arial', sans-serif; transition: border-color 0.3s ease, box-shadow 0.3s ease;"
+							<input class="mb-0 px-2 py-1" id="requestaccount" required
+								style="color: #2c3e50; border: 1px solid #ccc; border-radius: 10px; width: 75%; font-size: 16px; transition: border-color 0.3s ease, box-shadow 0.3s ease;"
 								autocomplete="off"
 								onfocus="this.style.borderColor='#2980b9'; this.style.boxShadow='0 0 8px rgba(41, 128, 185, 0.5)';"
 								onblur="this.style.borderColor='#ccc'; this.style.boxShadow='none';">
@@ -256,7 +264,7 @@
 							<div class="inputDiv d-flex"
 								style="width: 45%; position: relative;">
 								<input class="mb-0 px-2 py-1" id="transactionAccount" required
-									style="color: #2c3e50; border: 1px solid #ccc; border-radius: 10px; width: 75%; font-size: 16px; font-weight: 600; font-family: 'Arial', sans-serif; transition: border-color 0.3s ease, box-shadow 0.3s ease;"
+									style="color: #2c3e50; border: 1px solid #ccc; border-radius: 10px; width: 75%; font-size: 16px; transition: border-color 0.3s ease, box-shadow 0.3s ease;"
 									autocomplete="off"
 									onfocus="this.style.borderColor='#2980b9'; this.style.boxShadow='0 0 8px rgba(41, 128, 185, 0.5)';"
 									onblur="this.style.borderColor='#ccc'; this.style.boxShadow='none';">
@@ -272,7 +280,7 @@
 								style="width: 39%; color: #34495e; margin-left: 14%;">Amount
 								:</span>
 							<div class="inputDiv" style="width: 45%;">
-								<input required id="amount" value="0.0"
+								<input required id="requestamount" value="0.0"
 									class="accNumberInput rounded p-1 px-2 w-30 bg-white"
 									style="border: 1px solid #ccc; border-radius: 10px; width: 75%; font-size: 17px; transition: border-color 0.3s ease, box-shadow 0.3s ease;"
 									onfocus="this.style.borderColor='#2980b9'; this.style.boxShadow='0 0 8px rgba(41, 128, 185, 0.5)';"
@@ -291,7 +299,7 @@
 							<div class="inputDiv d-flex"
 								style="width: 45%; position: relative;">
 								<input class="mb-0 px-2 py-1 phone" required id="phone"
-									style="color: #2c3e50; border: 1px solid #ccc; border-radius: 10px; width: 75%; font-size: 16px; font-weight: 600; font-family: 'Arial', sans-serif; transition: border-color 0.3s ease, box-shadow 0.3s ease;"
+									style="color: #2c3e50; border: 1px solid #ccc; border-radius: 10px; width: 75%; font-size: 16px; transition: border-color 0.3s ease, box-shadow 0.3s ease;"
 									autocomplete="off"
 									onfocus="this.style.borderColor='#2980b9'; this.style.boxShadow='0 0 8px rgba(41, 128, 185, 0.5)';"
 									onblur="this.style.borderColor='#ccc'; this.style.boxShadow='none';">
@@ -309,7 +317,7 @@
 							<div class="inputDiv d-flex"
 								style="width: 45%; position: relative;">
 								<input class="mb-0 px-2 py-1 email" required id="email"
-									style="color: #2c3e50; border: 1px solid #ccc; border-radius: 10px; width: 75%; font-size: 16px; font-weight: 600; font-family: 'Arial', sans-serif; transition: border-color 0.3s ease, box-shadow 0.3s ease;"
+									style="color: #2c3e50; border: 1px solid #ccc; border-radius: 10px; width: 75%; font-size: 16px; transition: border-color 0.3s ease, box-shadow 0.3s ease;"
 									autocomplete="off"
 									onfocus="this.style.borderColor='#2980b9'; this.style.boxShadow='0 0 8px rgba(41, 128, 185, 0.5)';"
 									onblur="this.style.borderColor='#ccc'; this.style.boxShadow='none';">
@@ -326,7 +334,7 @@
 							<div class="inputDiv" style="width: 45%;">
 								<textarea class="pe-5 ps-2 userAddress py-1 bg-white"
 									id="address" cols="30" rows="4" required
-									style="width: 100%; border: 1px solid #ccc; border-radius: 10px; width: 180px; font-weight: 600; border-radius: 5px; font-family: 'Arial', sans-serif; font-size: 14px; color: #2c3e50; resize: none;"></textarea>
+									style="width: 100%; border: 1px solid #ccc; border-radius: 10px; width: 180px; border-radius: 5px; font-size: 14px; color: #2c3e50; resize: none;"></textarea>
 							</div>
 						</div>
 
@@ -355,10 +363,10 @@
 						style="display: none">Error message</p>
 
 					<button class="mt-3 mb-2 mx-auto" onclick="sendRequest()"
-						style="width: max-content; display: flex; align-items: center; justify-content: center; background-color: #2980b9; color: white; font-size: 16px; font-family: Arial, sans-serif; font-weight: bold; padding: 10px 20px; border: none; border-radius: 8px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); cursor: pointer; transition: background-color 0.3s ease, transform 0.2s ease;"
+						style="width: max-content; display: flex; align-items: center; justify-content: center; background-color: #2980b9; color: white; font-weight: bold; padding: 10px 20px; border: none; border-radius: 8px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); cursor: pointer; transition: background-color 0.3s ease, transform 0.2s ease;"
 						onmouseover="this.style.backgroundColor='#2471A3'; this.style.transform='scale(1.05)';"
 						onmouseout="this.style.backgroundColor='#2980b9'; this.style.transform='scale(1)';">
-						<img src="./images/request.svg" alt="Save Icon"
+						<img src="./images/request-white.svg" alt="Save Icon"
 							style="width: 20px; height: 20px; margin-right: 10px;">
 						Request
 					</button>
@@ -421,19 +429,18 @@
 					onmouseover="this.style.backgroundColor='rgba(231, 76, 60, 0.1)'; this.style.transform='scale(1.1)';"
 					onmouseout="this.style.backgroundColor='transparent'; this.style.transform='scale(1)';">&times;</button>
 				<h2 class="w-100 py-4 mb-4 text-center"
-					style="color: #2980b9; font-size: 24px; font-family: sans-serif; font-weight: 800;">Change
-					Password</h2>
+					style="color: #2980b9; font-size: 24px;">Change Password</h2>
 
 				<div class="d-flex row" style="flex-direction: column;">
 					<!-- Current Password -->
 					<div class="d-flex align-items-center w-100 py-4 px-5"
 						style="border-bottom: 1px solid #ccc;">
 						<label for="currentPassword" class="detail-label"
-							style="width: 39%; color: #34495e; margin-left: 8%; font-weight: 800; font-family: sans-serif">Current
+							style="width: 39%; color: #34495e; margin-left: 8%;">Current
 							Password:</label>
 						<div class="inputDiv" style="width: 45%; position: relative;">
 							<input type="password" id="currentPassword" class=""
-								style="width: 100%; border: 1px solid #ccc; padding: 8px; font-size: 16px; font-weight: 600; border-radius: 5px; color: #2c3e50; font-family: 'Arial', sans-serif;">
+								style="width: 100%; border: 1px solid #ccc; padding: 8px; font-size: 16px; border-radius: 5px; color: #2c3e50;">
 							<button type="button"
 								onclick="togglePasswordVisibility('currentPassword', this)"
 								style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; border-radius: 20px;">
@@ -447,11 +454,11 @@
 					<div class="d-flex w-100 align-items-center py-4 px-5"
 						style="border-bottom: 1px solid #ccc;">
 						<label for="newPassword" class="detail-label"
-							style="width: 39%; color: #34495e; margin-left: 8%; font-weight: 800; font-family: sans-serif">New
+							style="width: 39%; color: #34495e; margin-left: 8%;">New
 							Password:</label>
 						<div class="inputDiv" style="width: 45%; position: relative;">
 							<input type="password" id="newPassword" class=""
-								style="width: 100%; border: 1px solid #ccc; padding: 8px; font-size: 16px; font-weight: 600; border-radius: 5px; color: #2c3e50; font-family: 'Arial', sans-serif;">
+								style="width: 100%; border: 1px solid #ccc; padding: 8px; font-size: 16px; border-radius: 5px; color: #2c3e50;">
 							<button type="button"
 								onclick="togglePasswordVisibility('newPassword', this)"
 								style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; border-radius: 20px;">
@@ -464,11 +471,11 @@
 					<!-- Confirm Password -->
 					<div class="d-flex w-100 py-4 align-items-center py-4 px-5">
 						<label for="confirmPassword" class="detail-label"
-							style="width: 39%; color: #34495e; margin-left: 8%; font-weight: 800; font-family: sans-serif">Confirm
+							style="width: 39%; color: #34495e; margin-left: 8%;">Confirm
 							Password:</label>
 						<div class="inputDiv" style="width: 45%; position: relative;">
 							<input type="password" id="confirmPassword" class=""
-								style="width: 100%; border: 1px solid #ccc; padding: 8px; font-size: 16px; font-weight: 600; border-radius: 5px; color: #2c3e50; font-family: 'Arial', sans-serif;">
+								style="width: 100%; border: 1px solid #ccc; padding: 8px; font-size: 16px; border-radius: 5px; color: #2c3e50;">
 							<button type="button"
 								onclick="togglePasswordVisibility('confirmPassword', this)"
 								style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; border-radius: 20px;">
@@ -485,7 +492,7 @@
 					<div class="d-flex justify-content-center mt-3">
 						<div class="d-flex my-3">
 							<button class="mb-2 mx-auto" type="submit"
-								style="width: max-content; display: flex; align-items: center; justify-content: center; background-color: #2980b9; color: white; font-size: 16px; font-family: Arial, sans-serif; font-weight: bold; padding: 10px 20px; border: none; border-radius: 8px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); cursor: pointer; transition: background-color 0.3s ease, transform 0.2s ease;"
+								style="width: max-content; display: flex; align-items: center; justify-content: center; background-color: #2980b9; color: white; font-size: 16px; padding: 10px 20px; border: none; border-radius: 8px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); cursor: pointer; transition: background-color 0.3s ease, transform 0.2s ease;"
 								onmouseover="this.style.backgroundColor='#2471A3'; this.style.transform='scale(1.05)';"
 								onmouseout="this.style.backgroundColor='#2980b9'; this.style.transform='scale(1)';"
 								onclick="submitPasswordChange()">
@@ -578,7 +585,7 @@
 						<div id="employeeAccount" class="detail-item w-100 py-2 px-2 mx-2"
 							style="display: none;">
 							<span class="detail-label ps-4"
-								style="width: 40%; margin-left: 16%;">Account:</span>
+								style="width: 40%; margin-left: 16%; color: #5A5A5A">Account:</span>
 							<div class="inputDiv" style="width: 230px;">
 								<input id="account"
 									class="accNumberInput accounts form-control rounded p-1 px-2 w-30 bg-white"
@@ -590,7 +597,8 @@
 						<div id="customerAccount" style="display: none;"
 							class="detail-item w-100 py-2 px-2 mx-2">
 							<span class="detail-label ps-4"
-								style="width: 40%; margin-left: 16%;">Account :</span>
+								style="width: 40%; margin-left: 16%; color: #5A5A5A">Account
+								:</span>
 							<div class="inputDiv" style="width: 235px;">
 								<select required id="customerAccounts"
 									class="accNumberInput accounts accountsSelect rounded p-1 px-2 w-100 bg-white"
@@ -602,7 +610,8 @@
 						<div id="otherBank" style="display: flex"
 							class="detail-item w-100 py-2 px-2 mx-2">
 							<span class="detail-label ps-4"
-								style="width: 40%; margin-left: 16%;">Other Bank:</span>
+								style="width: 40%; margin-left: 16%; color: #5A5A5A">Other
+								Bank:</span>
 							<div class="inputDiv w-40">
 								<input type="checkbox" id="otherBankCheckbox"
 									onclick="toggleBankDropdown()" /> <label
@@ -614,7 +623,8 @@
 							class="bankDropdownContainer detail-item w-100 py-2 px-2 mx-2"
 							style="display: none;">
 							<span class="detail-label ps-4"
-								style="width: 40%; margin-left: 16%;">Select Bank:</span>
+								style="width: 40%; margin-left: 16%; color: #5A5A5A">Select
+								Bank:</span>
 							<div class="inputDiv" style="width: 235px;">
 								<select id="bank"
 									class="form-control accNumberInput rounded p-1 px-2 w-100 bg-white"
@@ -634,7 +644,7 @@
 							class="bankDropdownContainer detail-item w-100 py-2 px-2 mx-2"
 							style="display: none;">
 							<span class="detail-label ps-4"
-								style="width: 40%; margin-left: 16%;">IFSC:</span>
+								style="width: 40%; margin-left: 16%; color: #5A5A5A">IFSC:</span>
 							<div class="inputDiv" style="width: 230px;">
 								<input id="ifsc"
 									class="accNumberInput form-control rounded p-1 px-2 w-30 bg-white"
@@ -645,7 +655,8 @@
 
 						<div class="detail-item d-flex w-100 py-2 px-2 mx-2">
 							<span class="detail-label ps-4"
-								style="width: 40%; margin-left: 16%;">Recipient account:</span>
+								style="width: 40%; margin-left: 16%; color: #5A5A5A">Recipient
+								account:</span>
 							<div class="inputDiv" style="width: 230px;">
 								<input id="transAcc" required
 									class="form-control accNumberInput rounded p-1 px-2 w-30 bg-white"
@@ -657,7 +668,7 @@
 						<!-- Amount Input -->
 						<div class="detail-item d-flex w-100 py-2 px-2 mx-2">
 							<span class="detail-label ps-4"
-								style="width: 40%; margin-left: 16%;">Amount:</span>
+								style="width: 40%; margin-left: 16%; color: #5A5A5A">Amount:</span>
 							<div class="inputDiv w-40">
 								<input id="amount" required
 									class="form-control accNumberInput rounded p-1 px-2 w-30 bg-white"
@@ -669,7 +680,7 @@
 						<!-- Remarks Input -->
 						<div class="detail-item d-flex w-100 py-2 px-2 mx-2">
 							<span class="detail-label ps-4"
-								style="width: 40%; margin-left: 16%;">Remarks:</span>
+								style="width: 40%; margin-left: 16%; color: #5A5A5A">Remarks:</span>
 							<div class="inputDiv w-40">
 								<textarea required rows="2" cols="22"
 									class="form-control accNumberInput rounded px-2 w-30 bg-white"
@@ -684,7 +695,7 @@
 
 						<div class="d-flex my-3">
 							<button class="mt-3 mb-2 mx-auto" type="submit"
-								style="width: max-content; display: flex; align-items: center; justify-content: center; background-color: #2980b9; color: white; font-size: 16px; font-family: Arial, sans-serif; font-weight: bold; padding: 10px 20px; border: none; border-radius: 8px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); cursor: pointer; transition: background-color 0.3s ease, transform 0.2s ease;"
+								style="width: max-content; display: flex; align-items: center; justify-content: center; background-color: #2980b9; color: white; font-size: 16px; padding: 10px 20px; border: none; border-radius: 8px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); cursor: pointer; transition: background-color 0.3s ease, transform 0.2s ease;"
 								onmouseover="this.style.backgroundColor='#2471A3'; this.style.transform='scale(1.05)';"
 								onmouseout="this.style.backgroundColor='#2980b9'; this.style.transform='scale(1)';">
 								<img src="./images/pay.svg" alt="Save Icon"

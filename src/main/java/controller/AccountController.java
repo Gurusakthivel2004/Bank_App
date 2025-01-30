@@ -32,8 +32,8 @@ public class AccountController {
 			logger.warn("CustomException occurred while fetching account details: {}", e.getMessage());
 			Helper.sendErrorResponse(response, e);
 		} catch (Exception e) {
-			logger.error("Unexpected error occurred while fetching account details. AccountMap: {}", accountMap, e);
-			Helper.sendErrorResponse(response, "Unexpected Error occurred while fetching accounts.");
+			logger.error("Error occurred while fetching account details. AccountMap: {}", accountMap, e);
+			Helper.sendErrorResponse(response, "Error occurred while fetching accounts. Please check your inputs");
 		}
 	}
 

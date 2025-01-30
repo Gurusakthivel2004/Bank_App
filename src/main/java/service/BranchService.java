@@ -10,6 +10,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 
 import Enum.Constants.HttpStatusCodes;
 import Enum.Constants.LogType;
+import Enum.Constants.Role;
 import cache.CacheUtil;
 import dao.BranchDAO;
 import dao.DAO;
@@ -31,6 +32,7 @@ public class BranchService {
 
 		Long branchId = (Long) branchMap.get("branchId");
 		boolean notExact = branchMap.containsKey("notExact");
+		Role role = Role.fromString((String) Helper.getThreadLocalValue("role"));
 
 		if (branchId != null && branchId <= 0) {
 			throw new CustomException("Invalid branch id ", HttpStatusCodes.BAD_REQUEST);
@@ -41,11 +43,7 @@ public class BranchService {
 
 		List<Branch> cachedBranch = cacheUtil.getCachedList(key, new TypeReference<List<Branch>>() {
 		});
-		AuthorizationService authService = new AuthorizationService();
-		if (cachedBranch != null) {
-			if (!authService.isAuthorized("branch", cachedBranch)) {
-				throw new CustomException("Not authorized to access branch details", HttpStatusCodes.UNAUTHORIZED);
-			}
+		if (cachedBranch != null && role == Role.Customer) {
 			return cachedBranch;
 		}
 
@@ -57,9 +55,6 @@ public class BranchService {
 		}
 		if (!notExact) {
 			cacheUtil.save(key, branches);
-		}
-		if (!authService.isAuthorized("branch", branches)) {
-			throw new CustomException("Not authorized to access branch details", HttpStatusCodes.UNAUTHORIZED);
 		}
 		logger.info("Updated cache with branchId: {} details", branchId);
 		return branches;

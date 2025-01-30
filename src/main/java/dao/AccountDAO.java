@@ -95,7 +95,8 @@ public class AccountDAO implements DAO<Account>, DAOJoin<Account> {
 
 			ColumnCriteria columnCriteria = new ColumnCriteria().setFields(Arrays.asList("accountNumber"));
 			String accountNumber = "701" + String.format("%04d", account.getBranchId())
-					+ String.format("%04d", accountId);
+					+ String.format("%06d", accountId);
+
 			columnCriteria.setValues(Arrays.asList(Long.parseLong(accountNumber)));
 
 			Criteria criteria = new Criteria().setClazz(Account.class);

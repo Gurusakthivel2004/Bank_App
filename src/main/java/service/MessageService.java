@@ -29,11 +29,8 @@ public class MessageService {
 		logger.info("Fetching message details..");
 		Map<String, Object> messageResult = new HashMap<>();
 
-		System.out.println(msgMap.keySet());
-		System.out.println(msgMap.values());
-
 		List<Message> messages = messageDao.get(msgMap);
-		Long logCount = messageDao.getDataCount(msgMap);
+		long logCount = messageDao.getDataCount(msgMap);
 
 		messageResult.put("messages", messages);
 		messageResult.put("count", logCount);

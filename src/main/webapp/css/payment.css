@@ -132,14 +132,9 @@ nav a.logout {
 .detail-item {
 	margin-bottom: 20px;
 	font-family: 'Roboto', sans-serif;
-	color: #2a2a3b;
 	font-size: 16px;
 }
 
-.detail-label {
-	font-weight: 500;
-	color: #3d3d58;
-}
 
 @media ( max-width : 768px) {
 	.left-section {
@@ -202,6 +197,13 @@ nav a.logout {
 	font-weight: 500;
 	color: #5A5A5A;;
 	width: 40%;
+}
+
+.payment_detail-label {
+	font-weight: 500;
+	min-width: 146px;
+	font-size: 16px;
+	text-align: left;
 }
 
 .detail-input {

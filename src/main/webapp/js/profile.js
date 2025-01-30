@@ -79,7 +79,7 @@ async function fetchNotifications(openDropdown = false, loadMore = false) {
 
 	const result = await response.json();
 	console.log(result);
-
+	if (result.messages.length == 0) return;
 	const pendingMessages = result.messages.filter(msg => msg.messageStatus === "Pending");
 	const notificationList = document.getElementById('notificationList');
 	const notificationBadge = document.getElementById('notificationBadge');
@@ -219,9 +219,9 @@ if (load != null) {
 function sendRequest() {
 	const selectedAction = document.getElementById("requestType").value;
 
-	const accountNumber = document.getElementById("account")?.value?.trim();
+	const accountNumber = document.getElementById("requestaccount")?.value?.trim();
 	const transactionAccount = document.getElementById("transactionAccount")?.value?.trim();
-	const amount = document.getElementById("amount")?.value?.trim();
+	const amount = document.getElementById("requestamount")?.value?.trim();
 
 	const requestMessage = document.getElementById("requestMessage");
 

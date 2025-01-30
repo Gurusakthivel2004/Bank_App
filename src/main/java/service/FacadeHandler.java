@@ -1,9 +1,7 @@
 package service;
 
 import java.math.BigDecimal;
-
 import java.time.LocalDate;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -14,22 +12,24 @@ import org.apache.logging.log4j.Logger;
 
 import Enum.Constants.HttpStatusCodes;
 import model.Account;
+import model.Branch;
 import model.Transaction;
-
 import util.CustomException;
 import util.Helper;
 
 public class FacadeHandler {
 
 	private final Logger logger = LogManager.getLogger(FacadeHandler.class);
-	private TransactionService transactionService = new TransactionService();
+	private TransactionService transactionService = TransactionService.getInstance();
 	private UserService userService = new UserService();
 	private AccountService accountService = new AccountService();
+	private BranchService branchService = new BranchService();
 
 	@SuppressWarnings("unchecked")
 	public Map<String, Object> dashBoardDetails() throws CustomException {
 		long id = (Long) Helper.getThreadLocalValue("id");
 		Map<String, Object> map = new HashMap<>();
+		Map<String, Object> branchMap = new HashMap<>();
 
 		logger.info("Fetching dashboard details for user ID: {}", id);
 
@@ -44,17 +44,24 @@ public class FacadeHandler {
 			logger.info("Fetching transaction details for user ID: {}", id);
 			// Fetch transaction details
 			List<Transaction> transactions = new ArrayList<>();
+			List<Branch> branchDetails = new ArrayList<>();
+			Map<String, Object> txMap = new HashMap<>();
+
 			for (int i = 0; i < accounts.size(); i++) {
 				Account account = (Account) accounts.get(i);
-				Map<String, Object> txMap = new HashMap<>();
 				getTransactionMap(txMap, id, account.getAccountNumber(), 5l, 0l, 0l, -1l);
 				List<Transaction> accountTransactions = (List<Transaction>) transactionService
 						.getTransactionDetails(txMap).get("transactions");
 				transactions.addAll(accountTransactions);
+
+				// Branch fetch
+				branchMap.put("branchId", account.getBranchId());
+				Branch branch = branchService.getBranchDetails(branchMap).get(0);
+				branchDetails.add(branch);
 			}
 
-			logger.info(transactions);
 			map.put("transactions", transactions);
+			map.put("branch", branchDetails);
 
 			// Fetch user details based on role
 			String role = (String) Helper.getThreadLocalValue("role");
@@ -62,20 +69,6 @@ public class FacadeHandler {
 			userMap.put("role", role);
 			userMap.put("userId", id);
 			map.put("userDetail", userService.getUserDetails(userMap).get("users"));
-
-			// Fetch branch details for the accounts
-			logger.info("Fetching branch details for user ID: {}", id);
-			List<Object> branchDetails = new ArrayList<>();
-			BranchService branchService = new BranchService();
-			Map<String, Object> branchMap = new HashMap<>();
-			for (Account account : accounts) {
-				branchMap.put("branchId", account.getBranchId());
-				Object branch = branchService.getBranchDetails(branchMap).get(0);
-				if (!branchDetails.contains(branch)) {
-					branchDetails.add(branch);
-				}
-			}
-			map.put("branch", branchDetails);
 
 			logger.info("Adding monthly finance details for user ID: {}", id);
 			addMonthlyFinance(map, id, 3);

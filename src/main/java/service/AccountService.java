@@ -105,7 +105,7 @@ public class AccountService {
 	public Map<String, Object> getAccountDetails(Map<String, Object> accountMap) throws CustomException {
 		String key = "accountInfo";
 		Map<String, Object> accountsResult = new HashMap<>();
-		List<Object> cachedAccounts = cacheUtil.getCachedList(key, new TypeReference<List<Object>>() {
+		List<Account> cachedAccounts = cacheUtil.getCachedList(key, new TypeReference<List<Account>>() {
 		}, accountMap, "accountNumber");
 
 		if (cachedAccounts != null) {

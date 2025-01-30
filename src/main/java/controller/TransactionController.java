@@ -15,7 +15,7 @@ import util.Helper;
 
 public class TransactionController {
 
-	TransactionService transactionService = new TransactionService();
+	private TransactionService transactionService = TransactionService.getInstance();
 	private final Logger logger = LogManager.getLogger(TransactionController.class);
 
 	public void handleGet(HttpServletRequest request, HttpServletResponse response, Map<String, Object> txMap)

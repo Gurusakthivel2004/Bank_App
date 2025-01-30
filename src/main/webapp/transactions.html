@@ -13,9 +13,13 @@
 	src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.4.0/jspdf.umd.min.js"></script>
 <script
 	src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
-
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link
+	href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100..900;1,100..900&display=swap"
+	rel="stylesheet">
 </head>
-<body style="display: none">
+<body style="display: none; font-family: 'Roboto'">
 	<div>
 		<nav style="background-color: white; color: #2b0444;"
 			class="d-flex justify-content-between align-items-center shadow">
@@ -26,15 +30,17 @@
 					style="padding-right: 50px; font-family: sans-serif; letter-spacing: -0.5px; font-weight: 990; font-size: xxx-large; color: #2b0444;">Horizon</h1>
 			</div>
 			<div class="d-flex justify-content-between">
-				<div class="me-2">
-					<img onclick="toggleModal('employeeChatBox')"
-						src="./images/startchat.png" alt="Chat Logo"
-						style="width: 132px; height: 58px; cursor: pointer;">
+				<div class="me-3" id="employeeChatbutton">
+					<button onclick="toggleModal('employeeChatBox')" class="btn"
+						style="padding: 10px; border-radius: 15px;">
+						<img src="./images/support.svg" width="30px" height="30px"
+							title="support" />
+					</button>
 				</div>
 				<div class="me-2 position-relative" id="bellbutton">
 					<button id="notificationBell" class="btn"
-						style="background-color: #2b0444; padding: 10px; border-radius: 15px; position: relative;">
-						<img src="./images/bell-white.svg" width="30px" height="30px"
+						style="padding: 10px; border-radius: 15px; position: relative;">
+						<img src="./images/bell.svg" width="30px" height="30px"
 							alt="notification" /> <span id="notificationBadge" class="badge">0</span>
 					</button>
 					<div id="notificationDropdown" class="notification-dropdown">
@@ -42,23 +48,25 @@
 						<button id="loadMoreBtn" class="load-more-btn">Load More</button>
 					</div>
 				</div>
-				<div class="me-2" id="customerChatbutton">
-					<img onclick="toggleModal('chatBoxModel')"
-						src="./images/startchat.png" alt="Chat Logo"
-						style="width: 132px; height: 58px; cursor: pointer;">
+				<div class="me-3" id="customerChatbutton">
+					<button onclick="toggleModal('chatBoxModel')" class="btn"
+						style="padding: 10px; border-radius: 15px;">
+						<img src="./images/support.svg" width="30px" height="30px"
+							title="support" />
+					</button>
 				</div>
-				<div class="me-2" id="requestbutton">
-					<button class="btn"
-						style="background-color: #2b0444; padding: 10px; border-radius: 15px;">
+				<div class="me-3" id="requestbutton">
+					<button class="btn" style="padding: 10px; border-radius: 15px;">
 						<img onclick="toggleModal('newRequestModal')"
 							src="./images/request.svg" width="30px" height="30px"
-							alt="notification" />
+							title="notification" />
 					</button>
 				</div>
 				<div class="profile-dropdown">
 					<button class="btn" id="profileButton"
-						style="background-color: #2b0444; padding: 10px; border-radius: 15px;">
-						<img src="./images/profile.svg" width="30px" height="30px" alt="" />
+						style="padding: 10px; border-radius: 15px;">
+						<img src="./images/user.svg" width="30px" height="30px"
+							title="profile" />
 					</button>
 				</div>
 			</div>
@@ -240,7 +248,7 @@
 							:</span>
 						<div class="inputDiv d-flex"
 							style="width: 45%; position: relative;">
-							<input class="mb-0 px-2 py-1" id="account" required
+							<input class="mb-0 px-2 py-1" id="requestaccount" required
 								style="color: #2c3e50; border: 1px solid #ccc; border-radius: 10px; width: 75%; font-size: 16px; font-weight: 600; font-family: 'Arial', sans-serif; transition: border-color 0.3s ease, box-shadow 0.3s ease;"
 								autocomplete="off"
 								onfocus="this.style.borderColor='#2980b9'; this.style.boxShadow='0 0 8px rgba(41, 128, 185, 0.5)';"
@@ -275,7 +283,7 @@
 								style="width: 39%; color: #34495e; margin-left: 14%;">Amount
 								:</span>
 							<div class="inputDiv" style="width: 45%;">
-								<input required id="amount" value="0.0"
+								<input required id="requestamount" value="0.0"
 									class="accNumberInput rounded p-1 px-2 w-30 bg-white"
 									style="border: 1px solid #ccc; border-radius: 10px; width: 75%; font-size: 17px; transition: border-color 0.3s ease, box-shadow 0.3s ease;"
 									onfocus="this.style.borderColor='#2980b9'; this.style.boxShadow='0 0 8px rgba(41, 128, 185, 0.5)';"
@@ -361,7 +369,7 @@
 						style="width: max-content; display: flex; align-items: center; justify-content: center; background-color: #2980b9; color: white; font-size: 16px; font-family: Arial, sans-serif; font-weight: bold; padding: 10px 20px; border: none; border-radius: 8px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); cursor: pointer; transition: background-color 0.3s ease, transform 0.2s ease;"
 						onmouseover="this.style.backgroundColor='#2471A3'; this.style.transform='scale(1.05)';"
 						onmouseout="this.style.backgroundColor='#2980b9'; this.style.transform='scale(1)';">
-						<img src="./images/request.svg" alt="Save Icon"
+						<img src="./images/request-white.svg" alt="Save Icon"
 							style="width: 20px; height: 20px; margin-right: 10px;">
 						Request
 					</button>
