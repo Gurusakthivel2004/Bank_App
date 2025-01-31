@@ -53,6 +53,7 @@ public class TransactionService {
 		lockWithCounter.lock();
 	}
 
+	// set
 	private static void releaseLock(long accountNumber) {
 		LockWithCounter lockWithCounter = accountLocks.get(accountNumber);
 		if (lockWithCounter != null && lockWithCounter.lock.isHeldByCurrentThread()) {
