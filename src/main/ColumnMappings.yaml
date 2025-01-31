@@ -136,8 +136,6 @@ classes:
         columnName: "closing_balance"
       bankName:
         columnName: "bank_name"
-      ifsc:
-        columnName: "ifsc"
       transactionIfsc:
         columnName: "transaction_ifsc"
       transactionTime:

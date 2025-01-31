@@ -1,6 +1,7 @@
 package model;
 
 import java.math.BigDecimal;
+
 import Enum.Constants.TransactionStatus;
 import Enum.Constants.TransactionType;
 
@@ -15,7 +16,6 @@ public class Transaction extends MarkedClass {
 	private String remarks;
 	private BigDecimal amount;
 	private BigDecimal closingBalance;
-	private String ifsc;
 	private String transactionIfsc;
 	private String bankName;
 	private Long transactionTime;
@@ -140,14 +140,6 @@ public class Transaction extends MarkedClass {
 		this.performedBy = performedBy;
 	}
 
-	public String getIfsc() {
-		return ifsc;
-	}
-
-	public void setIfsc(String ifsc) {
-		this.ifsc = ifsc;
-	}
-
 	public String getBankName() {
 		return bankName;
 	}
@@ -169,7 +161,7 @@ public class Transaction extends MarkedClass {
 		return "Transaction [id=" + id + ", customerId=" + customerId + ", accountNumber=" + accountNumber
 				+ ", transactionAccountNumber=" + transactionAccountNumber + ", transactionType=" + transactionType
 				+ ", status=" + transactionStatus + ", remarks=" + remarks + ", amount=" + amount + ", closingBalance="
-				+ closingBalance + ", ifsc=" + ifsc + ", transactionIfsc=" + transactionIfsc + ", bankName=" + bankName
+				+ closingBalance + ", transactionIfsc=" + transactionIfsc + ", bankName=" + bankName
 				+ ", transactionTime=" + transactionTime + ", performedBy=" + performedBy + "]";
 	}
 }

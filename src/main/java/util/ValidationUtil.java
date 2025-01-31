@@ -20,9 +20,7 @@ import model.Branch;
 import model.CustomerDetail;
 import model.MarkedClass;
 import model.Staff;
-import model.Transaction;
 import model.User;
-import service.BranchService;
 
 public class ValidationUtil {
 
@@ -131,13 +129,14 @@ public class ValidationUtil {
 		if (instance == null) {
 			throw new CustomException("Instance cannot be null.", HttpStatusCodes.BAD_REQUEST);
 		}
-
+		List<String> ignoredFields = Arrays.asList("id", "transactionIfsc");
 		StringBuilder errorMessages = new StringBuilder();
 		for (Field field : clazz.getDeclaredFields()) {
-			field.setAccessible(true);
-			if (field.getName().equals("id")) {
+			if (ignoredFields.contains(field.getName())) {
 				continue;
 			}
+
+			field.setAccessible(true);
 			try {
 				Object value = field.get(instance);
 				if (value == null || (value instanceof String && ((String) value).trim().isEmpty())
@@ -162,18 +161,6 @@ public class ValidationUtil {
 			return true;
 		}
 		return accounts.stream().anyMatch(account -> account.getBranchId().equals(branchId));
-	}
-
-	public static boolean getAssignedTransactions(List<Transaction> transactions, Long branchId)
-			throws CustomException {
-		if (transactions == null || transactions.isEmpty()) {
-			return true;
-		}
-		BranchService branchService = new BranchService();
-		Map<String, Object> branchMap = new HashMap<>();
-		branchMap.put("branchId", branchId);
-		Branch branchDetails = branchService.getBranchDetails(branchMap).get(0);
-		return transactions.stream().allMatch(transaction -> transaction.getIfsc().equals(branchDetails.getIfscCode()));
 	}
 
 	public static void validateCustomerModel(CustomerDetail user) throws CustomException {
@@ -265,6 +252,21 @@ public class ValidationUtil {
 			break;
 		default:
 			break;
+		}
+	}
+
+	public static void validateTransactionAmount(BigDecimal transactionAmount, Account account) throws CustomException {
+		try {
+			if (transactionAmount.compareTo(BigDecimal.ZERO) <= 0) {
+				throw new CustomException("Enter an amount greater than 0.", HttpStatusCodes.BAD_REQUEST);
+			}
+
+			BigDecimal accountBalance = account.getBalance();
+			if (accountBalance.compareTo(transactionAmount) < 0) {
+				throw new CustomException("Insufficient balance.", HttpStatusCodes.BAD_REQUEST);
+			}
+		} catch (NumberFormatException e) {
+			throw new CustomException("Invalid amount format", HttpStatusCodes.BAD_REQUEST);
 		}
 	}
 

@@ -6,13 +6,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import Enum.Constants.AccountType;
 import Enum.Constants.HttpStatusCodes;
-import Enum.Constants.LogType;
 import Enum.Constants.Role;
 import Enum.Constants.TransactionStatus;
 import Enum.Constants.TransactionType;
@@ -20,8 +20,6 @@ import dao.AccountDAO;
 import dao.DAO;
 import dao.TransactionDAO;
 import model.Account;
-import model.ActivityLog;
-import model.Branch;
 import model.ColumnCriteria;
 import model.Transaction;
 import util.CustomException;
@@ -32,7 +30,7 @@ public class TransactionService {
 
 	private final Logger logger = LogManager.getLogger(TransactionService.class.getName());
 	private DAO<Transaction> transactionDAO = new TransactionDAO();
-	private static final ConcurrentHashMap<Long, Object> accountLocks = new ConcurrentHashMap<>();
+	private static final Map<Long, ReentrantLock> LOCK_MAP = new ConcurrentHashMap<>();
 
 	private TransactionService() {
 	}
@@ -43,6 +41,23 @@ public class TransactionService {
 
 	public static TransactionService getInstance() {
 		return SingletonHelper.INSTANCE;
+	}
+
+	private static ReentrantLock getLock(long accountNumber) {
+		return LOCK_MAP.computeIfAbsent(accountNumber, k -> new ReentrantLock());
+	}
+
+	private void releaseLock(long accountNumber, ReentrantLock lock) {
+		try {
+			if (lock.isHeldByCurrentThread()) {
+				lock.unlock();
+				LOCK_MAP.remove(accountNumber);
+			} else {
+				logger.warn("Lock is not held by the current thread for account: {}", accountNumber);
+			}
+		} catch (IllegalMonitorStateException e) {
+			logger.warn("Failed to release lock for account {}: {}", accountNumber, e.getMessage());
+		}
 	}
 
 	public Map<String, Object> getTransactionDetails(Map<String, Object> txMap) throws CustomException {
@@ -108,38 +123,38 @@ public class TransactionService {
 
 	public void prepareTransaction(Map<String, Object> transactionMap) throws CustomException {
 		long accountNumber = Long.parseLong((String) transactionMap.get("accountNumber"));
-		long transactionAccountNumber = Long.parseLong((String) transactionMap.get("transactionAccountNumber"));
 
-		Object firstAccountLock = accountLocks.computeIfAbsent(accountNumber, k -> new Object());
-		Object secondAccountLock = accountLocks.computeIfAbsent(transactionAccountNumber, k -> new Object());
+		TransactionType transactionType = TransactionType.fromString((String) transactionMap.get("transactionType"));
+		logger.info("Initiating transaction creation...");
 
-		synchronized (firstAccountLock) {
-			synchronized (secondAccountLock) {
-				logger.info("Initiating transaction creation...");
+		long branchId = Long.parseLong((String) transactionMap.get("branchId"));
+		Transaction transaction;
+		Account account;
+		BigDecimal amount = parseTransactionAmount(transactionMap), closingBalance;
+		ReentrantLock lock = getLock(accountNumber);
+		lock.lock();
+		try {
+			account = getAccount(accountNumber);
+			ValidationUtil.validateTransactionAmount(amount, account);
 
-				long branchId = Long.parseLong((String) transactionMap.get("branchId"));
+			closingBalance = computeClosingBalance(transactionType, amount, account);
+			updateAccountBalance(accountNumber, closingBalance);
 
-				Account account = getAccount(accountNumber);
-				long customerId = account.getUserId();
-
-				String ifsc = getIfsc(branchId);
-				transactionMap.put("ifsc", ifsc);
-				transactionMap.remove("branchId");
-				logger.debug("IFSC code retrieved and set for branch ID: {}", branchId);
-
-				if ("Horizon".equals(transactionMap.get("bankName"))) {
-					handleHorizonTransaction(transactionMap, transactionAccountNumber);
-				}
-
-				transactionMap.put("customerId", customerId);
-				Transaction transaction = Helper.createPojoFromMap(transactionMap, Transaction.class);
-
-				logger.info("Transaction object validation passed. Proceeding with transaction creation...");
-				prepareRecipientTransaction(transaction, "Horizon".equals(transaction.getBankName()), account,
-						branchId);
-				logger.info("Transaction successfully created for account number: {}", transaction.getAccountNumber());
-			}
+		} finally {
+			releaseLock(accountNumber, lock);
 		}
+
+		long customerId = account.getUserId();
+
+		transactionMap.remove("branchId");
+
+		transactionMap.put("customerId", customerId);
+		transaction = Helper.createPojoFromMap(transactionMap, Transaction.class);
+
+		transaction.setClosingBalance(closingBalance);
+
+		prepareRecipientTransaction(transaction, "Horizon".equals(transaction.getBankName()), account, branchId);
+		logger.info("Transaction successfully created for account number: {}", transaction.getAccountNumber());
 	}
 
 	private Account getAccount(long accountNumber) throws CustomException {
@@ -151,6 +166,17 @@ public class TransactionService {
 			throw new CustomException("Account not found", HttpStatusCodes.BAD_REQUEST);
 		}
 		return accounts.get(0);
+	}
+
+	private void updateAccountBalance(long accountNumber, BigDecimal closingBalance) throws CustomException {
+		AccountDAO accountDAO = new AccountDAO();
+		Map<String, Object> accountMap = new HashMap<>();
+		accountMap.put("accountNumber", accountNumber);
+
+		ColumnCriteria columnCriteria = new ColumnCriteria().setFields(Arrays.asList("balance"))
+				.setValues(Arrays.asList(closingBalance));
+
+		accountDAO.update(columnCriteria, accountMap);
 	}
 
 	private void checkRoleAuthorization(Role role, Transaction transaction, Account account, Long userId, long branchId)
@@ -169,35 +195,13 @@ public class TransactionService {
 		}
 	}
 
-	private String getIfsc(long branchId) throws CustomException {
-		BranchService branchService = new BranchService();
-		Map<String, Object> branchMap = new HashMap<>();
-		branchMap.put("notExact", false);
-		branchMap.put("branchId", branchId);
-
-		List<Branch> branches = branchService.getBranchDetails(branchMap);
-		return branches.get(0).getIfscCode();
-	}
-
-	private void handleHorizonTransaction(Map<String, Object> transactionMap, long transactionAccountNumber)
-			throws CustomException {
-		logger.debug("Bank name is Horizon. Retrieving transaction IFSC...");
-
-		Account transactionAccount = getAccount(transactionAccountNumber);
-		if (transactionAccount == null) {
-			throw new CustomException("Transaction Account does not exist", HttpStatusCodes.BAD_REQUEST);
+	private BigDecimal parseTransactionAmount(Map<String, Object> transactionMap) throws CustomException {
+		try {
+			double amount = Double.parseDouble((String) transactionMap.get("amount"));
+			return BigDecimal.valueOf(amount);
+		} catch (NumberFormatException e) {
+			throw new CustomException("Invalid amount format", HttpStatusCodes.BAD_REQUEST);
 		}
-
-		Map<String, Object> branchMap = new HashMap<>();
-		branchMap.put("branchId", transactionAccount.getBranchId());
-
-		List<Branch> branches = new BranchService().getBranchDetails(branchMap);
-		if (branches.isEmpty()) {
-			throw new CustomException("Branch for transaction account not found", HttpStatusCodes.BAD_REQUEST);
-		}
-
-		String transactionIfsc = branches.get(0).getIfscCode();
-		transactionMap.put("transactionIfsc", transactionIfsc);
 	}
 
 	public void prepareRecipientTransaction(Transaction transaction, boolean thisBank, Account account, long branchId)
@@ -215,19 +219,26 @@ public class TransactionService {
 
 	private void processTransactionForThisBank(Transaction transaction, Long txId, Account account)
 			throws CustomException {
-		TransactionType txType = transaction.getTransactionTypeEnum();
 
 		Long transactionUserId = account.getUserId();
 		updateTransactionDetails(transaction, transactionUserId, txId);
-
-		if (txType == TransactionType.Debit) {
-			transaction.setTransactionTypeEnum(TransactionType.Credit);
-		} else if (txType == TransactionType.Default) {
-			transaction.setTransactionTypeEnum(TransactionType.Withdraw);
-		}
-
+		long accountNumber = transaction.getAccountNumber();
+		ReentrantLock lock = getLock(accountNumber);
+		lock.lock();
 		try {
-			account = getAccount(transaction.getAccountNumber());
+			try {
+				account = getAccount(accountNumber);
+				ValidationUtil.validateTransactionAmount(transaction.getAmount(), account);
+
+				BigDecimal closingBalance = computeClosingBalance(transaction.getTransactionTypeEnum(),
+						transaction.getAmount(), account);
+				updateAccountBalance(accountNumber, closingBalance);
+				transaction.setClosingBalance(closingBalance);
+
+			} finally {
+				releaseLock(accountNumber, lock);
+			}
+
 			createTransaction(transaction, account);
 		} catch (Exception e) {
 			cancelTransaction(txId);
@@ -235,17 +246,19 @@ public class TransactionService {
 	}
 
 	private void updateTransactionDetails(Transaction transaction, Long transactionUserId, Long txId) {
-		String transactionIfsc = transaction.getTransactionIfsc();
-		String ifsc = transaction.getIfsc();
 		Long accountNumber = transaction.getAccountNumber();
 		Long transactionAccountNumber = transaction.getTransactionAccountNumber();
+		TransactionType txType = transaction.getTransactionTypeEnum();
 
-		transaction.setIfsc(transactionIfsc);
-		transaction.setTransactionIfsc(ifsc);
 		transaction.setAccountNumber(transactionAccountNumber);
 		transaction.setTransactionAccountNumber(accountNumber);
 		transaction.setCustomerId(transactionUserId);
 		transaction.setId(txId);
+		if (txType == TransactionType.Debit) {
+			transaction.setTransactionTypeEnum(TransactionType.Credit);
+		} else if (txType == TransactionType.Default) {
+			transaction.setTransactionTypeEnum(TransactionType.Withdraw);
+		}
 	}
 
 	private void cancelTransaction(Long txId) throws CustomException {
@@ -262,31 +275,8 @@ public class TransactionService {
 			Long txId;
 			setInitialTransactionDetails(transaction);
 
-			try {
-				BigDecimal amount = transaction.getAmount();
-
-				if (amount.compareTo(BigDecimal.ZERO) <= 0) {
-					throw new CustomException("Enter an amount greater than 0.", HttpStatusCodes.BAD_REQUEST);
-				}
-
-				BigDecimal accountBalance = account.getBalance();
-				if (accountBalance.compareTo(amount) < 0) {
-					throw new CustomException("Insufficient balance.", HttpStatusCodes.BAD_REQUEST);
-				}
-
-			} catch (NumberFormatException e) {
-				throw new CustomException("Invalid amount format", HttpStatusCodes.BAD_REQUEST);
-			}
-			if (account.getAccountTypeEnum() == AccountType.Operational) {
-				transaction.setTransactionTypeEnum(TransactionType.Default);
-			}
-			BigDecimal closingBalance = computeClosingBalance(transaction, account);
-			transaction.setClosingBalance(closingBalance);
 			ValidationUtil.validateModel(transaction, Transaction.class);
 			txId = saveTransaction(transaction);
-			updateAccountBalance(transaction, closingBalance);
-
-			logTransactionActivity(transaction, txId);
 
 			return txId;
 		} catch (Exception e) {
@@ -302,24 +292,22 @@ public class TransactionService {
 		transaction.setPerformedBy((Long) Helper.getThreadLocalValue("id"));
 	}
 
-	private BigDecimal computeClosingBalance(Transaction transaction, Account account) throws CustomException {
+	private BigDecimal computeClosingBalance(TransactionType transactionType, BigDecimal amount, Account account)
+			throws CustomException {
 		BigDecimal accountBalance = account.getBalance();
-		BigDecimal amount = transaction.getAmount();
-		TransactionType transactionType = transaction.getTransactionTypeEnum();
-		logger.debug("Processing transaction for account number: {} with type: {}", transaction.getAccountNumber(),
+		logger.debug("Processing transaction for account number: {} with type: {}", account.getAccountNumber(),
 				transactionType);
-
 		switch (transactionType) {
 		case Credit:
 			return accountBalance.add(amount);
 		case Withdraw:
 		case Debit:
+			if (account.getAccountTypeEnum() == AccountType.Operational) {
+				return accountBalance;
+			}
 			return accountBalance.subtract(amount);
 		case Deposit:
-			return computeDepositBalance(accountBalance, transaction, account);
-		case Default:
-			transaction.setTransactionTypeEnum(TransactionType.Withdraw);
-			return accountBalance;
+			return computeDepositBalance(accountBalance, amount, account);
 		default:
 			logger.error("Invalid transaction type: {}", transactionType);
 			throw new CustomException("Invalid transaction type: " + transactionType, HttpStatusCodes.BAD_REQUEST);
@@ -332,32 +320,13 @@ public class TransactionService {
 		return txId;
 	}
 
-	private void updateAccountBalance(Transaction transaction, BigDecimal closingBalance) throws CustomException {
-		AccountDAO accountDAO = new AccountDAO();
-		Map<String, Object> accountMap = new HashMap<>();
-		accountMap.put("accountNumber", transaction.getAccountNumber());
-
-		ColumnCriteria columnCriteria = new ColumnCriteria().setFields(Arrays.asList("balance"))
-				.setValues(Arrays.asList(closingBalance));
-
-		accountDAO.update(columnCriteria, accountMap);
-	}
-
-	private void logTransactionActivity(Transaction transaction, Long txId) {
-		ActivityLog activityLog = new ActivityLog().setLogMessage("Transaction created").setLogType(LogType.Insert)
-				.setUserAccountNumber(transaction.getAccountNumber()).setRowId(txId).setTableName("Transaction")
-				.setUserId(transaction.getCustomerId());
-
-		TaskExecutorService.getInstance().submit(activityLog);
-	}
-
-	private BigDecimal computeDepositBalance(BigDecimal accountBalance, Transaction transaction, Account account)
+	private BigDecimal computeDepositBalance(BigDecimal accountBalance, BigDecimal amount, Account account)
 			throws CustomException {
 		logger.info("Computing deposit balance...");
 		if (!(AccountType.Operational == account.getAccountTypeEnum())) {
-			return accountBalance.add(transaction.getAmount());
+			return accountBalance.add(amount);
 		} else {
-			return accountBalance.subtract(transaction.getAmount());
+			return accountBalance.subtract(amount);
 		}
 	}
 

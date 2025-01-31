@@ -6,16 +6,12 @@ import java.util.Map;
 
 import Enum.Constants.HttpStatusCodes;
 import Enum.Constants.Role;
-
 import dao.AccountDAO;
 import dao.DAO;
-
 import model.Account;
 import model.Branch;
 import model.MarkedClass;
-import model.Transaction;
 import model.User;
-
 import util.CustomException;
 import util.Helper;
 import util.ValidationUtil;
@@ -33,8 +29,6 @@ public class AuthorizationService {
 			return isAccountAuthorized(data);
 		case "user":
 			return isUserAuthorized(data);
-		case "transaction":
-			return isTransactionAuthorized(data);
 		default:
 			return false;
 		}
@@ -98,24 +92,6 @@ public class AuthorizationService {
 			return users.stream().allMatch(user -> ((User) user).getId() == userId);
 		case Manager:
 		case Employee:
-			return true;
-		default:
-			return false;
-		}
-	}
-
-	@SuppressWarnings("unchecked")
-	public boolean isTransactionAuthorized(List<? extends MarkedClass> transactions) throws CustomException {
-		if (!transactions.isEmpty() && !(transactions.get(0) instanceof Transaction)) {
-			throw new CustomException("Invalid transaction data", HttpStatusCodes.BAD_REQUEST);
-		}
-		Role role = Role.fromString((String) Helper.getThreadLocalValue("role"));
-		switch (role) {
-		case Customer:
-			return transactions.stream().allMatch(transaction -> ((Transaction) transaction).getCustomerId() == userId);
-		case Employee:
-			return ValidationUtil.getAssignedTransactions((List<Transaction>) transactions, branchId);
-		case Manager:
 			return true;
 		default:
 			return false;
