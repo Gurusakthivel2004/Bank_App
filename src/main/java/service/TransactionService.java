@@ -59,7 +59,7 @@ public class TransactionService {
 			logger.warn("Failed to release lock for account {}: {}", accountNumber, e.getMessage());
 		}
 	}
-
+	//
 	public Map<String, Object> getTransactionDetails(Map<String, Object> txMap) throws CustomException {
 		try {
 			Long customerId = (Long) txMap.get("customerId");

@@ -1,2 +1,8 @@
-/build/
-/target/
+logs/
+target/
+build/
+.DS_Store
+Thumbs.db
+*.log
+*.class
+app.log
