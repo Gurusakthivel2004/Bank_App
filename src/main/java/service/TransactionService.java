@@ -6,6 +6,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.logging.log4j.LogManager;
@@ -30,7 +31,7 @@ public class TransactionService {
 
 	private final Logger logger = LogManager.getLogger(TransactionService.class.getName());
 	private DAO<Transaction> transactionDAO = new TransactionDAO();
-	private static final Map<Long, ReentrantLock> LOCK_MAP = new ConcurrentHashMap<>();
+	private static final ConcurrentHashMap<Long, LockWithCounter> accountLocks = new ConcurrentHashMap<>();
 
 	private TransactionService() {
 	}
@@ -43,23 +44,44 @@ public class TransactionService {
 		return SingletonHelper.INSTANCE;
 	}
 
-	private static ReentrantLock getLock(long accountNumber) {
-		return LOCK_MAP.computeIfAbsent(accountNumber, k -> new ReentrantLock());
+	private static LockWithCounter getLock(long accountNumber) {
+		return accountLocks.computeIfAbsent(accountNumber, k -> new LockWithCounter(new ReentrantLock()));
 	}
 
-	private void releaseLock(long accountNumber, ReentrantLock lock) {
-		try {
-			if (lock.isHeldByCurrentThread()) {
-				lock.unlock();
-				LOCK_MAP.remove(accountNumber);
-			} else {
-				logger.warn("Lock is not held by the current thread for account: {}", accountNumber);
+	private static void lockAccount(long accountNumber) {
+		LockWithCounter lockWithCounter = getLock(accountNumber);
+		lockWithCounter.lock();
+	}
+
+	private static void releaseLock(long accountNumber) {
+		LockWithCounter lockWithCounter = accountLocks.get(accountNumber);
+		if (lockWithCounter != null && lockWithCounter.lock.isHeldByCurrentThread()) {
+			lockWithCounter.unlock();
+			if (lockWithCounter.count.decrementAndGet() == 0) {
+				accountLocks.remove(accountNumber);
 			}
-		} catch (IllegalMonitorStateException e) {
-			logger.warn("Failed to release lock for account {}: {}", accountNumber, e.getMessage());
 		}
 	}
-	//
+
+	private static class LockWithCounter {
+		private final ReentrantLock lock;
+		private final AtomicInteger count;
+
+		public LockWithCounter(ReentrantLock lock) {
+			this.lock = lock;
+			this.count = new AtomicInteger(0);
+		}
+
+		public void lock() {
+			lock.lock();
+			count.incrementAndGet();
+		}
+
+		public void unlock() {
+			lock.unlock();
+		}
+	}
+
 	public Map<String, Object> getTransactionDetails(Map<String, Object> txMap) throws CustomException {
 		try {
 			Long customerId = (Long) txMap.get("customerId");
@@ -123,6 +145,7 @@ public class TransactionService {
 
 	public void prepareTransaction(Map<String, Object> transactionMap) throws CustomException {
 		long accountNumber = Long.parseLong((String) transactionMap.get("accountNumber"));
+		long transactionAccountNumber = Long.parseLong((String) transactionMap.get("transactionAccountNumber"));
 
 		TransactionType transactionType = TransactionType.fromString((String) transactionMap.get("transactionType"));
 		logger.info("Initiating transaction creation...");
@@ -131,30 +154,35 @@ public class TransactionService {
 		Transaction transaction;
 		Account account;
 		BigDecimal amount = parseTransactionAmount(transactionMap), closingBalance;
-		ReentrantLock lock = getLock(accountNumber);
-		lock.lock();
+
+		long firstLock = Math.min(accountNumber, transactionAccountNumber);
+		long secondLock = Math.max(accountNumber, transactionAccountNumber);
+
+		lockAccount(firstLock);
+		lockAccount(secondLock);
 		try {
+
 			account = getAccount(accountNumber);
 			ValidationUtil.validateTransactionAmount(amount, account);
 
 			closingBalance = computeClosingBalance(transactionType, amount, account);
 			updateAccountBalance(accountNumber, closingBalance);
 
+			long customerId = account.getUserId();
+
+			transactionMap.remove("branchId");
+			transactionMap.put("customerId", customerId);
+			transaction = Helper.createPojoFromMap(transactionMap, Transaction.class);
+
+			transaction.setClosingBalance(closingBalance);
+
+			prepareRecipientTransaction(transaction, "Horizon".equals(transaction.getBankName()), account, branchId);
+			logger.info("Transaction successfully created for account number: {}", transaction.getAccountNumber());
+
 		} finally {
-			releaseLock(accountNumber, lock);
+			releaseLock(secondLock);
+			releaseLock(firstLock);
 		}
-
-		long customerId = account.getUserId();
-
-		transactionMap.remove("branchId");
-
-		transactionMap.put("customerId", customerId);
-		transaction = Helper.createPojoFromMap(transactionMap, Transaction.class);
-
-		transaction.setClosingBalance(closingBalance);
-
-		prepareRecipientTransaction(transaction, "Horizon".equals(transaction.getBankName()), account, branchId);
-		logger.info("Transaction successfully created for account number: {}", transaction.getAccountNumber());
 	}
 
 	private Account getAccount(long accountNumber) throws CustomException {
@@ -222,22 +250,16 @@ public class TransactionService {
 
 		Long transactionUserId = account.getUserId();
 		updateTransactionDetails(transaction, transactionUserId, txId);
-		long accountNumber = transaction.getAccountNumber();
-		ReentrantLock lock = getLock(accountNumber);
-		lock.lock();
+
 		try {
-			try {
-				account = getAccount(accountNumber);
-				ValidationUtil.validateTransactionAmount(transaction.getAmount(), account);
+			long accountNumber = transaction.getAccountNumber();
+			account = getAccount(accountNumber);
+			ValidationUtil.validateTransactionAmount(transaction.getAmount(), account);
 
-				BigDecimal closingBalance = computeClosingBalance(transaction.getTransactionTypeEnum(),
-						transaction.getAmount(), account);
-				updateAccountBalance(accountNumber, closingBalance);
-				transaction.setClosingBalance(closingBalance);
-
-			} finally {
-				releaseLock(accountNumber, lock);
-			}
+			BigDecimal closingBalance = computeClosingBalance(transaction.getTransactionTypeEnum(),
+					transaction.getAmount(), account);
+			updateAccountBalance(accountNumber, closingBalance);
+			transaction.setClosingBalance(closingBalance);
 
 			createTransaction(transaction, account);
 		} catch (Exception e) {
