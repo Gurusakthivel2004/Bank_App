@@ -16,7 +16,7 @@ import service.BranchService;
 import util.Helper;
 
 public class BranchController {
-	
+
 	private BranchController() {}
 
 	private static class SingletonHelper {

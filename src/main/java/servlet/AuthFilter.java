@@ -91,7 +91,7 @@ public class AuthFilter extends HttpFilter implements Filter {
 		if (!handler.equals("oauth") && !checkPermissions(role, handler, request, response)) {
 			return;
 		}
-		
+
 		try {
 			chain.doFilter(request, response);
 		} finally {

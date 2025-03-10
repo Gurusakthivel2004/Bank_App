@@ -48,8 +48,11 @@ import com.google.gson.JsonParser;
 import com.google.gson.JsonPrimitive;
 
 import enums.Constants.HttpStatusCodes;
+import enums.Constants.Role;
 import enums.Constants.ValidQueryParams;
 import io.github.cdimascio.dotenv.Dotenv;
+import model.User;
+import service.UserService;
 import util.ColumnYamlUtil.ClassMapping;
 
 public class Helper {
@@ -425,6 +428,36 @@ public class Helper {
 		} catch (NumberFormatException e) {
 			return defaultValue;
 		}
+	}
+
+	public static String getTokenFromCookies(HttpServletRequest request) {
+		if (request.getCookies() != null) {
+			for (Cookie cookie : request.getCookies()) {
+				if ("token".equals(cookie.getName())) {
+					return cookie.getValue();
+				}
+			}
+		}
+		return null;
+	}
+
+	public static Map<String, Object> getClaimsFromId(Long userId) throws Exception {
+		if (userId == null) {
+			throw new IllegalArgumentException("User ID cannot be null or empty");
+		}
+
+		User user = UserService.getInstance().getUserById(userId);
+		Role role = user.getRoleEnum();
+
+		Map<String, Object> claimsMap = new HashMap<>();
+		claimsMap.put("id", userId);
+		claimsMap.put("role", user.getRole());
+		claimsMap.put("username", user.getUsername());
+
+		if (role != Role.Customer) {
+			UserService.getInstance().addStaffDetails(claimsMap, user);
+		}
+		return claimsMap;
 	}
 
 	public static Long parseDateToMillisOrDefault(String param, Long defaultValue) {

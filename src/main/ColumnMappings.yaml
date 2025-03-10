@@ -39,6 +39,8 @@ classes:
         columnName: "username"
       password:
         columnName: "password"
+      passwordVersion:
+        columnName: "password_version"
       status:
         columnName: "status"
       createdAt:

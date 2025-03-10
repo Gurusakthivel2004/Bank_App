@@ -55,7 +55,7 @@ public class OauthCallbackController {
 		if (provider == null || code == null) {
 			Helper.sendJsonResponse(response, HttpStatusCodes.BAD_REQUEST, "Invalid Oauth callback.", null);
 			return;
-		}
+		} 
 
 		Dotenv dotenv = Helper.loadDotEnv();
 		String providerCap = provider.toUpperCase();
