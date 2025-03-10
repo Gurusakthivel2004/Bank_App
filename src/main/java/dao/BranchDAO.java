@@ -8,7 +8,7 @@ import java.util.Map;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import Enum.Constants.HttpStatusCodes;
+import enums.Constants.HttpStatusCodes;
 import model.Branch;
 import model.ColumnCriteria;
 import model.Criteria;
@@ -18,9 +18,19 @@ import util.SQLHelper;
 
 public class BranchDAO implements DAO<Branch> {
 
-	private static final Logger logger = LogManager.getLogger(BranchDAO.class);
+	private static Logger logger = LogManager.getLogger(BranchDAO.class);
+	
+	private BranchDAO() {}
 
-	public Long create(Branch branch) throws CustomException {
+	private static class SingletonHelper {
+		private static final BranchDAO INSTANCE = new BranchDAO();
+	}
+
+	public static BranchDAO getInstance() {
+		return SingletonHelper.INSTANCE;
+	}
+
+	public long create(Branch branch) throws Exception {
 		logger.info("Starting branch creation...");
 
 		Helper.checkNullValues(branch);
@@ -28,14 +38,7 @@ public class BranchDAO implements DAO<Branch> {
 				.setIfscCode("temp");
 
 		Long branchId;
-		try {
-			branchId = ((BigInteger) SQLHelper.insert(branch)).longValue();
-		} catch (CustomException ce) {
-			throw ce;
-		} catch (Exception e) {
-			logger.error("Error while inserting branch record", e);
-			throw new CustomException("Failed to create branch", HttpStatusCodes.INTERNAL_SERVER_ERROR);
-		}
+		branchId = ((BigInteger) SQLHelper.insert(branch)).longValue();
 
 		logger.info("Branch created successfully with ID: " + branchId);
 
@@ -44,59 +47,40 @@ public class BranchDAO implements DAO<Branch> {
 				Arrays.asList(ifscCode));
 		Criteria criteria = DAOHelper.createCriteria(Branch.class, "id", "EQUAL_TO", branchId);
 
-		try {
-			SQLHelper.update(columnCriteria, criteria);
-			logger.info("IFSC code updated successfully: " + ifscCode);
-		} catch (CustomException e) {
-			throw e;
-		} catch (Exception e) {
-			logger.error("Error while updating IFSC code", e);
-			throw new CustomException("Failed to update IFSC code for branch ID: " + branchId,
-					HttpStatusCodes.INTERNAL_SERVER_ERROR);
-		}
+		SQLHelper.update(columnCriteria, criteria);
+		logger.info("IFSC code updated successfully: " + ifscCode);
+
 		return branchId;
 	}
 
-	public void update(ColumnCriteria columnCriterias, Map<String, Object> branchMap) throws CustomException {
+	public void update(ColumnCriteria columnCriterias, Map<String, Object> branchMap) throws Exception {
 		Criteria criteria = new Criteria().setClazz(Branch.class);
 		DAOHelper.addConditionIfPresent(criteria, branchMap, "branchId", "id", "EQUAL_TO", 0l);
-		try {
-			SQLHelper.update(columnCriterias, criteria);
-			logger.info("Branch details updated successfully");
-		} catch (CustomException e) {
-			throw e;
-		} catch (Exception e) {
-			logger.error("Error while updating branch details. ", e);
-			throw new CustomException("Failed to update branch details.", HttpStatusCodes.INTERNAL_SERVER_ERROR);
-		}
+
+		SQLHelper.update(columnCriterias, criteria);
+		logger.info("Branch details updated successfully");
+
 	}
 
-	public List<Branch> get(Map<String, Object> branchMap) throws CustomException {
+	public List<Branch> get(Map<String, Object> branchMap) throws Exception {
 		Long branchId = (Long) branchMap.get("branchId");
 		Criteria criteria = DAOHelper.createCriteria(Branch.class, "id", "EQUAL_TO", branchId)
 				.setSelectColumn(Arrays.asList("*"));
-		try {
-			if (branchMap.containsKey("notExact")) {
-				criteria.setColumn(Arrays.asList("id", "id")).setOperator(Arrays.asList("EQUAL_TO", "LIKE"))
-						.setValue(Arrays.asList(branchId, "%" + branchId + "%")).setLimitValue(1)
-						.setLogicalOperator("OR");
-			}
-			List<Branch> branches = SQLHelper.get(criteria, Branch.class);
-			if (branches.isEmpty()) {
-				throw new CustomException("No result found for the id " + branchId, HttpStatusCodes.BAD_REQUEST);
-			}
-			logger.info("Branch details fetched successfully for ID: " + branchId);
-			return branches;
-		} catch (CustomException e) {
-			throw e;
-		} catch (Exception e) {
-			logger.error("Error while fetching branch details for ID: " + branchId, e);
-			throw new CustomException("Failed to fetch branch details for ID: " + branchId,
-					HttpStatusCodes.INTERNAL_SERVER_ERROR);
+
+		if (branchMap.containsKey("notExact")) {
+			criteria.setColumn(Arrays.asList("id", "id")).setOperator(Arrays.asList("EQUAL_TO", "LIKE"))
+					.setValue(Arrays.asList(branchId, "%" + branchId + "%")).setLimitValue(1).setLogicalOperator("OR");
 		}
+		List<Branch> branches = SQLHelper.get(criteria, Branch.class);
+		if (branches.isEmpty()) {
+			throw new CustomException("No result found for the id " + branchId, HttpStatusCodes.BAD_REQUEST);
+		}
+		logger.info("Branch details fetched successfully for ID: " + branchId);
+		return branches;
+
 	}
 
-	public Long getDataCount(Map<String, Object> txMap) throws CustomException {
-		return null;
+	public long getDataCount(Map<String, Object> txMap) throws CustomException {
+		return 0;
 	}
 }

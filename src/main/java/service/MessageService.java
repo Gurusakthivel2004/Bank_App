@@ -9,10 +9,10 @@ import java.util.Map;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import Enum.Constants.HttpStatusCodes;
-import Enum.Constants.MessageStatus;
 import dao.DAO;
-import dao.MessageDAO;
+import dao.DaoFactory;
+import enums.Constants.HttpStatusCodes;
+import enums.Constants.MessageStatus;
 import model.ColumnCriteria;
 import model.Message;
 import util.CustomException;
@@ -21,16 +21,26 @@ import util.ValidationUtil;
 
 public class MessageService {
 
-	private final Logger logger = LogManager.getLogger(MessageService.class);
+	private static Logger logger = LogManager.getLogger(MessageService.class);
+	private DAO<Message> messagDAO = DaoFactory.getDAO(Message.class);
 
-	private final DAO<Message> messageDao = new MessageDAO();
+	private MessageService() {
+	}
 
-	public Map<String, Object> getMessageDetails(Map<String, Object> msgMap) throws CustomException {
+	private static class SingletonHelper {
+		private static final MessageService INSTANCE = new MessageService();
+	}
+
+	public static MessageService getInstance() {
+		return SingletonHelper.INSTANCE;
+	}
+
+	public Map<String, Object> getMessageDetails(Map<String, Object> msgMap) throws Exception {
 		logger.info("Fetching message details..");
 		Map<String, Object> messageResult = new HashMap<>();
 
-		List<Message> messages = messageDao.get(msgMap);
-		long logCount = messageDao.getDataCount(msgMap);
+		List<Message> messages = messagDAO.get(msgMap);
+		long logCount = messagDAO.getDataCount(msgMap);
 
 		messageResult.put("messages", messages);
 		messageResult.put("count", logCount);
@@ -39,20 +49,20 @@ public class MessageService {
 		return messageResult;
 	}
 
-	public void createMessage(Map<String, Object> messageMap) throws CustomException {
+	public void createMessage(Map<String, Object> messageMap) throws Exception {
 		logger.info("Creating a new message with data: {}", messageMap);
 		messageMap.put("createdAt", System.currentTimeMillis());
 		messageMap.put("messageStatus", MessageStatus.Pending);
-		long senderId = Long.parseLong((String) messageMap.get("senderId"));
-		ValidationUtil.userExists(senderId);
 
 		Message message = Helper.createPojoFromMap(messageMap, Message.class);
-		long messageId = messageDao.create(message);
+		long senderId = message.getSenderId();
+		ValidationUtil.userExists(senderId);
+		long messageId = messagDAO.create(message);
 		logger.info("Message successfully created with id: {}", messageId);
 
 	}
 
-	public void updateMessage(Map<String, Object> messageMap) throws CustomException {
+	public void updateMessage(Map<String, Object> messageMap) throws Exception {
 		logger.info("Attempting to update message details.");
 
 		if (messageMap == null || messageMap.size() == 0 || !messageMap.containsKey("messageId")) {
@@ -77,7 +87,7 @@ public class MessageService {
 
 		ColumnCriteria columnCriteria = new ColumnCriteria().setFields(fields).setValues(values);
 
-		messageDao.update(columnCriteria, messageMap);
+		messagDAO.update(columnCriteria, messageMap);
 
 	}
 

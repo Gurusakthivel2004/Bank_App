@@ -5,67 +5,64 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.yaml.snakeyaml.Yaml;
 
 public class ColumnYamlUtil {
-	// This Map stores mappings for each table under the 'tables' key
-	private static Map<String, ClassMapping> mappings;
-	private static boolean mappingsLoaded = false;
+	private static final String FILE_PATH = "/home/guru-pt7672/git/BankApplication/Bank_Application/src/main/ColumnMappings.yaml";
+
+	private static class Holder {
+		private static final Map<String, ClassMapping> INSTANCE = loadMappings();
+	}
+
+	private ColumnYamlUtil() {}
 
 	@SuppressWarnings("unchecked")
-	public static void loadMappings() {
-		if (!mappingsLoaded) {
-			synchronized (ColumnYamlUtil.class) {
-				if (!mappingsLoaded) {
-					try (InputStream inputStream = new FileInputStream(
-							"/home/guru-pt7672/git/BankApplication/Bank_Application/src/main/ColumnMappings.yaml")) {
-						Yaml yaml = new Yaml();
-						Map<String, Map<String, Object>> yamlData = yaml.load(inputStream);
-						Map<String, Object> tableData = (Map<String, Object>) yamlData.get("classes");
+	private static Map<String, ClassMapping> loadMappings() {
+		try (InputStream inputStream = new FileInputStream(FILE_PATH)) {
+			Yaml yaml = new Yaml();
+			Map<String, Map<String, Object>> yamlData = yaml.load(inputStream);
+			Map<String, Object> tableData = (Map<String, Object>) yamlData.get("classes");
 
-						mappings = new HashMap<>();
-						for (Map.Entry<String, Object> entry : tableData.entrySet()) {
-							String tableName = entry.getKey();
-							Map<String, Object> tableMappingData = (Map<String, Object>) entry.getValue();
+			Map<String, ClassMapping> mappings = new ConcurrentHashMap<>();
+			for (Map.Entry<String, Object> entry : tableData.entrySet()) {
+				String tableName = entry.getKey();
+				Map<String, Object> tableMappingData = (Map<String, Object>) entry.getValue();
 
-							ClassMapping tableMapping = new ClassMapping();
-							tableMapping.setTableName((String) tableMappingData.get("tableName"));
-							tableMapping.setAutoIncrementField((String) tableMappingData.get("autoIncrementField"));
-							tableMapping.setReferenceField((String) tableMappingData.get("referenceField"));
-							tableMapping.setReferedField((String) tableMappingData.get("referedField"));
+				ClassMapping tableMapping = new ClassMapping();
+				tableMapping.setTableName((String) tableMappingData.get("tableName"));
+				tableMapping.setAutoIncrementField((String) tableMappingData.get("autoIncrementField"));
+				tableMapping.setReferenceField((String) tableMappingData.get("referenceField"));
+				tableMapping.setReferedField((String) tableMappingData.get("referedField"));
 
-							Map<String, FieldMapping> fields = new HashMap<>();
-							Map<String, Object> fieldsData = (Map<String, Object>) tableMappingData.get("fields");
+				Map<String, FieldMapping> fields = new HashMap<>();
+				Map<String, Object> fieldsData = (Map<String, Object>) tableMappingData.get("fields");
 
-							if (fieldsData != null) {
-								for (Map.Entry<String, Object> fieldEntry : fieldsData.entrySet()) {
-									String columnName = fieldEntry.getKey();
-									Map<String, Object> fieldMappingData = (Map<String, Object>) fieldEntry.getValue();
+				if (fieldsData != null) {
+					for (Map.Entry<String, Object> fieldEntry : fieldsData.entrySet()) {
+						String columnName = fieldEntry.getKey();
+						Map<String, Object> fieldMappingData = (Map<String, Object>) fieldEntry.getValue();
 
-									FieldMapping fieldMapping = new FieldMapping();
-									fieldMapping.setColumnName((String) fieldMappingData.get("columnName"));
-									fieldMapping.setType((String) fieldMappingData.get("type"));
+						FieldMapping fieldMapping = new FieldMapping();
+						fieldMapping.setColumnName((String) fieldMappingData.get("columnName"));
+						fieldMapping.setType((String) fieldMappingData.get("type"));
 
-									fields.put(columnName, fieldMapping);
-								}
-							}
-
-							tableMapping.setFields(fields);
-							mappings.put(tableName, tableMapping);
-						}
-						mappingsLoaded = true; // Set flag to true after loading mappings
-					} catch (IOException e) {
-						throw new RuntimeException("Failed to load YAML mappings", e);
+						fields.put(columnName, fieldMapping);
 					}
 				}
+
+				tableMapping.setFields(fields);
+				mappings.put(tableName, tableMapping);
 			}
+			return mappings;
+		} catch (IOException e) {
+			throw new RuntimeException("Failed to load YAML mappings", e);
 		}
 	}
 
 	public static ClassMapping getMapping(String className) {
-		loadMappings();
-		ClassMapping mapping = mappings.get(className);
+		ClassMapping mapping = Holder.INSTANCE.get(className);
 		if (mapping != null) {
 			return mapping;
 		} else {

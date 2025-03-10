@@ -1,27 +1,28 @@
-package service;
+package util;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import Enum.Constants.HttpStatusCodes;
-import Enum.Constants.Role;
 import dao.AccountDAO;
 import dao.DAO;
+import enums.Constants.HttpStatusCodes;
+import enums.Constants.Role;
 import model.Account;
 import model.Branch;
 import model.MarkedClass;
 import model.User;
-import util.CustomException;
-import util.Helper;
-import util.ValidationUtil;
 
-public class AuthorizationService {
+public class AuthUtils {
 
-	private Long userId = (Long) Helper.getThreadLocalValue("id");
-	private Long branchId = (Long) Helper.getThreadLocalValue("branchId");
+	private static int ATTEMPTS_LIMIT = 5;
+	private static int TIMEOUT_SECONDS = 300;
+	private static Map<String, Integer> failedAttemptsMap = new HashMap<>();
+	private static Map<String, Long> lockoutTimestampMap = new HashMap<>();
+	private static Long userId = (Long) Helper.getThreadLocalValue("id");
+	private static Long branchId = (Long) Helper.getThreadLocalValue("branchId");
 
-	public <T extends MarkedClass> boolean isAuthorized(String entityType, List<T> data) throws CustomException {
+	public static <T extends MarkedClass> boolean isAuthorized(String entityType, List<T> data) throws Exception {
 		switch (entityType) {
 		case "branch":
 			return isBranchAuthorized(data);
@@ -34,7 +35,33 @@ public class AuthorizationService {
 		}
 	}
 
-	public boolean isBranchAuthorized(List<? extends MarkedClass> branches) throws CustomException {
+	public static void handleFailedAttempt(String username) {
+		int attempts = failedAttemptsMap.getOrDefault(username, 0) + 1;
+		failedAttemptsMap.put(username, attempts);
+		if (attempts >= ATTEMPTS_LIMIT) {
+			lockoutTimestampMap.put(username, System.currentTimeMillis());
+		}
+	}
+
+	public static void resetFailedAttempts(String username) {
+		failedAttemptsMap.remove(username);
+		lockoutTimestampMap.remove(username);
+	}
+
+	public static boolean isUserLockedOut(String username) {
+		if (lockoutTimestampMap.containsKey(username)) {
+			long lockoutTime = lockoutTimestampMap.get(username);
+			if ((System.currentTimeMillis() - lockoutTime) / 1000 >= TIMEOUT_SECONDS) {
+				lockoutTimestampMap.remove(username);
+				failedAttemptsMap.remove(username);
+				return false;
+			}
+			return true;
+		}
+		return false;
+	}
+
+	public static boolean isBranchAuthorized(List<? extends MarkedClass> branches) throws Exception {
 
 		if (branches.isEmpty() || !(branches.get(0) instanceof Branch)) {
 			throw new CustomException("Invalid branch data", HttpStatusCodes.BAD_REQUEST);
@@ -44,7 +71,7 @@ public class AuthorizationService {
 		Role role = Role.fromString((String) Helper.getThreadLocalValue("role"));
 		switch (role) {
 		case Customer:
-			DAO<Account> accountDAO = new AccountDAO();
+			DAO<Account> accountDAO = AccountDAO.getInstance();
 			Map<String, Object> accountMap = new HashMap<>();
 
 			accountMap.put("userId", userId);
@@ -63,26 +90,26 @@ public class AuthorizationService {
 	}
 
 	@SuppressWarnings("unchecked")
-	public boolean isAccountAuthorized(List<? extends MarkedClass> accounts) throws CustomException {
-
+	public static boolean isAccountAuthorized(List<? extends MarkedClass> accounts) throws CustomException {
 		if (!accounts.isEmpty() && !(accounts.get(0) instanceof Account)) {
 			throw new CustomException("Invalid Account data", HttpStatusCodes.BAD_REQUEST);
 		}
 		Role role = Role.fromString((String) Helper.getThreadLocalValue("role"));
 		switch (role) {
 		case Customer:
+			System.out.println(accounts);
 			return accounts.stream().allMatch(account -> ((Account) account).getUserId() == userId);
 		case Employee:
+			System.out.println(accounts);
 			return ValidationUtil.getAssignedBranches((List<Account>) accounts, branchId);
 		case Manager:
 			return true;
 		default:
 			return false;
 		}
-
 	}
 
-	public boolean isUserAuthorized(List<? extends MarkedClass> users) throws CustomException {
+	public static boolean isUserAuthorized(List<? extends MarkedClass> users) throws CustomException {
 		if (!users.isEmpty() && !(users.get(0) instanceof User)) {
 			throw new CustomException("Invalid User data", HttpStatusCodes.BAD_REQUEST);
 		}

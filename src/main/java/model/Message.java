@@ -1,7 +1,7 @@
 package model;
 
-import Enum.Constants.MessageStatus;
-import Enum.Constants.MessageType;
+import enums.Constants.MessageStatus;
+import enums.Constants.MessageType;
 
 public class Message extends MarkedClass {
 

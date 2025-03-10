@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 import javax.websocket.OnClose;
@@ -22,12 +23,11 @@ import cache.CacheUtil;
 @ServerEndpoint("/chat")
 public class Chat {
 
-	private static final CopyOnWriteArrayList<Session> employees = new CopyOnWriteArrayList<>();
-	private static final CopyOnWriteArrayList<Session> users = new CopyOnWriteArrayList<>();
-	private static final Map<Session, Session> employeeToUserMap = new HashMap<>();
+	private static ConcurrentLinkedQueue<Session> EMPLOYEES = new ConcurrentLinkedQueue<>();
+	private static ConcurrentLinkedQueue<Session> USERS = new ConcurrentLinkedQueue<>();
+	private static Map<Session, Session> EMPLOYEE_TO_USER_MAP = new HashMap<>();
 
-	private final Logger logger = LogManager.getLogger(Chat.class);
-	private static final CacheUtil cacheUtil = new CacheUtil();
+	private static Logger logger = LogManager.getLogger(Chat.class);
 	private static final String USER_QUEUE_KEY = "userQueue";
 
 	@OnOpen
@@ -41,12 +41,12 @@ public class Chat {
 
 		if (message.equals("employee")) {
 			session.getUserProperties().put("role", "employee");
-			employees.add(session);
+			EMPLOYEES.add(session);
 			logger.info("Employee connected: " + session.getId());
 			assignQueuedUser();
 		} else if (message.equals("User requesting chat")) {
 			session.getUserProperties().put("role", "user");
-			users.add(session);
+			USERS.add(session);
 			logger.info("User connected: " + session.getId());
 			queueUser(session);
 		} else if (isEmployee(session)) {
@@ -62,9 +62,9 @@ public class Chat {
 		logger.info("Connection closed: " + session.getId());
 
 		if (isEmployee(session)) {
-			employees.remove(session);
-			Session assignedUser = employeeToUserMap.get(session);
-			System.out.println("assigned User: " + assignedUser);
+			EMPLOYEES.remove(session);
+			Session assignedUser = EMPLOYEE_TO_USER_MAP.get(session);
+			logger.info("assigned User: " + assignedUser);
 			if (assignedUser != null) {
 				if (assignedUser.isOpen()) {
 					sendMessageToUser(assignedUser, "Employee disconnected. Please start a new chat!");
@@ -72,12 +72,12 @@ public class Chat {
 				}
 			}
 		} else {
-			users.remove(session);
-			for (Session emp : employeeToUserMap.keySet()) {
-				Session user = employeeToUserMap.get(emp);
+			USERS.remove(session);
+			for (Session emp : EMPLOYEE_TO_USER_MAP.keySet()) {
+				Session user = EMPLOYEE_TO_USER_MAP.get(emp);
 				if (user.equals(session)) {
 					sendMessageToEmployee(emp, "User disconnected.");
-					employeeToUserMap.remove(emp);
+					EMPLOYEE_TO_USER_MAP.remove(emp);
 				}
 			}
 			dequeueUser(session);
@@ -90,46 +90,46 @@ public class Chat {
 	}
 
 	private void queueUser(Session userSession) {
-		List<String> userQueue = cacheUtil.get(USER_QUEUE_KEY, new TypeReference<List<String>>() {
+		List<String> userQueue = CacheUtil.get(USER_QUEUE_KEY, new TypeReference<List<String>>() {
 		});
 		if (userQueue == null) {
 			userQueue = new CopyOnWriteArrayList<>();
 		}
 		userQueue.add(userSession.getId());
-		cacheUtil.save(USER_QUEUE_KEY, userQueue);
+		CacheUtil.save(USER_QUEUE_KEY, userQueue);
 		assignQueuedUser();
 	}
 
 	private void dequeueUser(Session userSession) {
-		List<String> userQueue = cacheUtil.get(USER_QUEUE_KEY, new TypeReference<List<String>>() {
+		List<String> userQueue = CacheUtil.get(USER_QUEUE_KEY, new TypeReference<List<String>>() {
 		});
 		if (userQueue != null) {
 			userQueue.remove(userSession.getId());
-			cacheUtil.save(USER_QUEUE_KEY, userQueue);
+			CacheUtil.save(USER_QUEUE_KEY, userQueue);
 		}
 	}
 
 	private void assignQueuedUser() {
-		List<String> userQueue = cacheUtil.get(USER_QUEUE_KEY, new TypeReference<List<String>>() {
+		List<String> userQueue = CacheUtil.get(USER_QUEUE_KEY, new TypeReference<List<String>>() {
 		});
 		if (userQueue == null || userQueue.isEmpty()) {
 			return;
 		}
 
-		for (Session employeeSession : employees) {
-			if (!userQueue.isEmpty() && employeeToUserMap.get(employeeSession) == null) {
+		for (Session employeeSession : EMPLOYEES) {
+			if (!userQueue.isEmpty() && EMPLOYEE_TO_USER_MAP.get(employeeSession) == null) {
 				String userId = userQueue.remove(0);
-				Session userSession = users.stream().filter(session -> session.getId().equals(userId)).findFirst()
+				Session userSession = USERS.stream().filter(session -> session.getId().equals(userId)).findFirst()
 						.orElse(null);
 
 				if (userSession != null) {
-					employeeToUserMap.put(employeeSession, userSession);
+					EMPLOYEE_TO_USER_MAP.put(employeeSession, userSession);
 					sendMessageToUser(userSession, "You are connected with an employee.");
 					sendMessageToEmployee(employeeSession, "New user assigned: " + userSession.getId());
 				}
 			}
 
-			cacheUtil.save(USER_QUEUE_KEY, userQueue);
+			CacheUtil.save(USER_QUEUE_KEY, userQueue);
 			if (userQueue.isEmpty()) {
 				break;
 			}
@@ -137,7 +137,7 @@ public class Chat {
 	}
 
 	private void sendMessageToAssignedUser(Session employeeSession, String message) {
-		Session assignedUser = employeeToUserMap.get(employeeSession);
+		Session assignedUser = EMPLOYEE_TO_USER_MAP.get(employeeSession);
 		if (assignedUser != null) {
 			if (assignedUser.isOpen()) {
 				try {
@@ -152,7 +152,7 @@ public class Chat {
 	}
 
 	private void sendMessageToAssignedEmployee(Session userSession, String message) {
-		for (Map.Entry<Session, Session> entry : employeeToUserMap.entrySet()) {
+		for (Map.Entry<Session, Session> entry : EMPLOYEE_TO_USER_MAP.entrySet()) {
 			if (entry.getValue().equals(userSession)) {
 				Session employeeSession = entry.getKey();
 				if (employeeSession.isOpen()) {

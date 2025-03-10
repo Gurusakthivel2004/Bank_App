@@ -14,31 +14,42 @@ import org.apache.logging.log4j.Logger;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 
-import Enum.Constants.AccountType;
-import Enum.Constants.HttpStatusCodes;
-import Enum.Constants.LogType;
-import Enum.Constants.Role;
-import Enum.Constants.Status;
 import cache.CacheUtil;
 import dao.AccountDAO;
 import dao.DAO;
 import dao.DAOJoin;
+import dao.DaoFactory;
+import enums.Constants.AccountType;
+import enums.Constants.HttpStatusCodes;
+import enums.Constants.LogType;
+import enums.Constants.Role;
+import enums.Constants.Status;
 import model.Account;
 import model.ActivityLog;
 import model.ColumnCriteria;
 import model.JoinObject;
+import util.AuthUtils;
 import util.CustomException;
 import util.Helper;
 import util.ValidationUtil;
 
 public class AccountService {
 
-	private final Logger logger = LogManager.getLogger(AccountService.class);
-	private final CacheUtil cacheUtil = new CacheUtil();
-	private DAO<Account> accountDAO = new AccountDAO();
-	private final AuthorizationService authService = new AuthorizationService();
+	private static Logger logger = LogManager.getLogger(AccountService.class);
+	private DAO<Account> accountDAO = DaoFactory.getDAO(Account.class);
 
-	public void updateAccount(Long accountNumber, Map<String, Object> accountMap) throws CustomException {
+	private AccountService() {
+	}
+
+	private static class SingletonHelper {
+		private static final AccountService INSTANCE = new AccountService();
+	}
+
+	public static AccountService getInstance() {
+		return SingletonHelper.INSTANCE;
+	}
+
+	public void updateAccount(Long accountNumber, Map<String, Object> accountMap) throws Exception {
 		logger.info("Attempting to update account details for accountNumber: {}", accountNumber);
 
 		validateInput(accountMap);
@@ -54,12 +65,12 @@ public class AccountService {
 
 		accountDAO.update(columnCriteria, Collections.singletonMap("accountNumber", accountNumber));
 		logActivity(accountNumber, logMessage);
-		cacheUtil.delete("accountInfo");
+		CacheUtil.delete("accountInfo");
 
 		logger.info("Account successfully updated: {}", accountNumber);
 	}
 
-	private void validateInput(Map<String, Object> accountMap) throws CustomException {
+	private void validateInput(Map<String, Object> accountMap) throws Exception {
 		if (accountMap == null || accountMap.isEmpty()) {
 			throw new CustomException("Please enter fields to update", HttpStatusCodes.BAD_REQUEST);
 		}
@@ -84,7 +95,7 @@ public class AccountService {
 				: "";
 	}
 
-	private void validateAccount(Long accountNumber) throws CustomException {
+	private void validateAccount(Long accountNumber) throws Exception {
 		Map<String, Object> query = Collections.singletonMap("accountNumber", accountNumber);
 		List<Account> accounts = accountDAO.get(query);
 		if (accounts == null || accounts.isEmpty()) {
@@ -92,7 +103,7 @@ public class AccountService {
 		}
 	}
 
-	private void authorizeUpdate(Long accountNumber) throws CustomException {
+	private void authorizeUpdate(Long accountNumber) throws Exception {
 		Role role = Role.fromString((String) Helper.getThreadLocalValue("role"));
 		if (role == Role.Employee) {
 			List<Account> accounts = accountDAO.get(Collections.singletonMap("accountNumber", accountNumber));
@@ -102,10 +113,10 @@ public class AccountService {
 		}
 	}
 
-	public Map<String, Object> getAccountDetails(Map<String, Object> accountMap) throws CustomException {
+	public Map<String, Object> getAccountDetails(Map<String, Object> accountMap) throws Exception {
 		String key = "accountInfo";
 		Map<String, Object> accountsResult = new HashMap<>();
-		List<Account> cachedAccounts = cacheUtil.getCachedList(key, new TypeReference<List<Account>>() {
+		List<Account> cachedAccounts = CacheUtil.getCachedList(key, new TypeReference<List<Account>>() {
 		}, accountMap, "accountNumber");
 
 		if (cachedAccounts != null) {
@@ -117,7 +128,7 @@ public class AccountService {
 
 		addDefaultFilters(accountMap);
 
-		Long offset = (Long) accountMap.getOrDefault("offset", -1L);
+		long offset = (long) accountMap.getOrDefault("offset", -1l);
 		if (offset != -1) {
 			handleOffsetBasedFetch(accountMap, accountsResult, offset);
 		} else {
@@ -127,19 +138,14 @@ public class AccountService {
 	}
 
 	private void addDefaultFilters(Map<String, Object> accountMap) throws CustomException {
-		Long branchId = Helper.parseLong(accountMap.getOrDefault("branchId", "0"));
-		Long customerId = Helper.parseLong(accountMap.getOrDefault("userId", "0"));
+		Long customerId = Helper.parseLong(accountMap.getOrDefault("userId", 0l));
 		Role role = Role.fromString((String) Helper.getThreadLocalValue("role"));
-		if (!(accountMap.containsKey("accountNumber") || branchId > 0 && role == Role.Manager)) {
-			if (customerId == null || customerId == -1) {
-				accountMap.put("userId", (Long) Helper.getThreadLocalValue("id"));
-			}
-			if (branchId == null || branchId == -1) {
-				accountMap.put("branchId", (Long) Helper.getThreadLocalValue("branchId"));
-			}
-		}
+
 		if (role == Role.Employee) {
 			accountMap.put("branchId", (Long) Helper.getThreadLocalValue("branchId"));
+		}
+		if (role == Role.Customer || customerId == -1l) {
+			accountMap.put("userId", (Long) Helper.getThreadLocalValue("id"));
 		}
 		if (!accountMap.containsKey("status")) {
 			accountMap.put("status", Status.Active);
@@ -147,13 +153,13 @@ public class AccountService {
 	}
 
 	private void handleOffsetBasedFetch(Map<String, Object> accountMap, Map<String, Object> accountsResult, Long offset)
-			throws CustomException {
+			throws Exception {
 		if (offset == 0) {
-			Long count = accountDAO.getDataCount(accountMap);
+			long count = accountDAO.getDataCount(accountMap);
 			accountsResult.put("count", count);
 		}
 
-		DAOJoin<Account> accountDaoJoin = new AccountDAO();
+		DAOJoin<Account> accountDaoJoin = AccountDAO.getInstance();
 		List<JoinObject<Account>> joinModels = accountDaoJoin.getJoined(accountMap);
 		List<Account> accounts = new ArrayList<>();
 
@@ -161,32 +167,28 @@ public class AccountService {
 			Account account = (Account) joinModel.getInstance();
 			accounts.add(account);
 		}
-		if (!authService.isAuthorized("account", accounts)) {
+		if (!AuthUtils.isAuthorized("account", accounts)) {
 			throw new CustomException("Not authorized to access account details", HttpStatusCodes.UNAUTHORIZED);
 		}
 		accountsResult.put("accounts", joinModels);
 	}
 
 	private void handleAccountDataFetch(Map<String, Object> accountMap, Map<String, Object> accountsResult, String key)
-			throws CustomException {
+			throws Exception {
 		List<Account> accounts = accountDAO.get(accountMap);
-
-		if (!authService.isAuthorized("account", accounts)) {
-			throw new CustomException("Not authorized to access account details", HttpStatusCodes.UNAUTHORIZED);
-		}
 
 		accountsResult.put("accounts", accounts);
 		if (accountMap.containsKey("accountNumber")) {
-			cacheUtil.save(key + accountMap.get("accountNumber"), accounts);
+			CacheUtil.save(key + accountMap.get("accountNumber"), accounts);
 		}
 	}
 
-	public void createAccount(Map<String, Object> accountMap) throws CustomException {
+	public void createAccount(Map<String, Object> accountMap) throws Exception {
 		logger.info("Creating account...");
 
 		validateCreateAccount(accountMap);
 
-		Long userId = Helper.parseLong(accountMap.get("userId"));
+		long userId = Helper.parseLong(accountMap.getOrDefault("userId", -1));
 		List<Account> accounts = fetchExistingAccounts(userId);
 
 		prepareAccountDetails(accountMap, accounts);
@@ -199,12 +201,12 @@ public class AccountService {
 		logActivity(accountId, userId);
 	}
 
-	private void validateCreateAccount(Map<String, Object> accountMap) throws CustomException {
+	private void validateCreateAccount(Map<String, Object> accountMap) throws Exception {
 		ValidationUtil.validateCreateAccount(accountMap);
 	}
 
 	@SuppressWarnings("unchecked")
-	private List<Account> fetchExistingAccounts(Long userId) throws CustomException {
+	private List<Account> fetchExistingAccounts(Long userId) throws Exception {
 		Map<String, Object> accountFetchMap = new HashMap<>();
 		accountFetchMap.put("userId", userId);
 
@@ -231,14 +233,14 @@ public class AccountService {
 		accountMap.put("isPrimary", accounts.isEmpty());
 	}
 
-	private void logActivity(Long accountId, Long userId) {
+	private void logActivity(Long accountId, Long userId) throws Exception {
 		ActivityLog activityLog = new ActivityLog().setLogMessage("Account created").setLogType(LogType.Insert)
 				.setRowId(accountId).setTableName("Account").setUserId(userId);
 
 		TaskExecutorService.getInstance().submit(activityLog);
 	}
 
-	private void logActivity(Long accountNumber, String logMessage) {
+	private void logActivity(Long accountNumber, String logMessage) throws Exception {
 		ActivityLog activityLog = new ActivityLog().setLogMessage(logMessage).setLogType(LogType.Update)
 				.setUserAccountNumber(accountNumber).setRowId(accountNumber).setTableName("Account");
 		TaskExecutorService.getInstance().submit(activityLog);

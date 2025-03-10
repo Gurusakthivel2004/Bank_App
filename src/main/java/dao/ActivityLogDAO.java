@@ -1,14 +1,12 @@
 package dao;
 
 import java.math.BigInteger;
-import java.sql.SQLException;
 import java.util.List;
 import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import Enum.Constants.HttpStatusCodes;
 import model.ActivityLog;
 import model.ColumnCriteria;
 import model.Criteria;
@@ -18,52 +16,43 @@ import util.SQLHelper;
 
 public class ActivityLogDAO implements DAO<ActivityLog> {
 
-	private static final Logger logger = LogManager.getLogger(ActivityLogDAO.class);
+	private static Logger logger = LogManager.getLogger(ActivityLogDAO.class);
 
-	public Long create(ActivityLog activityLog) throws CustomException {
+	private ActivityLogDAO() {}
+
+	private static class SingletonHelper {
+		private static final ActivityLogDAO INSTANCE = new ActivityLogDAO();
+	}
+
+	public static ActivityLogDAO getInstance() {
+		return SingletonHelper.INSTANCE;
+	}
+
+	public long create(ActivityLog activityLog) throws Exception {
 		logger.info("Inserting log details...");
 
 		Helper.checkNullValues(activityLog);
 		Long logId;
-		try {
-			logId = ((BigInteger) SQLHelper.insert(activityLog)).longValue();
-		} catch (CustomException ce) {
-			throw ce;
-		} catch (Exception e) {
-			logger.error("Error while inserting log record", e);
-			throw new CustomException("Failed to create log", HttpStatusCodes.INTERNAL_SERVER_ERROR);
-		}
+
+		logId = ((BigInteger) SQLHelper.insert(activityLog)).longValue();
 
 		logger.info("Log created successfully with ID: " + logId);
 		return logId;
 	}
 
-	public List<ActivityLog> get(Map<String, Object> logMap) throws CustomException {
+	public List<ActivityLog> get(Map<String, Object> logMap) throws Exception {
 		Criteria criteria = DAOHelper.getLogCriteria(logMap);
-		try {
-			return SQLHelper.get(criteria, ActivityLog.class);
-		} catch (CustomException e) {
-			throw e;
-		} catch (SQLException e) {
-			logger.error("Error while fetching log details: ", e);
-			throw new CustomException("Failed to fetch log details: ", HttpStatusCodes.INTERNAL_SERVER_ERROR);
-		}
+		return SQLHelper.get(criteria, ActivityLog.class);
+
 	}
 
-	public Long getDataCount(Map<String, Object> logMap) throws CustomException {
-		try {
-			Criteria criteria = DAOHelper.getLogCriteria(logMap);
-			criteria.setOffsetValue(-1L).setAggregateFunction("COUNT").setAggregateOperator("*");
-			Long count = SQLHelper.getCount(criteria, ActivityLog.class);
-			if (count == 0) {
-				throw new CustomException("Unexpected error occured while fetching log details",
-						HttpStatusCodes.INTERNAL_SERVER_ERROR);
-			}
-			return count;
-		} catch (SQLException e) {
-			logger.error("Error while fetching log details: ", e);
-			throw new CustomException("Failed to fetch log details: ", HttpStatusCodes.INTERNAL_SERVER_ERROR);
-		}
+	public long getDataCount(Map<String, Object> logMap) throws Exception {
+
+		Criteria criteria = DAOHelper.getLogCriteria(logMap);
+		criteria.setOffsetValue(-1L).setAggregateFunction("COUNT").setAggregateOperator("*");
+		Long count = SQLHelper.getCount(criteria, ActivityLog.class);
+		return count;
+
 	}
 
 	@Override

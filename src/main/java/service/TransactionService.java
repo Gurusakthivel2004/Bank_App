@@ -6,20 +6,20 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import Enum.Constants.AccountType;
-import Enum.Constants.HttpStatusCodes;
-import Enum.Constants.Role;
-import Enum.Constants.TransactionStatus;
-import Enum.Constants.TransactionType;
 import dao.AccountDAO;
 import dao.DAO;
-import dao.TransactionDAO;
+import dao.DaoFactory;
+import enums.Constants.AccountType;
+import enums.Constants.HttpStatusCodes;
+import enums.Constants.Role;
+import enums.Constants.TransactionStatus;
+import enums.Constants.TransactionType;
+import lock.LockWithCounter;
 import model.Account;
 import model.ColumnCriteria;
 import model.Transaction;
@@ -29,12 +29,11 @@ import util.ValidationUtil;
 
 public class TransactionService {
 
-	private final Logger logger = LogManager.getLogger(TransactionService.class.getName());
-	private DAO<Transaction> transactionDAO = new TransactionDAO();
-	private static final ConcurrentHashMap<Long, LockWithCounter> accountLocks = new ConcurrentHashMap<>();
+	private static Logger logger = LogManager.getLogger(TransactionService.class.getName());
+	private DAO<Transaction> transactionDAO = DaoFactory.getDAO(Transaction.class);
+	private ConcurrentHashMap<Long, LockWithCounter> ACCOUNT_LOCKS = new ConcurrentHashMap<>();
 
-	private TransactionService() {
-	}
+	private TransactionService() {}
 
 	private static class SingletonHelper {
 		private static final TransactionService INSTANCE = new TransactionService();
@@ -44,78 +43,49 @@ public class TransactionService {
 		return SingletonHelper.INSTANCE;
 	}
 
-	private static LockWithCounter getLock(long accountNumber) {
-		return accountLocks.computeIfAbsent(accountNumber, k -> new LockWithCounter(new ReentrantLock()));
+	private LockWithCounter getLock(long accountNumber) {
+		return ACCOUNT_LOCKS.computeIfAbsent(accountNumber, k -> new LockWithCounter(new ReentrantLock(false)));
 	}
 
-	private static void lockAccount(long accountNumber) {
+	private void lockAccount(long accountNumber) {
 		LockWithCounter lockWithCounter = getLock(accountNumber);
 		lockWithCounter.lock();
 	}
 
-	// set
-	private static void releaseLock(long accountNumber) {
-		LockWithCounter lockWithCounter = accountLocks.get(accountNumber);
-		if (lockWithCounter != null && lockWithCounter.lock.isHeldByCurrentThread()) {
+	private void releaseLock(long accountNumber) {
+		LockWithCounter lockWithCounter = ACCOUNT_LOCKS.get(accountNumber);
+		if (lockWithCounter != null && lockWithCounter.getLock().isHeldByCurrentThread()) {
 			lockWithCounter.unlock();
-			if (lockWithCounter.count.decrementAndGet() == 0) {
-				accountLocks.remove(accountNumber);
+			if (lockWithCounter.getCount().decrementAndGet() == 0) {
+				ACCOUNT_LOCKS.remove(accountNumber);
 			}
 		}
 	}
 
-	private static class LockWithCounter {
-		private final ReentrantLock lock;
-		private final AtomicInteger count;
+	public Map<String, Object> getTransactionDetails(Map<String, Object> txMap) throws Exception {
+		long customerId = Long.parseLong(txMap.getOrDefault("customerId", 0L).toString());
+		long accountNumber = Long.parseLong(txMap.getOrDefault("accountNumber", -1L).toString());
 
-		public LockWithCounter(ReentrantLock lock) {
-			this.lock = lock;
-			this.count = new AtomicInteger(0);
+		if (customerId == -1L && accountNumber == -1) {
+			customerId = (Long) Helper.getThreadLocalValue("id");
+			txMap.put("customerId", customerId);
+			Account primaryAccount = fetchPrimaryAccount(customerId);
+			accountNumber = primaryAccount != null ? primaryAccount.getAccountNumber() : accountNumber;
 		}
+		txMap.put("accountNumber", accountNumber);
 
-		public void lock() {
-			lock.lock();
-			count.incrementAndGet();
-		}
-
-		public void unlock() {
-			lock.unlock();
-		}
+		setRoleBasedAccess(txMap);
+		Map<String, Object> txResult = new HashMap<>();
+		addTransactionCountIfRequired(txMap, txResult);
+		List<Transaction> transactions = transactionDAO.get(txMap);
+		txResult.put("transactions", transactions);
+		return txResult;
 	}
 
-	public Map<String, Object> getTransactionDetails(Map<String, Object> txMap) throws CustomException {
-		try {
-			Long customerId = (Long) txMap.get("customerId");
-			Long accountNumber = (Long) txMap.getOrDefault("accountNumber", 0L);
-
-			if (customerId != null && customerId == -1L) {
-				customerId = (Long) Helper.getThreadLocalValue("id");
-				txMap.put("customerId", customerId);
-			}
-			if (accountNumber == 0L) {
-				Account primaryAccount = fetchPrimaryAccount(customerId);
-				accountNumber = primaryAccount != null ? primaryAccount.getAccountNumber() : accountNumber;
-			}
-			txMap.put("accountNumber", accountNumber);
-
-			setRoleBasedAccess(txMap);
-			Map<String, Object> txResult = new HashMap<>();
-			addTransactionCountIfRequired(txMap, txResult);
-			List<Transaction> transactions = transactionDAO.get(txMap);
-			txResult.put("transactions", transactions);
-			return txResult;
-
-		} catch (Exception e) {
-			logger.error("Error fetching transaction details: {}", e);
-			throw new CustomException("Error fetching transaction details: " + e.getMessage(),
-					HttpStatusCodes.INTERNAL_SERVER_ERROR);
-		}
-	}
-
-	private Account fetchPrimaryAccount(Long customerId) throws CustomException {
+	private Account fetchPrimaryAccount(Long customerId) throws Exception {
 		Map<String, Object> accountMap = new HashMap<>();
 		accountMap.put("userId", customerId);
-		DAO<Account> accountDAO = new AccountDAO();
+		DAO<Account> accountDAO = AccountDAO.getInstance();
 		List<Account> accounts = accountDAO.get(accountMap);
 		if (accountMap == null || accountMap.isEmpty()) {
 			logger.error("No Accounts found for user {}", customerId);
@@ -136,33 +106,31 @@ public class TransactionService {
 	}
 
 	private void addTransactionCountIfRequired(Map<String, Object> txMap, Map<String, Object> txResult)
-			throws CustomException {
-		Long offset = (Long) txMap.getOrDefault("offset", -1L);
+			throws Exception {
+		long offset = (long) txMap.getOrDefault("offset", -1L);
 		if (offset == 0) {
-			Long count = transactionDAO.getDataCount(txMap);
+			long count = transactionDAO.getDataCount(txMap);
 			txResult.put("count", count);
 		}
 	}
 
-	public void prepareTransaction(Map<String, Object> transactionMap) throws CustomException {
+	public void prepareTransaction(Map<String, Object> transactionMap) throws Exception {
 		long accountNumber = Long.parseLong((String) transactionMap.get("accountNumber"));
 		long transactionAccountNumber = Long.parseLong((String) transactionMap.get("transactionAccountNumber"));
 
 		TransactionType transactionType = TransactionType.fromString((String) transactionMap.get("transactionType"));
 		logger.info("Initiating transaction creation...");
 
-		long branchId = Long.parseLong((String) transactionMap.get("branchId"));
+		long branchId = Helper.parseLong(transactionMap.getOrDefault("branchId", -1));
 		Transaction transaction;
 		Account account;
 		BigDecimal amount = parseTransactionAmount(transactionMap), closingBalance;
 
 		long firstLock = Math.min(accountNumber, transactionAccountNumber);
 		long secondLock = Math.max(accountNumber, transactionAccountNumber);
-
 		lockAccount(firstLock);
 		lockAccount(secondLock);
 		try {
-
 			account = getAccount(accountNumber);
 			ValidationUtil.validateTransactionAmount(amount, account);
 
@@ -186,19 +154,19 @@ public class TransactionService {
 		}
 	}
 
-	private Account getAccount(long accountNumber) throws CustomException {
+	private Account getAccount(long accountNumber) throws Exception {
 		Map<String, Object> accountMap = new HashMap<>();
 		accountMap.put("accountNumber", accountNumber);
-		DAO<Account> accountDao = new AccountDAO();
+		DAO<Account> accountDao = AccountDAO.getInstance();
 		List<Account> accounts = accountDao.get(accountMap);
-		if (accounts == null) {
+		if (accounts == null || accounts.isEmpty()) {
 			throw new CustomException("Account not found", HttpStatusCodes.BAD_REQUEST);
 		}
 		return accounts.get(0);
 	}
 
-	private void updateAccountBalance(long accountNumber, BigDecimal closingBalance) throws CustomException {
-		AccountDAO accountDAO = new AccountDAO();
+	private void updateAccountBalance(long accountNumber, BigDecimal closingBalance) throws Exception {
+		AccountDAO accountDAO = AccountDAO.getInstance();
 		Map<String, Object> accountMap = new HashMap<>();
 		accountMap.put("accountNumber", accountNumber);
 
@@ -210,8 +178,12 @@ public class TransactionService {
 
 	private void checkRoleAuthorization(Role role, Transaction transaction, Account account, Long userId, long branchId)
 			throws CustomException {
+		if (branchId <= 0) {
+			throw new CustomException("Invalid transaction inputs.", HttpStatusCodes.BAD_REQUEST);
+		}
 		if (role == Role.Employee) {
-			if (!"Debit".equals(transaction.getTransactionType()) && account.getUserId() != userId) {
+			if (!"Debit".equals(transaction.getTransactionType())
+					&& account.getUserId().longValue() != userId.longValue()) {
 				throw new CustomException("Unauthorized account found", HttpStatusCodes.UNAUTHORIZED);
 			}
 			if (account.getBranchId() != branchId) {
@@ -234,11 +206,10 @@ public class TransactionService {
 	}
 
 	public void prepareRecipientTransaction(Transaction transaction, boolean thisBank, Account account, long branchId)
-			throws CustomException {
+			throws Exception {
 		logger.info("Starting transaction processing...");
-		Long userId = (Long) Helper.getThreadLocalValue("id");
 		Role role = Role.fromString((String) Helper.getThreadLocalValue("role"));
-		checkRoleAuthorization(role, transaction, account, userId, branchId);
+		checkRoleAuthorization(role, transaction, account, transaction.getCustomerId(), branchId);
 		Long txId = createTransaction(transaction, account);
 
 		if (thisBank) {
@@ -246,8 +217,7 @@ public class TransactionService {
 		}
 	}
 
-	private void processTransactionForThisBank(Transaction transaction, Long txId, Account account)
-			throws CustomException {
+	private void processTransactionForThisBank(Transaction transaction, Long txId, Account account) throws Exception {
 
 		Long transactionUserId = account.getUserId();
 		updateTransactionDetails(transaction, transactionUserId, txId);
@@ -260,11 +230,13 @@ public class TransactionService {
 			BigDecimal closingBalance = computeClosingBalance(transaction.getTransactionTypeEnum(),
 					transaction.getAmount(), account);
 			updateAccountBalance(accountNumber, closingBalance);
+			transaction.setCustomerId(account.getUserId());
 			transaction.setClosingBalance(closingBalance);
 
 			createTransaction(transaction, account);
-		} catch (Exception e) {
+		} catch (CustomException e) {
 			cancelTransaction(txId);
+			throw e;
 		}
 	}
 
@@ -284,29 +256,22 @@ public class TransactionService {
 		}
 	}
 
-	private void cancelTransaction(Long txId) throws CustomException {
+	private void cancelTransaction(Long txId) throws Exception {
 		ColumnCriteria columnCriteria = new ColumnCriteria().setFields(Arrays.asList("status"))
 				.setValues(Arrays.asList(TransactionStatus.Cancelled));
 		Map<String, Object> txMap = new HashMap<>();
 		txMap.put("id", txId);
+		txMap.put("status", "Failed");
 		transactionDAO.update(columnCriteria, txMap);
 	}
 
-	public Long createTransaction(Transaction transaction, Account account) throws CustomException {
-		try {
-			logger.info("Creating a new transaction...");
-			Long txId;
-			setInitialTransactionDetails(transaction);
+	public Long createTransaction(Transaction transaction, Account account) throws Exception {
+		logger.info("Creating a new transaction...");
+		setInitialTransactionDetails(transaction);
 
-			ValidationUtil.validateModel(transaction, Transaction.class);
-			txId = saveTransaction(transaction);
-
-			return txId;
-		} catch (Exception e) {
-			logger.error("Unexpected error occurred while preparing transaction: {}", e.getMessage());
-			throw new CustomException("Error occurred while processing. Please check your inputs.",
-					HttpStatusCodes.BAD_REQUEST);
-		}
+		ValidationUtil.validateModel(transaction, Transaction.class);
+		long txId = saveTransaction(transaction);
+		return txId;
 	}
 
 	private void setInitialTransactionDetails(Transaction transaction) {
@@ -337,8 +302,8 @@ public class TransactionService {
 		}
 	}
 
-	private Long saveTransaction(Transaction transaction) throws CustomException {
-		Long txId = transactionDAO.create(transaction);
+	private long saveTransaction(Transaction transaction) throws Exception {
+		long txId = transactionDAO.create(transaction);
 		logger.info("Transaction created with ID: {}", txId);
 		return txId;
 	}

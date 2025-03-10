@@ -1,7 +1,7 @@
 package model;
 
-import Enum.Constants.Status;
-import Enum.Constants.Role;
+import enums.Constants.Role;
+import enums.Constants.Status;
 
 public class User extends MarkedClass {
 
@@ -73,7 +73,7 @@ public class User extends MarkedClass {
 		this.password = password;
 		return this;
 	}
-	
+
 	public String getRole() {
 		return role != null ? role.name() : null;
 	}
@@ -82,11 +82,11 @@ public class User extends MarkedClass {
 		if (role != null && !role.trim().isEmpty()) {
 			this.role = Role.valueOf(role.toUpperCase());
 		} else {
-			this.role = null; 
+			this.role = null;
 		}
-		return this; 
+		return this;
 	}
-	
+
 	public Role getRoleEnum() {
 		return this.role;
 	}
@@ -95,7 +95,6 @@ public class User extends MarkedClass {
 		this.role = role;
 		return this;
 	}
-	
 
 	public String getStatus() {
 		return status != null ? status.name() : null;
@@ -105,11 +104,11 @@ public class User extends MarkedClass {
 		if (status != null && !status.trim().isEmpty()) {
 			this.status = Status.valueOf(status.toUpperCase());
 		} else {
-			this.status = null; 
+			this.status = null;
 		}
-		return this; 
+		return this;
 	}
-	
+
 	public Status getStatusEnum() {
 		return this.status;
 	}
@@ -152,5 +151,5 @@ public class User extends MarkedClass {
 				+ ", username=" + username + ", password=" + password + ", status=" + status + ", createdAt="
 				+ createdAt + ", modifiedAt=" + modifiedAt + ", performedBy=" + performedBy + "]";
 	}
-	
+
 }

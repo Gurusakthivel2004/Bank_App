@@ -2,31 +2,40 @@ package cache;
 
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
+import servlet.Initializer;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 public class RedisCache {
 
-	private static JedisPool jedisPool;
-	private static final Logger logger = LogManager.getLogger(RedisCache.class);
+	private static Logger logger = LogManager.getLogger(RedisCache.class);
+	private JedisPool jedisPool;
 
-	static {
+	private RedisCache() {
+		this.jedisPool = Initializer.getJedisPool();
+	}
+
+	private static class Holder {
+		private static final RedisCache INSTANCE = new RedisCache();
+	}
+
+	public static RedisCache getInstance() {
+		return Holder.INSTANCE;
+	}
+
+	public Jedis getConnection() {
 		try {
-			logger.info("creating jedis connection...");
-			jedisPool = new JedisPool("localhost", 6379);
+			return jedisPool.getResource();
 		} catch (Exception e) {
-			logger.error("Failed to initialize JedisPool");
-			throw new ExceptionInInitializerError("Failed to initialize JedisPool: " + e.getMessage());
+			logger.error("Failed to get Redis connection: {}", e.getMessage());
+			return null;
 		}
 	}
 
-	public static Jedis getConnection() {
-		return jedisPool.getResource();
-	}
-
-	public static void closeConnection(Jedis jedis) {
+	public void closeConnection(Jedis jedis) {
 		if (jedis != null) {
 			jedis.close();
 		}
 	}
+
 }

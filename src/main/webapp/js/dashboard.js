@@ -1,6 +1,8 @@
+const role = getCookie('role');
+console.log("Role: ", role);
 
 document.addEventListener("DOMContentLoaded", async _ => {
-	const role = sessionStorage.getItem('role');
+
 	if (role == null) {
 		document.querySelector('body').style.display = 'none';
 		window.location.href = "error.html";
@@ -8,29 +10,33 @@ document.addEventListener("DOMContentLoaded", async _ => {
 	if (role != null && role !== 'Customer') {
 		window.location.href = "emp-dashboard.html";
 	}
-	console.log("Role: ", role);
 	try {
-		const token = sessionStorage.getItem('token');
 		const response = await fetch('http://localhost:8080/Bank_Application/api/UserDashboard', {
 			method: 'GET',
 			headers: {
 				'Content-Type': 'application/json',
-				'Authorization': `Bearer ${token}`
 			},
 		});
 		const result = await response.json();
 		console.log(result);
 		console.log(result.message);
 		console.log(result.message == 'Invalid token');
-		if (result.message == 'Invalid token') {
+		if (result.message == 'Invalid token' || result.message == 'Invalid Access token') {
 			document.querySelector('body').style.display = 'none';
 			console.log(document.querySelector('body'));
 			window.location.href = "error.html";
+			deleteAllCookies();
+		} else if (result.message == 'You dont have a account ') {
+			document.querySelector('body').style.display = 'none';
+			deleteAllCookies();
+			sessionStorage.setItem('error', "No Account exists for the user.");
+			deleteAllCookies();
+			window.location.href = "index.html";
 		}
+
 		const userDetails = result.userDetail[0];
 		try {
 			if (result.account.length == 0) {
-				sessionStorage.clear();
 				window.location.href = "index.html"
 				sessionStorage.setItem('error', "Account doesn't exists.");
 				document.querySelector('body').style.display = 'none';
@@ -71,7 +77,6 @@ document.addEventListener("DOMContentLoaded", async _ => {
 			document.querySelector('body').style.display = 'block';
 		} catch (dropdownError) {
 			console.error('Error populating accounts dropdown:', dropdownError);
-			window.location.href = "error.html";
 		}
 
 	} catch (error) {

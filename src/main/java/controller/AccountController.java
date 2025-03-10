@@ -13,101 +13,91 @@ import org.apache.logging.log4j.Logger;
 import com.google.gson.JsonObject;
 
 import service.AccountService;
-import util.CustomException;
 import util.Helper;
 
 public class AccountController {
 
-	AccountService accountService = new AccountService();
-	private final Logger logger = LogManager.getLogger(AccountController.class);
+	private AccountService accountService = AccountService.getInstance();
+	private static Logger logger = LogManager.getLogger(AccountController.class);
 
-	public void handleGet(HttpServletRequest request, HttpServletResponse response, Map<String, Object> accountMap)
-			throws IOException {
-		try {
-			logger.info("Processing GET request for account details with accountMap: {}", accountMap);
-			Object accounts = accountService.getAccountDetails(accountMap);
-			Helper.sendSuccessResponse(response, accounts);
-			logger.info("Successfully fetched account details for accountMap: {}", accountMap);
-		} catch (CustomException e) {
-			logger.warn("CustomException occurred while fetching account details: {}", e.getMessage());
-			Helper.sendErrorResponse(response, e);
-		} catch (Exception e) {
-			logger.error("Error occurred while fetching account details. AccountMap: {}", accountMap, e);
-			Helper.sendErrorResponse(response, "Error occurred while fetching accounts. Please check your inputs");
-		}
+	private AccountController() {}
+
+	private static class SingletonHelper {
+		private static final AccountController INSTANCE = new AccountController();
 	}
 
-	public void handleGet(HttpServletRequest request, HttpServletResponse response) throws IOException {
+	public static AccountController getInstance() {
+		return SingletonHelper.INSTANCE;
+	}
+
+	public void handleGet(HttpServletRequest request, HttpServletResponse response, Map<String, Object> accountMap)
+			throws IOException, Exception {
+
+		logger.info("Processing GET request for account details with accountMap: {}", accountMap);
+		Object accounts = accountService.getAccountDetails(accountMap);
+		Helper.sendSuccessResponse(response, accounts);
+		logger.info("Successfully fetched account details for accountMap: {}", accountMap);
+
+	}
+
+	public void handleGet(HttpServletRequest request, HttpServletResponse response) throws Exception {
 		handleGet(request, response, Helper.getParametersAsMap(request));
 	}
 
-	public void handlePost(HttpServletRequest request, HttpServletResponse response) throws IOException {
-		try {
-			logger.info("Received POST request to create or fetch account details.");
+	public void handlePost(HttpServletRequest request, HttpServletResponse response) throws Exception {
 
-			JsonObject jsonObject = Helper.parseRequestBody(request);
-			logger.debug("Parsed request body: {}", jsonObject);
+		logger.info("Received POST request to create or fetch account details.");
 
-			Map<String, Object> accountMap = Helper.mapJsonObject(jsonObject);
-			logger.debug("Mapped JSON to accountMap: {}", accountMap);
+		JsonObject jsonObject = Helper.parseRequestBody(request);
+		logger.debug("Parsed request body: {}", jsonObject);
 
-			if (accountMap.containsKey("get")) {
-				logger.info("GET operation detected in POST request. Delegating to handleGet.");
-				handleGet(request, response, accountMap);
-				return;
-			}
+		Map<String, Object> accountMap = Helper.mapJsonObject(jsonObject);
+		logger.debug("Mapped JSON to accountMap: {}", accountMap);
 
-			accountService.createAccount(accountMap);
-			logger.info("Account created successfully. Account details: {}", accountMap);
-			Helper.sendSuccessResponse(response, "success");
-		} catch (CustomException exception) {
-			logger.warn("CustomException occurred while handling POST request: {}", exception.getMessage());
-			Helper.sendErrorResponse(response, exception);
-		} catch (Exception exception) {
-			logger.error("Unexpected error occurred while handling POST request.", exception);
-			Helper.sendErrorResponse(response, "Unexpected error occurred while creating accounts.");
+		if (accountMap.containsKey("get")) {
+			logger.info("GET operation detected in POST request. Delegating to handleGet.");
+			handleGet(request, response, accountMap);
+			return;
 		}
+
+		accountService.createAccount(accountMap);
+		logger.info("Account created successfully. Account details: {}", accountMap);
+		Helper.sendSuccessResponse(response, "success");
+
 	}
 
-	public void handlePut(HttpServletRequest request, HttpServletResponse response)
-			throws IOException, CustomException {
-		try {
-			logger.info("Received PUT request to update account details.");
+	public void handlePut(HttpServletRequest request, HttpServletResponse response) throws Exception {
 
-			JsonObject jsonObject = Helper.parseRequestBody(request);
-			logger.debug("Parsed request body: {}", jsonObject);
+		logger.info("Received PUT request to update account details.");
 
-			Map<String, Object> accountMap = Helper.mapJsonObject(jsonObject);
-			logger.debug("Mapped JSON to accountMap: {}", accountMap);
+		JsonObject jsonObject = Helper.parseRequestBody(request);
+		logger.debug("Parsed request body: {}", jsonObject);
 
-			if (!accountMap.containsKey("accountNumber")) {
-				logger.warn("PUT request missing required 'accountNumber'.");
-				Helper.sendErrorResponse(response, "Enter accountNumber to update account.");
-				return;
-			}
+		Map<String, Object> accountMap = Helper.mapJsonObject(jsonObject);
+		logger.debug("Mapped JSON to accountMap: {}", accountMap);
 
-			Long accountNumber = Long.parseLong((String) accountMap.get("accountNumber"));
-
-			Map<String, Object> accMap = new HashMap<>();
-			if (accountMap.containsKey("branchId")) {
-				Long branchId = Long.parseLong((String) accountMap.get("branchId"));
-				accMap.put("branchId", branchId);
-			}
-			if (accountMap.containsKey("status")) {
-				String status = (String) accountMap.get("status");
-				accMap.put("status", status);
-			}
-
-			accountService.updateAccount(accountNumber, accMap);
-			logger.info("Account updated successfully. AccountNumber: {}, Updates: {}", accountNumber, accMap);
-			Helper.sendSuccessResponse(response, "success");
-		} catch (CustomException exception) {
-			logger.warn("CustomException occurred while handling PUT request: {}", exception.getMessage());
-			Helper.sendErrorResponse(response, exception);
-		} catch (Exception exception) {
-			logger.error("Unexpected error occurred while handling PUT request.", exception);
-			Helper.sendErrorResponse(response, "Unexpected error occurred while updating accounts.");
+		if (!accountMap.containsKey("accountNumber")) {
+			logger.warn("PUT request missing required 'accountNumber'.");
+			Helper.sendErrorResponse(response, "Enter accountNumber to update account.");
+			return;
 		}
+
+		Long accountNumber = Long.parseLong((String) accountMap.get("accountNumber"));
+
+		Map<String, Object> accMap = new HashMap<>();
+		if (accountMap.containsKey("branchId")) {
+			Long branchId = Long.parseLong((String) accountMap.get("branchId"));
+			accMap.put("branchId", branchId);
+		}
+		if (accountMap.containsKey("status")) {
+			String status = (String) accountMap.get("status");
+			accMap.put("status", status);
+		}
+
+		accountService.updateAccount(accountNumber, accMap);
+		logger.info("Account updated successfully. AccountNumber: {}, Updates: {}", accountNumber, accMap);
+		Helper.sendSuccessResponse(response, "success");
+
 	}
 
 }

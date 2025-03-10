@@ -13,71 +13,90 @@ import org.apache.logging.log4j.Logger;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 
-import Enum.Constants.HttpStatusCodes;
-import Enum.Constants.LogType;
-import Enum.Constants.Role;
 import cache.CacheUtil;
 import dao.DAO;
-import dao.UserDAO;
+import dao.DaoFactory;
+import enums.Constants.HttpStatusCodes;
+import enums.Constants.LogType;
+import enums.Constants.Role;
 import model.ActivityLog;
 import model.ColumnCriteria;
 import model.CustomerDetail;
 import model.Staff;
 import model.User;
+import util.AuthUtils;
 import util.CustomException;
 import util.Helper;
 import util.ValidationUtil;
 
+@SuppressWarnings("unchecked")
 public class UserService {
 
-	private static final Logger logger = LogManager.getLogger(UserService.class);
+	private static Logger logger = LogManager.getLogger(UserService.class);
+	private DAO<User> userDao = DaoFactory.getDAO(User.class);
+	private DAO<CustomerDetail> customerDao = DaoFactory.getDAO(CustomerDetail.class);
+	private DAO<Staff> staffDao = DaoFactory.getDAO(Staff.class);
 
-	private static DAO<User> userDao = new UserDAO<User>();
-	private static DAO<CustomerDetail> customerDao = new UserDAO<CustomerDetail>();
-	private static DAO<Staff> staffDao = new UserDAO<Staff>();
+	private UserService() {
+	}
 
-	private final CacheUtil cacheUtil = new CacheUtil();
+	private static class SingletonHelper {
+		private static final UserService INSTANCE = new UserService();
+	}
 
-	public Map<String, Object> userLogin(String username, String password) throws CustomException {
+	public static UserService getInstance() {
+		return SingletonHelper.INSTANCE;
+	}
+
+	public Map<String, Object> userLogin(String username, String password) throws Exception {
 		logger.info("Attempting login for username: {}", username);
-		try {
-			List<User> users = checkPassword(username, password);
 
-			if (users == null || users.isEmpty() || users.size() > 1) {
-				logger.warn("User not found or invalid credentials for username: {}", username);
-				throw new CustomException("Invalid username or password.", HttpStatusCodes.UNAUTHORIZED);
-			}
+		checkUserLockout(username);
 
-			User user = users.get(0);
-			Map<String, Object> userDetails = Stream
-					.of(new Object[][] { { "id", user.getId() }, { "fullname", user.getFullname() },
-							{ "username", user.getUsername() }, { "status", user.getStatus() },
-							{ "email", user.getEmail() }, { "phone", user.getPhone() }, { "role", user.getRole() } })
-					.collect(Collectors.toMap(data -> (String) data[0], data -> data[1]));
+		User user = validateCredentials(username, password);
+		Map<String, Object> userDetails = collectUserDetails(user);
 
-			if (!(Role.Customer == user.getRoleEnum())) {
-				addStaffDetails(userDetails, user);
-			}
+		if (Role.Customer != user.getRoleEnum()) {
+			addStaffDetails(userDetails, user);
+		}
+		logUserLoginActivity(user);
+		return userDetails;
+	}
 
-			ActivityLog activityLog = new ActivityLog().setLogMessage("Login").setLogType(LogType.Login)
-					.setUserAccountNumber(null).setRowId(user.getId()).setTableName("User").setUserId(user.getId())
-					.setPerformedBy(user.getId());
-
-			TaskExecutorService.getInstance().submit(activityLog);
-
-			logger.info("User login successful for username: {}", username);
-			return userDetails;
-
-		} catch (CustomException e) {
-			throw e;
-		} catch (Exception e) {
-			logger.error("Unexpected error occurred during login for username: {}", username, e);
-			throw new CustomException("An unexpected error occurred. Please try again later.",
-					HttpStatusCodes.INTERNAL_SERVER_ERROR);
+	private void checkUserLockout(String username) throws CustomException {
+		if (AuthUtils.isUserLockedOut(username)) {
+			logger.warn("User {} is temporarily locked out due to too many failed attempts", username);
+			throw new CustomException("Too many failed attempts. Please wait 5 minutes and try again.",
+					HttpStatusCodes.TOO_MANY_REQUESTS);
 		}
 	}
 
-	private void addStaffDetails(Map<String, Object> userDetails, User user) throws CustomException {
+	private User validateCredentials(String username, String password) throws Exception {
+		List<User> users = checkPassword(username, password);
+		if (users == null || users.isEmpty() || users.size() > 1) {
+			logger.warn("User not found or invalid credentials for username: {}", username);
+			throw new CustomException("Invalid username or password.", HttpStatusCodes.UNAUTHORIZED);
+		}
+		return users.get(0);
+	}
+
+	private Map<String, Object> collectUserDetails(User user) {
+		return Stream
+				.of(new Object[][] { { "id", user.getId() }, { "fullname", user.getFullname() },
+						{ "username", user.getUsername() }, { "status", user.getStatus() },
+						{ "email", user.getEmail() }, { "phone", user.getPhone() }, { "role", user.getRole() } })
+				.collect(Collectors.toMap(data -> (String) data[0], data -> data[1]));
+	}
+
+	private void logUserLoginActivity(User user) throws Exception {
+		ActivityLog activityLog = new ActivityLog().setLogMessage("Login").setLogType(LogType.Login)
+				.setUserAccountNumber(null).setRowId(user.getId()).setTableName("User").setUserId(user.getId())
+				.setPerformedBy(user.getId());
+
+		TaskExecutorService.getInstance().submit(activityLog);
+	}
+
+	public void addStaffDetails(Map<String, Object> userDetails, User user) throws CustomException {
 		logger.info("Fetching additional staff details for employee user.");
 		try {
 			Map<String, Object> userMap = new HashMap<>();
@@ -99,26 +118,25 @@ public class UserService {
 		}
 	}
 
-	private List<User> checkPassword(String username, String password) throws CustomException {
+	private List<User> checkPassword(String username, String password) throws Exception {
 		logger.info("Validating password for user: {}", username);
 		try {
 			List<User> users = null;
 
 			Map<String, Object> userMap = new HashMap<>();
 			userMap.put("username", username);
+			userMap.put("password", true);
 			userMap.put("userClass", User.class);
 			users = userDao.get(userMap);
 
 			if (users == null || users.size() == 0) {
 				throw new CustomException("User not found", HttpStatusCodes.BAD_REQUEST);
 			}
-
 			User user = users.get(0);
 			if (user.getStatus() != "Active") {
 				logger.error("User suspended: {}", username);
 				throw new CustomException("User suspended", HttpStatusCodes.UNAUTHORIZED);
 			}
-
 			if (!Helper.checkPassword(password, user.getPassword())) {
 				logger.error("Password mismatch for user: {}", username);
 				throw new CustomException("Password does not match", HttpStatusCodes.UNAUTHORIZED);
@@ -132,95 +150,139 @@ public class UserService {
 		}
 	}
 
-	public void updatePassword(Map<String, Object> passwordMap) throws CustomException {
+	public void updatePassword(Map<String, Object> passwordMap) throws Exception {
 		logger.info("Attempting to update password.");
+
 		try {
-			String currentPassword = (String) passwordMap.get("currentPassword"),
-					newPassword = (String) passwordMap.get("newPassword");
+			long userId = (long) Helper.getThreadLocalValue("id");
+			String currentPassword = getPasswordFromMap(passwordMap, "currentPassword");
+			String newPassword = getPasswordFromMap(passwordMap, "newPassword");
 
-			ValidationUtil.validatePassword(newPassword);
-			Map<String, Object> userMap = new HashMap<>();
-			Long userId = (Long) Helper.getThreadLocalValue("id");
-			userMap.put("userId", userId);
-			userMap.put("password", true);
-			userMap.put("userClass", User.class);
-			List<User> users = userDao.get(userMap);
+			validateNewPassword(newPassword);
+			User user = getUserById(userId);
+			validateCurrentPassword(currentPassword, user.getPassword());
 
-			User user = users.get(0);
-			if (!Helper.checkPassword(currentPassword, user.getPassword())) {
-				logger.error("Password mismatch for user");
-				throw new CustomException("Please enter correct password", HttpStatusCodes.UNAUTHORIZED);
-			}
+			updateUserPassword(userId, newPassword);
+			clearUserCache();
 
-			ColumnCriteria columnCriteria = new ColumnCriteria().setFields(new ArrayList<>(Arrays.asList("password")))
-					.setValues(new ArrayList<>(Arrays.asList(Helper.hashPassword(newPassword))));
+			logPasswordUpdateActivity(userId);
 
-			Role role = Role.fromString((String) Helper.getThreadLocalValue("role"));
-			
-			if (role == Role.Customer) {
-				userMap.put("userClass", CustomerDetail.class);
-				userDao.update(columnCriteria, userMap);
-			} else {
-				userMap.put("userClass", Staff.class);
-				userDao.update(columnCriteria, userMap);
-			}
-
-			cacheUtil.delete("userDetails");
 			logger.info("Password updated successfully.");
-
-			ActivityLog activityLog = new ActivityLog().setLogMessage("password updated").setLogType(LogType.Update)
-					.setUserAccountNumber(null).setRowId(userId).setTableName("User").setUserId(userId);
-
-			TaskExecutorService.getInstance().submit(activityLog);
 		} catch (CustomException e) {
 			logger.error("Password update failed. Error: {}", e.getMessage());
 			throw e;
 		}
 	}
 
-	@SuppressWarnings("unchecked")
-	public <T extends User> Map<String, Object> getUserDetails(Map<String, Object> userMap) throws CustomException {
+	private String getPasswordFromMap(Map<String, Object> passwordMap, String key) throws CustomException {
+		String password = (String) passwordMap.get(key);
+		if (password == null || password.isEmpty()) {
+			throw new CustomException("Missing or empty password: " + key, HttpStatusCodes.BAD_REQUEST);
+		}
+		return password;
+	}
+
+	private void validateNewPassword(String newPassword) throws Exception {
+		ValidationUtil.validatePassword(newPassword);
+	}
+
+	public User getUserById(Long userId) throws Exception {
+		Map<String, Object> userQuery = new HashMap<>();
+		userQuery.put("userId", userId);
+		userQuery.put("password", true);
+		userQuery.put("userClass", User.class);
+
+		List<User> users = userDao.get(userQuery);
+		if (users == null || users.isEmpty()) {
+			throw new CustomException("User not found", HttpStatusCodes.NOT_FOUND);
+		}
+		return users.get(0);
+	}
+
+	private void validateCurrentPassword(String currentPassword, String storedPassword) throws CustomException {
+		if (!Helper.checkPassword(currentPassword, storedPassword)) {
+			logger.error("Password mismatch for user");
+			throw new CustomException("Please enter the correct password", HttpStatusCodes.UNAUTHORIZED);
+		}
+	}
+
+	private void updateUserPassword(Long userId, String newPassword) throws Exception {
+		ColumnCriteria columnCriteria = new ColumnCriteria().setFields(new ArrayList<>(Arrays.asList("password")))
+				.setValues(new ArrayList<>(Arrays.asList(Helper.hashPassword(newPassword))));
+
+		Role role = Role.fromString((String) Helper.getThreadLocalValue("role"));
+		Class<?> userClass = (role == Role.Customer) ? CustomerDetail.class : Staff.class;
+
+		Map<String, Object> updateQuery = new HashMap<>();
+		updateQuery.put("userId", userId);
+		updateQuery.put("userClass", userClass);
+
+		userDao.update(columnCriteria, updateQuery);
+	}
+
+	private void clearUserCache() {
+		CacheUtil.delete("userDetails");
+	}
+
+	private void logPasswordUpdateActivity(Long userId) throws Exception {
+		ActivityLog activityLog = new ActivityLog().setLogMessage("Password updated").setLogType(LogType.Update)
+				.setUserAccountNumber(null).setRowId(userId).setTableName("User").setUserId(userId);
+
+		TaskExecutorService.getInstance().submit(activityLog);
+	}
+
+	public <T extends User> Map<String, Object> getUserDetails(Map<String, Object> userMap) throws Exception {
 		logger.info("Fetching user details.");
-		try {
-			String key = "userDetails";
-			List<Object> cachedUsers = cacheUtil.getCachedList(key, new TypeReference<List<Object>>() {
-			}, userMap, "userId");
 
-			if (cachedUsers != null && userMap.size() == 1) {
-				return createResultMap(cachedUsers, null);
-			}
+		List<Object> cachedUsers = getCachedUsers(userMap);
+		if (cachedUsers != null && userMap.size() == 1) {
+			return createResultMap(cachedUsers, null);
+		}
 
-			DAO<?> dao = userDao;
-			Class<T> clazz = (Class<T>) User.class;
+		DAO<?> dao = determineDAO(userMap);
+		Class<T> clazz = determineUserClass(userMap);
 
-			if (userMap.containsKey("userId") && userMap.containsKey("role")) {
-				Role role = Role.fromString((String) userMap.get("role"));
-				if (role == Role.Customer) {
-					dao = customerDao;
-					clazz = (Class<T>) CustomerDetail.class;
-				} else {
-					dao = staffDao;
-					clazz = (Class<T>) Staff.class;
-				}
-				userMap.put("role", role);
-			}
+		userMap.put("userClass", clazz);
+		long count = determineDataCount(userMap, dao);
 
-			userMap.put("userClass", clazz);
+		List<?> users = dao.get(userMap);
+		cacheUserDataIfNeeded(userMap, users);
 
-			Long offset = (Long) userMap.getOrDefault("offset", -1L);
-			Long count = (offset == 0) ? dao.getDataCount(userMap) : null;
+		return createResultMap(users, count);
 
-			List<?> users = dao.get(userMap);
+	}
 
-			if (!userMap.containsKey("notExact") && userMap.containsKey("userId")) {
-				cacheUtil.save(key + userMap.get("userId"), users);
-			}
+	private List<Object> getCachedUsers(Map<String, Object> userMap) {
+		String cacheKey = "userDetails";
+		return CacheUtil.getCachedList(cacheKey, new TypeReference<List<Object>>() {
+		}, userMap, "userId");
+	}
 
-			return createResultMap(users, count);
+	private DAO<?> determineDAO(Map<String, Object> userMap) throws CustomException {
+		if (userMap.containsKey("userId") && userMap.containsKey("role")) {
+			Role role = Role.fromString((String) userMap.get("role"));
+			userMap.put("role", role);
+			return (role == Role.Customer) ? customerDao : staffDao;
+		}
+		return userDao;
+	}
 
-		} catch (Exception e) {
-			logger.error("Error fetching user details.", e);
-			throw new CustomException("Unexpected error occurred.", e, HttpStatusCodes.INTERNAL_SERVER_ERROR);
+	private <T extends User> Class<T> determineUserClass(Map<String, Object> userMap) throws CustomException {
+		if (userMap.containsKey("userId") && userMap.containsKey("role")) {
+			Role role = (Role) userMap.get("role");
+			return (role == Role.Customer) ? (Class<T>) CustomerDetail.class : (Class<T>) Staff.class;
+		}
+		return (Class<T>) User.class;
+	}
+
+	private long determineDataCount(Map<String, Object> userMap, DAO<?> dao) throws Exception {
+		long offset = (long) userMap.getOrDefault("offset", -1l);
+		return (offset == 0) ? dao.getDataCount(userMap) : -1;
+	}
+
+	private void cacheUserDataIfNeeded(Map<String, Object> userMap, List<?> users) {
+		if (!userMap.containsKey("notExact") && userMap.containsKey("userId")) {
+			CacheUtil.save("userDetails" + userMap.get("userId"), users);
 		}
 	}
 
@@ -233,11 +295,11 @@ public class UserService {
 		return resultMap;
 	}
 
-	public void createUser(Map<String, Object> userMap) throws CustomException {
+	public void createUser(Map<String, Object> userMap) throws Exception {
 		logger.info("Attempting to create user");
 		try {
 			Role role = Role.fromString((String) userMap.get("role"));
-			Long userId;
+			long userId;
 			if (role == Role.Customer) {
 				CustomerDetail customerDetail = Helper.createPojoFromMap(userMap, CustomerDetail.class);
 				ValidationUtil.validateCustomerModel(customerDetail);
@@ -259,84 +321,96 @@ public class UserService {
 		}
 	}
 
-	@SuppressWarnings("unchecked")
-	public void updateUserDetails(Map<String, Object> userMap) throws CustomException {
+	public void updateUserDetails(Map<String, Object> userMap) throws Exception {
 		logger.info("Attempting to update user details.");
+
 		try {
 			if (userMap.containsKey("currentPassword")) {
 				updatePassword(userMap);
 				return;
 			}
-			if (!userMap.containsKey("updatedValues") || !userMap.containsKey("userId")) {
-				throw new CustomException("Provide the values to update", HttpStatusCodes.BAD_REQUEST);
-			}
 
-			Long userId = Long.parseLong((String) userMap.get("userId"));
-			Map<String, Object> updatedValues = (Map<String, Object>) userMap.get("updatedValues");
-			Helper.convertMapValuesToLong(updatedValues);
+			validateUpdateRequest(userMap);
 
-			Class<? extends User> clazz = Staff.class;
-			if (Role.fromString((String) userMap.get("role")) == Role.Customer) {
-				clazz = CustomerDetail.class;
-			}
+			long userId = Helper.parseLong(userMap.getOrDefault("userId", -1));
+			Map<String, Object> updatedValues = extractUpdatedValues(userMap);
+
+			Role role = extractRole(userMap);
+			Class<? extends User> clazz = (role == Role.Customer) ? CustomerDetail.class : Staff.class;
 
 			ValidationUtil.validateUpdateFields(updatedValues, clazz);
 
-			List<String> fields = new ArrayList<>();
-			List<Object> values = new ArrayList<>();
-			StringBuilder logMessage = new StringBuilder("updated fields: ");
-			StringBuilder logValues = new StringBuilder("with values: ");
-
-			Role role = Role.fromString((String) userMap.get("role"));
-			userMap.remove("role");
-
-			for (String key : updatedValues.keySet()) {
-
-				if ("modifiedAt".equals(key) || "performedBy".equals(key)) {
-					continue;
-				}
-
-				fields.add(key);
-				values.add(updatedValues.get(key));
-
-				logMessage.append(key).append(", ");
-				logValues.append(updatedValues.get(key)).append(", ");
-
-			}
-
-			if (logMessage.length() > 0) {
-				logMessage.setLength(logMessage.length() - 2);
-				logValues.setLength(logValues.length() - 2);
-			}
-			userMap.remove("updatedValues");
-
-			// Use validation check.
-			List<User> users = (List<User>) getUserDetails(userMap).get("users");
+			List<User> users = fetchExistingUsers(userMap);
 			if (users == null || users.isEmpty()) {
 				throw new CustomException("User not found.", HttpStatusCodes.BAD_REQUEST);
 			}
 
-			ColumnCriteria columnCriteria = new ColumnCriteria().setFields(fields).setValues(values);
-			if (role == Role.Customer) {
-				userMap.put("userClass", CustomerDetail.class);
-				customerDao.update(columnCriteria, userMap);
-			} else {
-				userMap.put("userClass", Staff.class);
-				staffDao.update(columnCriteria, userMap);
-			}
-			cacheUtil.delete("userDetails");
+			ColumnCriteria columnCriteria = prepareUpdateCriteria(updatedValues);
+			updateUserInDatabase(role, columnCriteria, userMap);
+
+			CacheUtil.delete("userDetails");
+			logUpdateActivity(userId, updatedValues);
+
 			logger.info("User details updated successfully.");
-
-			ActivityLog activityLog = new ActivityLog()
-					.setLogMessage(logMessage.toString() + " " + logValues.toString()).setLogType(LogType.Update)
-					.setUserAccountNumber(null).setRowId(userId).setTableName("User").setUserId(userId);
-
-			TaskExecutorService.getInstance().submit(activityLog);
-
 		} catch (CustomException e) {
 			logger.error("Error updating user details. Error: {}", e.getMessage());
 			throw e;
 		}
+	}
+
+	private void validateUpdateRequest(Map<String, Object> userMap) throws CustomException {
+		if (!userMap.containsKey("updatedValues") || !userMap.containsKey("userId")) {
+			throw new CustomException("Provide the values to update", HttpStatusCodes.BAD_REQUEST);
+		}
+	}
+
+	private Map<String, Object> extractUpdatedValues(Map<String, Object> userMap) {
+		Map<String, Object> updatedValues = (Map<String, Object>) userMap.get("updatedValues");
+		Helper.convertMapValuesToLong(updatedValues);
+		userMap.remove("updatedValues");
+		return updatedValues;
+	}
+
+	private Role extractRole(Map<String, Object> userMap) throws CustomException {
+		Role role = Role.fromString((String) userMap.get("role"));
+		userMap.remove("role");
+		return role;
+	}
+
+	private List<User> fetchExistingUsers(Map<String, Object> userMap) throws Exception {
+		return (List<User>) getUserDetails(userMap).get("users");
+	}
+
+	private ColumnCriteria prepareUpdateCriteria(Map<String, Object> updatedValues) {
+		List<String> fields = new ArrayList<>();
+		List<Object> values = new ArrayList<>();
+
+		updatedValues.forEach((key, value) -> {
+			if (!"modifiedAt".equals(key) && !"performedBy".equals(key)) {
+				fields.add(key);
+				values.add(value);
+			}
+		});
+
+		return new ColumnCriteria().setFields(fields).setValues(values);
+	}
+
+	private void updateUserInDatabase(Role role, ColumnCriteria columnCriteria, Map<String, Object> userMap)
+			throws Exception {
+		userMap.put("userClass", (role == Role.Customer) ? CustomerDetail.class : Staff.class);
+		DAO<?> dao = (role == Role.Customer) ? customerDao : staffDao;
+		dao.update(columnCriteria, userMap);
+	}
+
+	private void logUpdateActivity(Long userId, Map<String, Object> updatedValues) throws Exception {
+		String logMessage = "Updated fields: " + String.join(", ", updatedValues.keySet());
+		String logValues = "With values: " + updatedValues.values().toString();
+
+		ActivityLog activityLog = new ActivityLog().setLogMessage(logMessage + " " + logValues)
+				.setLogType(LogType.Update).setUserAccountNumber(null).setRowId(userId).setTableName("User")
+				.setUserId(userId);
+
+		TaskExecutorService.getInstance().submit(activityLog);
 	}
 
 }

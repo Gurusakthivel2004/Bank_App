@@ -1,6 +1,6 @@
 package model;
 
-import Enum.Constants.LogType;
+import enums.Constants.LogType;
 
 public class ActivityLog extends MarkedClass {
 
@@ -9,7 +9,7 @@ public class ActivityLog extends MarkedClass {
 	private LogType logType;
 	private Long rowId;
 	private Long userId;
-	private Long userAccountNumber;
+	private Long accountNumber;
 	private String logMessage;
 	private Long timestamp;
 	private Long performedBy;
@@ -63,11 +63,11 @@ public class ActivityLog extends MarkedClass {
 	}
 
 	public Long getUserAccountNumber() {
-		return userAccountNumber;
+		return accountNumber;
 	}
 
-	public ActivityLog setUserAccountNumber(Long userAccountNumber) {
-		this.userAccountNumber = userAccountNumber;
+	public ActivityLog setUserAccountNumber(Long accountNumber) {
+		this.accountNumber = accountNumber;
 		return this;
 	}
 
@@ -101,7 +101,7 @@ public class ActivityLog extends MarkedClass {
 	@Override
 	public String toString() {
 		return "ActivityLog [id=" + id + ", tableName=" + tableName + ", logType=" + logType + ", rowId=" + rowId
-				+ ", userId=" + userId + ", userAccountNumber=" + userAccountNumber + ", logMessage=" + logMessage
+				+ ", userId=" + userId + ", accountNumber=" + accountNumber + ", logMessage=" + logMessage
 				+ ", timestamp=" + timestamp + ", performedBy=" + performedBy + "]";
 	}
 

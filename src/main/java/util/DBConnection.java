@@ -1,20 +1,39 @@
 package util;
 
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.SQLException;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import com.zaxxer.hikari.HikariDataSource;
+import servlet.Initializer;
 
 public class DBConnection {
-    private static final String URL = "jdbc:mysql://localhost:3306/bank";
-    private static final String USER = "root";
-    private static final String PASSWORD = "root";
 
-    public static Connection getConnection() throws SQLException{
-    	try {
-    		Class.forName("com.mysql.cj.jdbc.Driver");
-		} catch (Exception e) {
+	private static final Logger logger = LogManager.getLogger(DBConnection.class);
+	private static DBConnection instance;
+	private static HikariDataSource dataSource;
 
+	private DBConnection() {
+		dataSource = Initializer.getDataSource();
+	}
+
+	public static DBConnection getInstance() {
+		if (instance == null) {
+			synchronized (DBConnection.class) {
+				if (instance == null) {
+					instance = new DBConnection();
+				}
+			}
 		}
-        return DriverManager.getConnection(URL, USER, PASSWORD);
-    }
+		return instance;
+	}
+
+	public Connection getConnection() throws SQLException {
+		try {
+			return dataSource.getConnection();
+		} catch (Exception e) {
+			logger.error("Failed to get DB connection: {}", e.getMessage());
+			throw e;
+		}
+	}
 }

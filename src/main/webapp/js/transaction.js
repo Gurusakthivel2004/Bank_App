@@ -1,6 +1,4 @@
 let newfilterTo = false;
-let role = sessionStorage.getItem("role");
-
 let filterId = -1;
 let filterAccount = '';
 let filterFromDate = '';
@@ -8,7 +6,7 @@ let filterBranch = '';
 let filterToDate = '';
 let filterType = '', filterOffset = 0;
 
-const transactionsPerPage = 8
+const transactionsPerPage = 8, role = getCookie('role');
 let cachedTransactions = [], transactionsCount = 0, currentPageIndex = 0;
 let lastPage = 1000000;
 let isrecursed = false;
@@ -27,20 +25,24 @@ async function fetchTransactions() {
 			if (filterType) transactionData.transactionType = filterType;
 			if (filterFromDate) transactionData.from = filterFromDate;
 			if (filterToDate) transactionData.to = filterToDate;
-			const token = sessionStorage.getItem('token')
 			const response = await fetch('http://localhost:8080/Bank_Application/api/Transaction', {
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json',
-					'Authorization': `Bearer ${token}`
 				},
 				body: JSON.stringify(transactionData)
 			});
 			const transactionsMap = await response.json();
 			console.log(transactionsMap)
-			if (transactionsMap.message == 'Invalid token') {
+			if (transactionsMap.message == 'Invalid token' || transactionsMap.message == 'Invalid Access token') {
 				document.querySelector('body').style.display = 'none';
+				deleteAllCookies();
 				window.location.href = "error.html";
+			} else if (transactionsMap.message == 'You dont have a account ') {
+				document.querySelector('body').style.display = 'none';
+				deleteAllCookies();
+				sessionStorage.setItem('error', "No Account exists for the user.");
+				window.location.href = "index.html";
 			}
 			console.log(transactionsMap)
 			const transactions = transactionsMap["transactions"];
@@ -75,12 +77,10 @@ async function download() {
 		if (filterFromDate) transactionData.from = filterFromDate;
 		if (filterToDate) transactionData.to = filterToDate;
 
-		const token = sessionStorage.getItem('token');
 		const response = await fetch('http://localhost:8080/Bank_Application/api/Transaction', {
 			method: 'POST',
 			headers: {
 				'Content-Type': 'application/json',
-				'Authorization': `Bearer ${token}`
 			},
 			body: JSON.stringify(transactionData)
 		});
@@ -263,7 +263,7 @@ function renderTransactions(transactions) {
 	}
 	transactions.forEach(tx => {
 		const transactionDiv = document.createElement("div");
-		transactionDiv.className = "transaction-item d-flex align-items-center mb-1";
+		transactionDiv.className = "transaction-item d-flex align-items-center my-2";
 		transactionDiv.style = "background-color: #ffffff; padding: 10px; border-bottom: 1px solid #ddd; border-radius: 10px;";
 
 		transactionDiv.innerHTML = `

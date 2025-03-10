@@ -2,8 +2,8 @@ package model;
 
 import java.math.BigDecimal;
 
-import Enum.Constants.AccountType;
-import Enum.Constants.Status;
+import enums.Constants.AccountType;
+import enums.Constants.Status;
 
 public class Account extends MarkedClass {
 

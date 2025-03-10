@@ -10,85 +10,81 @@ import java.util.Map;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import Enum.Constants.HttpStatusCodes;
 import model.Account;
 import model.Branch;
 import model.Transaction;
-import util.CustomException;
 import util.Helper;
 
 public class FacadeHandler {
 
-	private final Logger logger = LogManager.getLogger(FacadeHandler.class);
-	private TransactionService transactionService = TransactionService.getInstance();
-	private UserService userService = new UserService();
-	private AccountService accountService = new AccountService();
-	private BranchService branchService = new BranchService();
+	private static Logger logger = LogManager.getLogger(FacadeHandler.class);
+	private static TransactionService transactionService = TransactionService.getInstance();
+	private static UserService userService = UserService.getInstance();
+	private static AccountService accountService = AccountService.getInstance();
+	private static BranchService branchService = BranchService.getInstance();
 
-	@SuppressWarnings("unchecked")
-	public Map<String, Object> dashBoardDetails() throws CustomException {
-		long id = (Long) Helper.getThreadLocalValue("id");
-		Map<String, Object> map = new HashMap<>();
-		Map<String, Object> branchMap = new HashMap<>();
+	public Map<String, Object> dashBoardDetails() throws Exception {
+		long userId = (Long) Helper.getThreadLocalValue("id");
+		logger.info("Fetching dashboard details for user ID: {}", userId);
 
-		logger.info("Fetching dashboard details for user ID: {}", id);
+		// Fetch user accounts
+		List<Account> accounts = getUserAccounts(userId);
+		List<Transaction> transactions = new ArrayList<>();
+		List<Branch> branchDetails = new ArrayList<>();
 
-		try {
-			logger.debug("Fetching account details for user ID: {}", id);
-			Map<String, Object> accountMap = new HashMap<>();
-			accountMap.put("userId", id);
-			List<Account> accounts = (List<Account>) accountService.getAccountDetails(accountMap).get("accounts");
-
-			map.put("account", accounts);
-
-			logger.info("Fetching transaction details for user ID: {}", id);
-			// Fetch transaction details
-			List<Transaction> transactions = new ArrayList<>();
-			List<Branch> branchDetails = new ArrayList<>();
-			Map<String, Object> txMap = new HashMap<>();
-
-			for (int i = 0; i < accounts.size(); i++) {
-				Account account = (Account) accounts.get(i);
-				getTransactionMap(txMap, id, account.getAccountNumber(), 5l, 0l, 0l, -1l);
-				List<Transaction> accountTransactions = (List<Transaction>) transactionService
-						.getTransactionDetails(txMap).get("transactions");
-				transactions.addAll(accountTransactions);
-
-				// Branch fetch
-				branchMap.put("branchId", account.getBranchId());
-				Branch branch = branchService.getBranchDetails(branchMap).get(0);
-				branchDetails.add(branch);
-			}
-
-			map.put("transactions", transactions);
-			map.put("branch", branchDetails);
-
-			// Fetch user details based on role
-			String role = (String) Helper.getThreadLocalValue("role");
-			Map<String, Object> userMap = new HashMap<>();
-			userMap.put("role", role);
-			userMap.put("userId", id);
-			map.put("userDetail", userService.getUserDetails(userMap).get("users"));
-
-			logger.info("Adding monthly finance details for user ID: {}", id);
-			addMonthlyFinance(map, id, 3);
-
-			logger.info("Dashboard details fetched successfully for user ID: {}", id);
-		} catch (CustomException e) {
-			logger.error("Error occurred while fetching dashboard details for user ID: {}: {}", id, e);
-			throw e;
-		} catch (Exception e) {
-			logger.error("Unexpected error occurred while fetching dashboard details for user ID: {}: {}", id,
-					e.getMessage(), e);
-			throw new CustomException("An unexpected error occurred while fetching details.",
-					HttpStatusCodes.INTERNAL_SERVER_ERROR);
+		// Fetch transactions and branches for all accounts
+		for (Account account : accounts) {
+			transactions.addAll(fetchTransactions(userId, account.getAccountNumber()));
+			branchDetails.add(fetchBranch(account.getBranchId()));
 		}
 
-		return map;
+		// Fetch user details
+		String role = (String) Helper.getThreadLocalValue("role");
+		Map<String, Object> userDetails = getUserDetails(userId, role);
+
+		// Prepare final response
+		Map<String, Object> dashboardData = new HashMap<>();
+		dashboardData.put("account", accounts);
+		dashboardData.put("transactions", transactions);
+		dashboardData.put("branch", branchDetails);
+		dashboardData.put("userDetail", userDetails.get("users"));
+
+		// Add monthly finance details
+		addMonthlyFinance(dashboardData, userId, 3);
+
+		logger.info("Dashboard details fetched successfully for user ID: {}", userId);
+		return dashboardData;
 	}
 
 	@SuppressWarnings("unchecked")
-	private void addMonthlyFinance(Map<String, Object> map, Long customerId, int monthLength) throws CustomException {
+	private List<Account> getUserAccounts(long userId) throws Exception {
+		Map<String, Object> params = new HashMap<>();
+		params.put("userId", userId);
+		return (List<Account>) accountService.getAccountDetails(params).get("accounts");
+	}
+
+	@SuppressWarnings("unchecked")
+	private List<Transaction> fetchTransactions(long userId, long accountNumber) throws Exception {
+		Map<String, Object> txParams = new HashMap<>();
+		getTransactionMap(txParams, userId, accountNumber, 5L, 0L, 0L, -1L);
+		return (List<Transaction>) transactionService.getTransactionDetails(txParams).get("transactions");
+	}
+
+	private Branch fetchBranch(long branchId) throws Exception {
+		Map<String, Object> branchParams = new HashMap<>();
+		branchParams.put("branchId", branchId);
+		return branchService.getBranchDetails(branchParams).get(0);
+	}
+
+	private Map<String, Object> getUserDetails(long userId, String role) throws Exception {
+		Map<String, Object> params = new HashMap<>();
+		params.put("role", role);
+		params.put("userId", userId);
+		return userService.getUserDetails(params);
+	}
+
+	@SuppressWarnings("unchecked")
+	private void addMonthlyFinance(Map<String, Object> map, Long customerId, int monthLength) throws Exception {
 		int currentMonth = LocalDate.now().getMonthValue();
 		int currentYear = LocalDate.now().getYear();
 		logger.info("Adding monthly finance details for customer ID: {}", customerId);
@@ -124,25 +120,17 @@ public class FacadeHandler {
 
 	private void getTransactionMap(Map<String, Object> txMap, Long id, Long accountNumber, Long limit, Long from,
 			Long to, Long offset) {
-
-		if (id != null && id > 0) {
-			txMap.put("customerId", id);
-		}
-		if (accountNumber != null && accountNumber > 0) {
-			txMap.put("accountNumber", accountNumber);
-		}
-		if (limit != null && limit > 0) {
-			txMap.put("limit", limit);
-		}
-		if (from != null && from > 0) {
-			txMap.put("from", from);
-		}
-		if (to != null && to > 0) {
-			txMap.put("to", to);
-		}
-		if (offset != null && offset > 0) {
-			txMap.put("offset", offset);
-		}
+		addToMapIfValid(txMap, "customerId", id);
+		addToMapIfValid(txMap, "accountNumber", accountNumber);
+		addToMapIfValid(txMap, "limit", limit);
+		addToMapIfValid(txMap, "from", from);
+		addToMapIfValid(txMap, "to", to);
+		addToMapIfValid(txMap, "offset", offset);
 	}
 
+	private void addToMapIfValid(Map<String, Object> map, String key, Long value) {
+		if (value != null && value > 0) {
+			map.put(key, value);
+		}
+	}
 }

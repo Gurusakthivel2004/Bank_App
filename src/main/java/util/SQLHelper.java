@@ -17,10 +17,10 @@ import java.util.Map;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import Enum.Constants.AggregateFunction;
-import Enum.Constants.HttpStatusCodes;
-import Enum.Constants.Operators;
 import dao.DAOHelper;
+import enums.Constants.AggregateFunction;
+import enums.Constants.HttpStatusCodes;
+import enums.Constants.Operators;
 import model.ColumnCriteria;
 import model.Criteria;
 import model.JoinObject;
@@ -29,7 +29,7 @@ import util.ColumnYamlUtil.FieldMapping;
 
 public class SQLHelper {
 
-	private static final Logger logger = LogManager.getLogger(SQLHelper.class);
+	private static Logger logger = LogManager.getLogger(SQLHelper.class);
 
 	@SuppressWarnings({ "unchecked", "rawtypes" })
 	private static <T> T mapResultSetToObject(ResultSet resultSet, Class<? extends T> clazz, T instance,
@@ -75,6 +75,8 @@ public class SQLHelper {
 					modifiedFields.add(columnName);
 				} catch (SQLSyntaxErrorException exception) {
 					logger.warn("SQL Syntax error while setting field: " + field.getName(), exception);
+					throw new CustomException("Error processing data. Please try again later.",
+							HttpStatusCodes.INTERNAL_SERVER_ERROR);
 				} catch (IllegalAccessException e) {
 					logger.error("Error accessing field: " + field.getName(), e);
 					throw new CustomException("Error processing data. Please try again later.",
@@ -94,7 +96,6 @@ public class SQLHelper {
 			throw new CustomException("Error processing data. Please try again later.",
 					HttpStatusCodes.INTERNAL_SERVER_ERROR);
 		}
-
 	}
 
 	// Returns the preparedStatement after setting the values
@@ -114,14 +115,13 @@ public class SQLHelper {
 			}
 		}
 		logger.debug("PreparedStatement: " + preparedStatement.toString());
-		System.out.println("PreparedStatement: " + preparedStatement.toString());
 		return preparedStatement;
 
 	}
 
 	// Execute the preparedStatement for the insert queries
 	private static Object executeNonSelect(Connection connection, String query, Object[] values)
-			throws CustomException, SQLException {
+			throws CustomException {
 		try (PreparedStatement preparedStatement = getPreparedStatement(connection, query, values)) {
 			preparedStatement.execute();
 			try (ResultSet generatedKeys = preparedStatement.getGeneratedKeys()) {
@@ -129,7 +129,6 @@ public class SQLHelper {
 					return generatedKeys.getObject(1);
 				}
 			}
-			return null;
 		} catch (SQLIntegrityConstraintViolationException e) {
 			String message = DAOHelper.parseDuplicateEntryMessage(e.getMessage());
 			try {
@@ -143,24 +142,23 @@ public class SQLHelper {
 				throw new CustomException("Transaction failed. Please try again later.",
 						HttpStatusCodes.INTERNAL_SERVER_ERROR);
 			}
-
 			logger.info("Duplicate entry error: ", e);
 			throw new CustomException(message, HttpStatusCodes.CONFLICT);
+		} catch (SQLException e) {
+			Helper.handleSQLException(e);
 		}
+		return null;
 	}
 
 	// Execute the preparedStatement for the non-select queries.
-	private static Object executeNonSelect(String query, Object[] values) throws CustomException, SQLException {
-		try (Connection connection = DBConnection.getConnection();
-				PreparedStatement preparedStatement = getPreparedStatement(connection, query, values)) {
-			preparedStatement.execute();
-			try (ResultSet generatedKeys = preparedStatement.getGeneratedKeys()) {
-				if (generatedKeys.next()) {
-					return generatedKeys.getObject(1);
-				}
-			}
-			return null;
+	private static Object executeNonSelect(String query, Object[] values) throws CustomException {
+		DBConnection dbConnection = DBConnection.getInstance();
+		try (Connection connection = dbConnection.getConnection();) {
+			return executeNonSelect(connection, query, values);
+		} catch (SQLException e) {
+			Helper.handleSQLException(e);
 		}
+		return null;
 	}
 
 	// @AppendQuery method
@@ -282,16 +280,16 @@ public class SQLHelper {
 
 		Helper.validateQueryConditions(setColumns, "No columns to update.");
 
-		int len = updateSql.length();
+		int length = updateSql.length();
 		for (int i = 0; i < setColumns.size(); i++) {
 			String setColumn = setColumns.get(i);
 			Object setValue = setValues.get(i);
 			FieldMapping fieldMapping = classMapping.getFields().get(setColumn);
 
 			if (fieldMapping != null) {
-				if (len < updateSql.length()) {
+				if (length < updateSql.length()) {
 					updateSql.append(", ");
-					len = updateSql.length();
+					length = updateSql.length();
 				}
 				updateSql.append(fieldMapping.getColumnName()).append(" = ?");
 				values.add(setValue);
@@ -340,12 +338,11 @@ public class SQLHelper {
 	public static <T> List<T> get(Criteria condition, Class<T> clazz) throws CustomException, SQLException {
 		List<Object> conditionValues = new ArrayList<>();
 		StringBuilder selectSql = buildSelectQuery(condition, clazz, conditionValues);
-
-		try (Connection connection = DBConnection.getConnection();
+		DBConnection dbConnection = DBConnection.getInstance();
+		try (Connection connection = dbConnection.getConnection();
 				PreparedStatement preparedStatement = getPreparedStatement(connection, selectSql.toString(),
 						conditionValues.toArray());
 				ResultSet resultSet = preparedStatement.executeQuery()) {
-
 			List<T> resultList = new ArrayList<>();
 			while (resultSet.next()) {
 				T instance = mapResultSetToObject(resultSet, clazz, null, getTableName(clazz), new ArrayList<>());
@@ -359,8 +356,8 @@ public class SQLHelper {
 			throws CustomException, SQLException {
 		List<Object> conditionValues = new ArrayList<>();
 		StringBuilder selectSql = buildSelectQuery(condition, clazz, conditionValues);
-
-		try (Connection connection = DBConnection.getConnection();
+		DBConnection dbConnection = DBConnection.getInstance();
+		try (Connection connection = dbConnection.getConnection();
 				PreparedStatement preparedStatement = getPreparedStatement(connection, selectSql.toString(),
 						conditionValues.toArray());
 				ResultSet resultSet = preparedStatement.executeQuery()) {
@@ -380,8 +377,8 @@ public class SQLHelper {
 	public static <T> Long getCount(Criteria condition, Class<T> clazz) throws CustomException, SQLException {
 		List<Object> conditionValues = new ArrayList<>();
 		StringBuilder selectSql = buildSelectQuery(condition, clazz, conditionValues);
-
-		try (Connection connection = DBConnection.getConnection();
+		DBConnection dbConnection = DBConnection.getInstance();
+		try (Connection connection = dbConnection.getConnection();
 				PreparedStatement preparedStatement = getPreparedStatement(connection, selectSql.toString(),
 						conditionValues.toArray());
 				ResultSet resultSet = preparedStatement.executeQuery()) {
@@ -463,8 +460,8 @@ public class SQLHelper {
 	// pojo : pojo class
 	public static Object insert(Object pojo) throws Exception {
 		Helper.checkNullValues(pojo);
-
-		try (Connection connection = DBConnection.getConnection()) {
+		DBConnection dbConnection = DBConnection.getInstance();
+		try (Connection connection = dbConnection.getConnection()) {
 			if (connection == null || connection.isClosed()) {
 				throw new CustomException("Database connection is not established or is closed.",
 						HttpStatusCodes.INTERNAL_SERVER_ERROR);

@@ -9,8 +9,8 @@ let cachedLogs = [];
 let logsCount;
 let currentPageIndex = 0;
 let filterOffset = 0;
-const role = sessionStorage.getItem("role");
-const token = sessionStorage.getItem('token');
+const role = getCookie("role");
+const token = getCookie('token');
 
 async function fetchLogs() {
 	try {
@@ -23,11 +23,11 @@ async function fetchLogs() {
 			if (filterId) logsData.userId = Number(filterId);
 			if (filterlog && Number.isFinite(Number(filterlog))) logsData.accountNumber = Number(filterlog);
 			if (filterType) logsData.logType = filterType;
-			if (filterFromDate) transactionData.from = filterFromDate;
-			if (filterToDate) transactionData.to = filterToDate;
+			if (filterFromDate) logsData.from = filterFromDate;
+			if (filterToDate) logsData.to = filterToDate;
 
 			console.log(logsData);
-			const token = sessionStorage.getItem('token')
+			const token = getCookie('token')
 			const response = await fetch('http://localhost:8080/Bank_Application/api/Log', {
 				method: 'POST',
 				headers: {
@@ -37,9 +37,15 @@ async function fetchLogs() {
 				body: JSON.stringify(logsData)
 			});
 			const logsResult = await response.json();
-			if (logsResult.message == 'Invalid token') {
+			if (logsResult.message == 'Invalid token' || logsResult.message == 'Invalid Access token') {
 				document.querySelector('body').style.display = 'none';
+				deleteAllCookies();
 				window.location.href = "error.html";
+			} else if (logsResult.message == 'You dont have a account ') {
+				document.querySelector('body').style.display = 'none';
+				deleteAllCookies();
+				sessionStorage.setItem('error', "No Account exists for the user.");
+				window.location.href = "index.html";
 			}
 
 			const logs = logsResult["logs"];

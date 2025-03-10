@@ -2,8 +2,8 @@ package model;
 
 import java.math.BigDecimal;
 
-import Enum.Constants.TransactionStatus;
-import Enum.Constants.TransactionType;
+import enums.Constants.TransactionStatus;
+import enums.Constants.TransactionType;
 
 public class Transaction extends MarkedClass {
 

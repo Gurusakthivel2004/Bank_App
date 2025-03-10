@@ -1,10 +1,23 @@
-const userRole = sessionStorage.getItem("role");
 const createNavButton = document.getElementById("create-user-item");
 const logButton = document.getElementById("log-item");
 const empChat = document.getElementById('employeeChatbutton');
 const cusChat = document.getElementById('customerChatbutton')
 const reqButton = document.getElementById('requestbutton');
 const bellButton = document.getElementById('bellbutton');
+
+const getCookie = name => {
+	const cookies = document.cookie.split('; ');
+	for (let cookie of cookies) {
+		const [key, value] = cookie.split('=');
+		if (key === name) {
+			return decodeURIComponent(value);
+		}
+	}
+	return null;
+}
+
+const userRole = getCookie('role');
+const branchId = getCookie('branchId');
 
 if (userRole == "Customer") {
 	let ele = document.getElementsByClassName('left-section');
@@ -66,28 +79,34 @@ document.addEventListener("DOMContentLoaded", () => {
 
 async function fetchNotifications(openDropdown = false, loadMore = false) {
 	if (!hasMore) return;
-
-	const token = sessionStorage.getItem('token');
-	const branchId = sessionStorage.getItem('branchId');
 	const response = await fetch(`http://localhost:8080/Bank_Application/api/Message?branchId=${branchId}&limit=${limit}&offset=${offset}&status=pending`, {
 		method: 'GET',
 		headers: {
 			'Content-Type': 'application/json',
-			'Authorization': `Bearer ${token}`
 		}
 	});
 
 	const result = await response.json();
 	console.log(result);
-	if (result.messages.length == 0) return;
+	if (result.messages == null || result.messages.length == 0) return;
+	if (result.message == 'Invalid token' || result.message == 'Invalid Access token') {
+		document.querySelector('body').style.display = 'none';
+		window.location.href = "error.html";
+	}
+	else if (result.message == 'You dont have a account ') {
+		document.querySelector('body').style.display = 'none';
+		deleteAllCookies();
+		sessionStorage.setItem('error', "No Account exists for the user.");
+		window.location.href = "index.html";
+	}
 	const pendingMessages = result.messages.filter(msg => msg.messageStatus === "Pending");
 	const notificationList = document.getElementById('notificationList');
 	const notificationBadge = document.getElementById('notificationBadge');
 	const loadMoreBtn = document.getElementById('loadMoreBtn');
 
-	hasMore = pendingMessages.length >= limit;
+	hasMore = pendingMessages.length - 1 >= limit;
 	if (pendingMessages.length > 0) {
-		notificationBadge.textContent = result.count > limit ? '8+' : result.count;
+		notificationBadge.textContent = result.messages.length > limit ? '8+' : result.messages.length;
 		notificationBadge.style.display = 'grid';
 
 		pendingMessages.forEach(({ id, senderId, messageType, messageContent, createdAt }) => {
@@ -119,7 +138,7 @@ async function fetchNotifications(openDropdown = false, loadMore = false) {
 }
 
 async function markAsRead(messageId, btn) {
-	const token = sessionStorage.getItem('token');
+	const token = getCookie('token');
 
 	const response = await fetch(`http://localhost:8080/Bank_Application/api/Message`, {
 		method: 'PUT',
@@ -130,6 +149,10 @@ async function markAsRead(messageId, btn) {
 		body: JSON.stringify({ messageId: messageId, messageStatus: 'Completed' })
 	});
 	if (response.ok) {
+		if (response.message == 'You dont have a account ') {
+			document.querySelector('body').style.display = 'none';
+			window.location.href = "error.html";
+		}
 		const successPop = document.getElementById('successModal');
 		document.getElementById('successMessage').innerHTML = "Completed successully";
 		successPop.style.display = 'flex';
@@ -140,7 +163,7 @@ async function markAsRead(messageId, btn) {
 }
 
 async function cancelRequest(messageId, btn) {
-	const token = sessionStorage.getItem('token');
+	const token = getCookie('token');
 
 	const response = await fetch(`http://localhost:8080/Bank_Application/api/Message`, {
 		method: 'PUT',
@@ -237,7 +260,7 @@ function sendRequest() {
 			return;
 		}
 		requestData = {
-			senderId: sessionStorage.getItem("id"),
+			senderId: getCookie("id"),
 			messageType: "TransactionRequest",
 			messageContent: "Account number: " + accountNumber + "/n transaction account number: " + transactionAccount + " /n amount: " + Number(amount)
 		};
@@ -248,7 +271,7 @@ function sendRequest() {
 			return;
 		}
 		requestData = {
-			senderId: sessionStorage.getItem("id"),
+			senderId: getCookie("id"),
 			messageType: "AccountRequest",
 			messageContent: "Account number: " + accountNumber
 		};
@@ -273,7 +296,7 @@ function sendRequest() {
 		if (requestMessage.style.display === "block") return;
 
 		requestData = {
-			senderId: sessionStorage.getItem("id"),
+			senderId: getCookie("id"),
 			messageType: "UserRequest",
 			messageContent: profileData
 		};
@@ -288,7 +311,7 @@ function sendRequest() {
 }
 
 const sendRequestToServer = async data => {
-	const token = sessionStorage.getItem('token');
+	const token = getCookie('token');
 	const response = await fetch('http://localhost:8080/Bank_Application/api/Message', {
 		method: 'POST',
 		headers: {
@@ -309,9 +332,17 @@ const sendRequestToServer = async data => {
 	}
 }
 
+function deleteAllCookies() {
+	document.cookie.split(";").forEach((cookie) => {
+		document.cookie = cookie.split("=")[0] +
+			"=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/Bank_Application;";
+	});
+}
+
+
 const logout = async _ => {
 	try {
-		const token = sessionStorage.getItem('token');
+		const token = getCookie('token');
 		const response = await fetch('http://localhost:8080/Bank_Application/api/Logout', {
 			method: 'DELETE',
 			headers: {
@@ -321,7 +352,7 @@ const logout = async _ => {
 		});
 		const result = await response.json();
 		if (result) {
-			sessionStorage.clear();
+			deleteAllCookies();
 			window.location.href = 'index.html';
 		}
 	} catch (error) {
@@ -458,7 +489,7 @@ const submitPasswordChange = async _ => {
 	};
 	console.log(passwordData)
 	try {
-		const token = sessionStorage.getItem('token')
+		const token = getCookie('token')
 		const response = await fetch('http://localhost:8080/Bank_Application/api/User', {
 			method: 'PUT',
 			headers: {
@@ -472,6 +503,7 @@ const submitPasswordChange = async _ => {
 		const passwordMessage = document.getElementById('passwordmessage');
 		if (result.message == "success") {
 			sessionStorage.setItem('passwordChangeSuccess', 'true');
+			deleteAllCookies();
 			window.location.href = 'index.html';
 		} else {
 			passwordMessage.style.display = 'block'
@@ -483,11 +515,11 @@ const submitPasswordChange = async _ => {
 	}
 }
 
-let keys = Object.keys(sessionStorage), i = keys.length;
-while (i--) {
-	const profileElement = document.getElementById('profile-' + keys[i]);
+let cookies = document.cookie.split('; ');
+for (let i = 0; i < cookies.length; i++) {
+	let [key, value] = cookies[i].split('=');
+	const profileElement = document.getElementById('profile-' + key);
 	if (profileElement != null) {
-		profileElement.textContent = sessionStorage.getItem(keys[i]);
+		profileElement.textContent = decodeURIComponent(value);
 	}
 }
-

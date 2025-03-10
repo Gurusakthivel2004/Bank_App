@@ -1,8 +1,8 @@
 let filterId = '', filterAccount = '', filterBranch = '', filterStatus = '', filterType = '';
 const usersPerPage = 8;
 let cachedAccounts = [], usersCount, currentPageIndex = 0; filterOffset = 0;
-const role = sessionStorage.getItem('role');
-const token = sessionStorage.getItem('token');
+const role = getCookie('role');
+const token = getCookie('token');
 
 async function fetchUsers() {
 	try {
@@ -18,7 +18,7 @@ async function fetchUsers() {
 			if (filterStatus) userData.status = filterStatus;
 
 			console.log(userData);
-			const token = sessionStorage.getItem('token')
+			const token = getCookie('token')
 			const response = await fetch('http://localhost:8080/Bank_Application/api/User', {
 				method: 'POST',
 				headers: {
@@ -29,8 +29,14 @@ async function fetchUsers() {
 			});
 
 			const usersResult = await response.json();
-			if (usersResult.message == 'Invalid token') {
+			if (usersResult.message == 'Invalid token' || usersResult.message == 'Invalid Access token') {
+				deleteAllCookies();
 				window.location.href = "error.html";
+			} else if (usersResult.message == 'You dont have a account ') {
+				document.querySelector('body').style.display = 'none';
+				deleteAllCookies();
+				sessionStorage.setItem('error', "No Account exists for the user.");
+				window.location.href = "index.html";
 			}
 			const users = usersResult['users'];
 			console.log(usersResult);
@@ -297,10 +303,10 @@ function handleCreateSelection(selectedValue) {
 	document.getElementById('newUserButton').style.display = 'flex';
 
 	document.getElementById('address').value = '';
-	document.getElementById('address').style.border = "1px solid grey";
+	document.getElementById('address').style.border = "1px solid black";
 	document.querySelectorAll("input").forEach(input => {
 		input.disabled = false;
-		input.style.border = "1px solid grey";
+		input.style.border = "1px solid black";
 		input.value = "";
 	})
 }
@@ -352,7 +358,6 @@ const createNewUser = async data => {
 		method: 'POST',
 		headers: {
 			'Content-Type': 'application/json',
-			'Authorization': `Bearer ${token}`
 		},
 		body: JSON.stringify(data)
 	});
@@ -476,7 +481,7 @@ const toggleEditUser = () => {
 	inputFieldsIds.forEach(id => {
 		const inputField = document.getElementById(id);
 		inputField.disabled = false;
-		inputField.style.border = "1px solid grey";
+		inputField.style.border = "1px solid";
 		originalValues[id] = inputField.value;
 	})
 	document.getElementById('saveButton').style.display = 'block';

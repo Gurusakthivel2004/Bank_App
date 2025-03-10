@@ -11,10 +11,10 @@ import java.util.regex.Pattern;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import Enum.Constants.HttpStatusCodes;
 import dao.BranchDAO;
 import dao.DAO;
 import dao.UserDAO;
+import enums.Constants.HttpStatusCodes;
 import model.Account;
 import model.Branch;
 import model.CustomerDetail;
@@ -24,7 +24,7 @@ import model.User;
 
 public class ValidationUtil {
 
-	private static final Logger logger = LogManager.getLogger(ValidationUtil.class);
+	private static Logger logger = LogManager.getLogger(ValidationUtil.class);
 
 	private static final List<String> USER_UPDATE_ALLOWED_FIELDS = Arrays.asList("phone", "email", "role", "status",
 			"password", "branchId", "fatherName", "motherName", "maritalStatus", "address");
@@ -34,6 +34,9 @@ public class ValidationUtil {
 	private static final List<String> BRANCH_UPDATE_ALLOWED_FIELDS = Arrays.asList("contactNumber");
 
 	private static final List<String> MESSAGE_UPDATE_ALLOWED_FIELDS = Arrays.asList("messageStatus");
+
+	private static final List<String> OAUTH_UPDATE_ALLOWED_FIELDS = Arrays.asList("accessToken", "refreshToken",
+			"expiredIn", "createdAt");
 
 	public static void validateUpdateFields(Map<String, Object> inputMap, Class<?> targetClass) throws CustomException {
 		logger.info("Starting field validation for class: {}", targetClass.getSimpleName());
@@ -73,6 +76,8 @@ public class ValidationUtil {
 			return BRANCH_UPDATE_ALLOWED_FIELDS;
 		} else if (className.contains("Message")) {
 			return MESSAGE_UPDATE_ALLOWED_FIELDS;
+		} else if (className.contains("Oauth")) {
+			return OAUTH_UPDATE_ALLOWED_FIELDS;
 		} else {
 			logger.error("No allowed fields found for class: {}", className);
 			throw new IllegalArgumentException("No allowed fields found for class: " + className);
@@ -80,7 +85,7 @@ public class ValidationUtil {
 	}
 
 	@SuppressWarnings({ "unchecked", "rawtypes" })
-	private static void validateFieldType(Class<?> targetClass, String key, Object value) throws CustomException {
+	private static void validateFieldType(Class<?> targetClass, String key, Object value) throws Exception {
 		try {
 			Field field = getFieldFromClassHierarchy(targetClass, key);
 			Class<?> expectedType = field.getType();
@@ -160,13 +165,11 @@ public class ValidationUtil {
 		if (accounts == null || accounts.isEmpty()) {
 			return true;
 		}
-		return accounts.stream().anyMatch(account -> account.getBranchId().equals(branchId));
+		return accounts.stream().allMatch(account -> account.getBranchId().equals(branchId));
 	}
 
 	public static void validateCustomerModel(CustomerDetail user) throws CustomException {
-		Helper.checkEmail(user.getEmail());
-		Helper.checkPhoneNumber(user.getPhone().toString());
-		Helper.checkUsername(user.getUsername());
+
 		Helper.checkAadharNumber(user.getAadharNumber().toString());
 		Helper.checkPanNumber(user.getPanNumber());
 		Helper.checkName(user.getFullname());
@@ -186,28 +189,29 @@ public class ValidationUtil {
 		Helper.checkAddress(branch.getAddress());
 	}
 
-	public static void userExists(Long userId) throws CustomException {
+	@SuppressWarnings("unchecked")
+	public static void userExists(Long userId) throws Exception {
 		Map<String, Object> userMap = new HashMap<>();
 		userMap.put("userId", userId);
 		userMap.put("userClass", User.class);
-		DAO<User> userDAO = new UserDAO<User>();
+		DAO<User> userDAO = (DAO<User>) UserDAO.getInstance();
 		List<User> users = userDAO.get(userMap);
 		if (users == null || users.size() == 0) {
 			throw new CustomException("No User found with the user Id", HttpStatusCodes.BAD_REQUEST);
 		}
 	}
 
-	public static void branchExists(Long branchId) throws CustomException {
+	public static void branchExists(Long branchId) throws Exception {
 		Map<String, Object> branchMap = new HashMap<>();
 		branchMap.put("id", branchId);
-		DAO<Branch> branchDAO = new BranchDAO();
+		DAO<Branch> branchDAO = BranchDAO.getInstance();
 		List<Branch> branches = branchDAO.get(branchMap);
 		if (branches == null || branches.size() == 0) {
 			throw new CustomException("No Branch found with the branch Id", HttpStatusCodes.BAD_REQUEST);
 		}
 	}
 
-	public static void validateCreateAccount(Map<String, Object> accountMap) throws CustomException {
+	public static void validateCreateAccount(Map<String, Object> accountMap) throws Exception {
 		if (!accountMap.containsKey("userId")) {
 			throw new CustomException("User Id not found!. Please enter user id", HttpStatusCodes.BAD_REQUEST);
 		} else if (!accountMap.containsKey("accountType")) {
@@ -229,7 +233,7 @@ public class ValidationUtil {
 		}
 	}
 
-	public static void validateKey(String key, Object value) throws CustomException {
+	public static void validateKey(String key, Object value) throws Exception {
 		logger.info(key + " " + value);
 		switch (key) {
 		case "email":

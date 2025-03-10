@@ -1,71 +1,95 @@
 package controller;
 
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
+import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import com.google.gson.JsonObject;
 
-import Enum.Constants.LogType;
 import cache.CacheUtil;
+import enums.Constants.LogType;
+import enums.Constants.Role;
 import model.ActivityLog;
 import service.TaskExecutorService;
 import service.UserService;
+import util.AuthUtils;
 import util.CustomException;
 import util.Helper;
 
 public class LoginController {
 
-	private final CacheUtil cacheUtil = new CacheUtil();
+	private UserService userService = UserService.getInstance();
+	
+	private LoginController() {}
 
-	public void handlePost(HttpServletRequest request, HttpServletResponse response) throws IOException {
+	private static class SingletonHelper {
+		private static final LoginController INSTANCE = new LoginController();
+	}
+
+	public static LoginController getInstance() {
+		return SingletonHelper.INSTANCE;
+	}
+
+	public void handlePost(HttpServletRequest request, HttpServletResponse response) throws Exception {
 
 		JsonObject jsonObject = Helper.parseRequestBody(request);
 		Map<String, Object> loginMap = Helper.mapJsonObject(jsonObject);
 
 		String username = (String) loginMap.get("username");
-		String password = (String) loginMap.get("password");
+		String encryptedPassword = (String) loginMap.get("password");
+		String iv = (String) loginMap.get("iv");
+		String password = Helper.decryptAES(encryptedPassword, iv);
 
 		Map<String, Object> userDetails = new HashMap<>();
+
 		try {
-			UserService userService = new UserService();
 			userDetails = userService.userLogin(username, password);
 		} catch (CustomException e) {
-			Helper.sendErrorResponse(response, e);
-		} catch (Exception exception) {
-			Helper.sendErrorResponse(response, "Unexpected error occurred.");
+			AuthUtils.handleFailedAttempt(username);
+			throw e;
 		}
 
 		String jwtToken = Helper.generateJwtToken(userDetails);
+		Role role = Role.fromString((String) userDetails.get("role"));
 		Long userId = (Long) userDetails.get("id");
 
-		cacheUtil.saveWithTTL(userId.toString(), jwtToken, 3600);
+		Helper.setCookie(response, "phone", userDetails.get("phone"), 604800, false);
+		Helper.setCookie(response, "email", userDetails.get("email"), 604800, false);
+		Helper.setCookie(response, "token", jwtToken, 604800, true);
+		Helper.setCookie(response, "fullname", userDetails.get("fullname"), 604800, false);
+		Helper.setCookie(response, "status", userDetails.get("status"), 604800, false);
+		Helper.setCookie(response, "role", userDetails.get("role"), 604800, false);
+		Helper.setCookie(response, "id", userId, 604800, false);
 
-		Map<String, Object> responseData = Helper.prepareResponseData(userDetails, jwtToken);
+		if (role != Role.Customer) {
+			Helper.setCookie(response, "branchId", userDetails.get("branchId"), 604800, false);
+		}
+
+		CacheUtil.saveWithTTL(userId.toString(), jwtToken, 3600);
+		Map<String, Object> responseData = new HashMap<>();
+		responseData.put("message", "success");
 
 		Helper.sendSuccessResponse(response, responseData);
 
 	}
 
-	public void handleDelete(HttpServletRequest request, HttpServletResponse response) throws IOException {
-
-		String authHeader = request.getHeader("Authorization");
-
+	public void handleDelete(HttpServletRequest request, HttpServletResponse response) throws Exception {
 		Long userId = (Long) Helper.getThreadLocalValue("id");
 
-		if (authHeader != null && authHeader.startsWith("Bearer ")) {
-			cacheUtil.delete(userId.toString());
-			ActivityLog activityLog = new ActivityLog().setLogMessage("Logout").setLogType(LogType.Logout)
-					.setUserAccountNumber(null).setRowId(userId).setTableName("User").setUserId(userId);
+		Cookie cookie = new Cookie("token", "");
+		cookie.setMaxAge(0);
+		cookie.setPath("/Bank_Application");
+		response.addCookie(cookie);
 
-			TaskExecutorService.getInstance().submit(activityLog);
-			Helper.sendSuccessResponse(response, "Logout successful");
-		} else {
-			Helper.sendErrorResponse(response, "Missing or invalid Authorization header");
-		}
+		CacheUtil.delete(userId.toString());
+		ActivityLog activityLog = new ActivityLog().setLogMessage("Logout").setLogType(LogType.Logout)
+				.setUserAccountNumber(null).setRowId(userId).setTableName("User").setUserId(userId);
+
+		TaskExecutorService.getInstance().submit(activityLog);
+		Helper.sendSuccessResponse(response, "Logout successful");
 	}
 
 }

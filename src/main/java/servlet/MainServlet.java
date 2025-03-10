@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.lang.reflect.Method;
 
 import javax.servlet.ServletException;
-import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -16,60 +15,70 @@ import util.CustomException;
 import util.Helper;
 
 @SuppressWarnings("serial")
-@WebServlet("/api/*")
+
 public class MainServlet extends HttpServlet {
-    private static final Logger logger = LogManager.getLogger(MainServlet.class);
 
-    @Override
-    protected void service(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-        String origin = request.getHeader("Origin");
-        if (origin != null && !origin.isEmpty()) {
-            response.setHeader("Access-Control-Allow-Origin", origin);
-            response.setHeader("Access-Control-Allow-Credentials", "true");
-        }
-        response.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
-        response.setHeader("Access-Control-Allow-Headers", "Origin, Content-Type, Accept, Authorization");
-        if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
-            response.setStatus(HttpServletResponse.SC_OK);
-            return;
-        }
-        try {
-            logger.info("Processing request: {} {}", request.getMethod(), request.getRequestURI());
-            routeRequest(request, response);
-        } catch (CustomException e) {
-            logger.error("CustomException during request processing: ", e);
-            Helper.handleErrorResponse(response, HttpServletResponse.SC_BAD_REQUEST, e.getMessage());
-        } catch (Exception e) {
-            logger.error("General error during request processing: ", e);
-            Helper.handleErrorResponse(response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Internal server error");
-        }
-    }
+	private static Logger logger = LogManager.getLogger(MainServlet.class);
 
-    private void routeRequest(HttpServletRequest request, HttpServletResponse response) throws Exception {
-        String handler = Helper.getHandler(request);
+	@Override
+	protected void service(HttpServletRequest request, HttpServletResponse response)
+			throws ServletException, IOException {
+		String origin = request.getHeader("Origin");
+		if (origin != null && !origin.isEmpty()) {
+			response.setHeader("Access-Control-Allow-Origin", origin);
+			response.setHeader("Access-Control-Allow-Credentials", "true");
+		}
+		response.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+		response.setHeader("Access-Control-Allow-Headers", "Origin, Content-Type, Accept, Authorization");
+		if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
+			response.setStatus(HttpServletResponse.SC_OK);
+			return;
+		}
+		try {
+			logger.info("Processing request: {} {}", request.getMethod(), request.getRequestURI());
+			routeRequest(request, response);
+		} catch (Exception e) {
+			logger.error("General error during request processing: ", e);
+			Helper.handleErrorResponse(response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Internal server error");
+		}
+	}
 
-        if (handler.equals("Login") || handler.equals("Logout")) {
-            handler = "login";
-        }
+	private void routeRequest(HttpServletRequest request, HttpServletResponse response) throws Exception {
+		String handler = Helper.getHandler(request);
 
-        String handlerName = Helper.capitalizeFirstLetter(handler);
-        if (handlerName != null) {
-            String controllerClassName = "controller." + handlerName + "Controller";
-            try {
-                logger.info("Routing to handler: {}", controllerClassName);
-                Class<?> controllerClass = Class.forName(controllerClassName);
-                Object controllerInstance = controllerClass.getDeclaredConstructor().newInstance();
-                String methodName = "handle" + Helper.capitalizeFirstLetter(request.getMethod().toLowerCase());
-                Method method = controllerClass.getMethod(methodName, HttpServletRequest.class, HttpServletResponse.class);
-                method.invoke(controllerInstance, request, response);
-            } catch (Exception e) {
-                logger.error("Error invoking handler: ", e);
-                Helper.handleErrorResponse(response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Error processing request");
-            }
-        } else {
-            logger.warn("No valid handler found for path: {}", request.getRequestURI());
-            Helper.handleErrorResponse(response, HttpServletResponse.SC_BAD_REQUEST, "No valid handler found for path.");
-        }
-    }
+		if (handler.equals("Logout")) {
+			handler = "login";
+		}
+
+		String handlerName = Helper.capitalizeFirstLetter(handler);
+		if (handlerName != null) {
+			String controllerClassName = "controller." + handlerName + "Controller";
+			try {
+				logger.info("Routing to controller: {}", controllerClassName);
+				Class<?> controllerClass = Class.forName(controllerClassName);
+
+				Method getInstanceMethod = controllerClass.getMethod("getInstance");
+				Object controllerInstance = getInstanceMethod.invoke(null);
+
+				String methodName = "handle" + Helper.capitalizeFirstLetter(request.getMethod().toLowerCase());
+				Method method = controllerClass.getMethod(methodName, HttpServletRequest.class,
+						HttpServletResponse.class);
+				method.invoke(controllerInstance, request, response);
+
+			} catch (Exception e) {
+				logger.error("Error processing " + handlerName + " request", e);
+				Throwable cause = e.getCause();
+				if (cause instanceof CustomException) {
+					Helper.sendErrorResponse(response, cause.getMessage());
+				} else {
+					Helper.sendErrorResponse(response, "Error processing " + handlerName + " request.");
+				}
+			}
+		} else {
+			logger.warn("No valid handler found for path: {}", request.getRequestURI());
+			Helper.handleErrorResponse(response, HttpServletResponse.SC_BAD_REQUEST,
+					"No valid handler found for path.");
+		}
+	}
+
 }

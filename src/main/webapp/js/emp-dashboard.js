@@ -1,35 +1,35 @@
-window.onload = _ => {
-	window.history.replaceState(null, null, window.location.href);
-	window.onpopstate = () => {
-		window.location.href = "index.html";
-	};
-}
+console.log('asd');
 let branchDetails, account;
+const role = getCookie('role');
+console.log(role);
 document.addEventListener("DOMContentLoaded", async _ => {
-	const token = sessionStorage.getItem('token');
-	const role = sessionStorage.getItem('role');
 	if (role == null) {
 		document.querySelector('body').style.display = 'none';
-		window.location.href = "error.html";
+	} if (role != null && role == 'Customer') {
+		window.location.href = "dashboard.html";
 	}
 	try {
 		if (role == 'Employee') {
 			document.getElementById('createBranchButton').style.display = 'none';
 		} if (role == 'Customer') {
 			document.querySelector('body').style.display = 'none';
-			window.location.href = "error.html";
 		}
 		const response = await fetch('http://localhost:8080/Bank_Application/api/UserDashboard', {
 			method: 'GET',
 			headers: {
 				'Content-Type': 'application/json',
-				'Authorization': `Bearer ${token}`
 			},
 		});
 		const result = await response.json();
 		console.log(result);
-		if (result.message == 'Invalid token') {
+		if (result.message == 'Invalid token.' || result.message == 'Invalid Access token') {
 			document.querySelector('body').style.display = 'none';
+			deleteAllCookies();
+			window.location.href = "index.html";
+		} else if (result.message == 'You dont have a account ') {
+			document.querySelector('body').style.display = 'none';
+			deleteAllCookies();
+			sessionStorage.setItem('error', "No Account exists for the user.");
 			window.location.href = "index.html";
 		}
 		const userDetails = result.userDetail[0];
@@ -289,12 +289,10 @@ function saveBranch() {
 }
 
 const sendToServer = async branchData => {
-	const token = sessionStorage.getItem('token');
 	const response = await fetch('http://localhost:8080/Bank_Application/api/Branch', {
 		method: 'POST',
 		headers: {
 			'Content-Type': 'application/json',
-			'Authorization': `Bearer ${token}`
 		},
 		body: JSON.stringify(branchData)
 	});

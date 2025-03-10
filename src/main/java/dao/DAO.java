@@ -4,16 +4,15 @@ import java.util.List;
 import java.util.Map;
 
 import model.ColumnCriteria;
-import util.CustomException;
 
 public interface DAO<T> {
 
-	public List<T> get(Map<String, Object> map) throws CustomException;
+	public List<T> get(Map<String, Object> map) throws Exception;
 
-	public Long getDataCount(Map<String, Object> txMap) throws CustomException;
+	public long getDataCount(Map<String, Object> txMap) throws Exception;
 
-	public void update(ColumnCriteria columnCriteria, Map<String, Object> map) throws CustomException;
+	public void update(ColumnCriteria columnCriteria, Map<String, Object> map) throws Exception;
 
-	public Long create(T instance) throws CustomException;
+	public long create(T instance) throws Exception;
 
 }

@@ -1,6 +1,5 @@
 package controller;
 
-import java.io.IOException;
 import java.util.Map;
 
 import javax.servlet.http.HttpServletRequest;
@@ -11,34 +10,38 @@ import org.apache.logging.log4j.Logger;
 
 import com.google.gson.JsonObject;
 
+import enums.Constants.HttpStatusCodes;
 import service.ActivityLogService;
 import util.CustomException;
 import util.Helper;
 
 public class LogController {
+	
+	private LogController() {}
 
-	ActivityLogService logService = new ActivityLogService();
-	private final Logger logger = LogManager.getLogger(LogController.class);
-
-	public void handleGet(HttpServletRequest request, HttpServletResponse response, Map<String, Object> logMap)
-			throws IOException {
-		try {
-			logger.info("Received GET request to fetch logs with parameters: {}", logMap);
-
-			Object logs = logService.getLogDetails(logMap);
-			logger.info("Successfully fetched logs: {}", logs);
-
-			Helper.sendSuccessResponse(response, logs);
-		} catch (CustomException e) {
-			logger.warn("CustomException occurred while fetching logs: {}", e.getMessage());
-			Helper.sendErrorResponse(response, e);
-		} catch (Exception e) {
-			logger.error("Unexpected error occurred while fetching logs.", e);
-			Helper.sendErrorResponse(response, "Unexpected Error occurred while fetching logs.");
-		}
+	private static class SingletonHelper {
+		private static final LogController INSTANCE = new LogController();
 	}
 
-	public void handlePost(HttpServletRequest request, HttpServletResponse response) throws IOException {
+	public static LogController getInstance() {
+		return SingletonHelper.INSTANCE;
+	}
+
+	private ActivityLogService logService = ActivityLogService.getInstance();
+	private static Logger logger = LogManager.getLogger(LogController.class);
+
+	public void handleGet(HttpServletRequest request, HttpServletResponse response, Map<String, Object> logMap)
+			throws Exception {
+
+		logger.info("Received GET request to fetch logs with parameters: {}", logMap);
+
+		Map<String, Object> logs = logService.getLogDetails(logMap);
+		logger.info("Successfully fetched logs: {}", logs);
+
+		Helper.sendSuccessResponse(response, logs);
+	}
+
+	public void handlePost(HttpServletRequest request, HttpServletResponse response) throws Exception {
 		logger.info("Received POST request to fetch logs.");
 
 		JsonObject jsonObject = Helper.parseRequestBody(request);
@@ -46,6 +49,10 @@ public class LogController {
 
 		Map<String, Object> logMap = Helper.mapJsonObject(jsonObject);
 		logger.debug("Mapped JSON to logMap: {}", logMap);
+
+		if (!logMap.containsKey("get")) {
+			throw new CustomException("Invalid payload data. Please check your inputs", HttpStatusCodes.BAD_REQUEST);
+		}
 
 		handleGet(request, response, logMap);
 	}

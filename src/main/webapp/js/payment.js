@@ -1,8 +1,7 @@
 let originalValue = '';
 let originalActiveItem = null;
 let validAccounts = [];
-const token = sessionStorage.getItem('token');
-const role = sessionStorage.getItem("role");
+const role = getCookie('role');
 
 const handleSubmit = async (event) => {
 	event.preventDefault();
@@ -17,7 +16,6 @@ const handleSubmit = async (event) => {
 		bankName = document.querySelector('#bank').value;
 		transactionIfsc = document.querySelector('#ifsc').value;
 	}
-	const role = sessionStorage.getItem("role");
 
 	const transactionAccountNumber = document.getElementById('transAcc').value;
 	const amount = document.getElementById('amount').value;
@@ -73,7 +71,6 @@ const handleSubmit = async (event) => {
 			method: 'POST',
 			headers: {
 				'Content-Type': 'application/json',
-				'Authorization': `Bearer ${token}`
 			},
 			body: JSON.stringify(transactionData)
 		});
@@ -204,15 +201,19 @@ const handleInputDropdown = accountInput => {
 							method: 'POST',
 							headers: {
 								'Content-Type': 'application/json',
-								'Authorization': `Bearer ${sessionStorage.getItem("token")}`
 							},
 							body: JSON.stringify(accountData)
 						}
 					);
 					const result = await response.json();
-					if (result.message == 'Invalid token') {
+					if (result.message == 'Invalid token' || result.message == 'Invalid Access token') {
 						document.querySelector('body').style.display = 'none';
 						window.location.href = "error.html";
+					} else if (result.message == 'You dont have a account ') {
+						document.querySelector('body').style.display = 'none';
+						deleteAllCookies();
+						sessionStorage.setItem('error', "No Account exists for the user.");
+						window.location.href = "index.html";
 					}
 					console.log(result);
 					// Clear previous suggestions
@@ -304,13 +305,18 @@ document.addEventListener("DOMContentLoaded", async _ => {
 			method: 'GET',
 			headers: {
 				'Content-Type': 'application/json',
-				'Authorization': `Bearer ${token}`
 			},
 		});
 		const result = await response.json(), accountsDropdown = document.querySelector('.accountsSelect');;
 		console.log(result);
-		if (result.message == 'Invalid token') {
+		if (result.message == 'Invalid token' || result.message == 'Invalid Access token') {
+			deleteAllCookies();
 			window.location.href = "error.html";
+		} else if (result.message == 'You dont have a account ') {
+			document.querySelector('body').style.display = 'none';
+			deleteAllCookies();
+			sessionStorage.setItem('error', "No Account exists for the user.");
+			window.location.href = "index.html";
 		}
 		result.accounts.forEach((account) => {
 			const option = document.createElement('option');

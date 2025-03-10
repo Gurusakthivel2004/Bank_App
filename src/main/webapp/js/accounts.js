@@ -8,8 +8,8 @@ let cachedAccounts = [];
 let accountsCount;
 let currentPageIndex = 0;
 let filterOffset = 0;
-const role = sessionStorage.getItem("role");
-const token = sessionStorage.getItem('token');
+const role = getCookie("role");
+const token = getCookie("token");
 
 async function fetchAccounts() {
 	try {
@@ -36,9 +36,15 @@ async function fetchAccounts() {
 				body: JSON.stringify(accountData)
 			});
 			const accountsResult = await response.json();
-			if (accountsResult.message == 'Invalid token') {
+			if (accountsResult.message == 'Invalid token' || accountsResult.message == 'Invalid Access token') {
 				document.querySelector('body').style.display = 'none';
+				deleteAllCookies();
 				window.location.href = "error.html";
+			} else if (accountsResult.message == 'You dont have a account ') {
+				document.querySelector('body').style.display = 'none'; 
+				deleteAllCookies();
+				sessionStorage.setItem('error', "No Account exists for the user.");
+				window.location.href = "index.html";
 			}
 
 			const accounts = accountsResult["accounts"];

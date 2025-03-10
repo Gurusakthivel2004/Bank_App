@@ -1,35 +1,35 @@
 package util;
 
-import Enum.Constants.HttpStatusCodes;
+import enums.Constants.HttpStatusCodes;
 
 public class CustomException extends Exception {
 	private static final long serialVersionUID = 1L;
 
-	private final int statusCode;
-	private final String statusMessage;
+	private final int STATUS_CODE;
+	private final String STATUS_MESSAGE;
 
 	public CustomException(String errorMessage, HttpStatusCodes status) {
 		super(errorMessage);
-		this.statusCode = status.getCode();
-		this.statusMessage = status.getMessage();
+		this.STATUS_CODE = status.getCode();
+		this.STATUS_MESSAGE = status.getMessage();
 	}
 
 	public CustomException(String errorMessage, Throwable cause, HttpStatusCodes status) {
 		super(errorMessage, cause);
-		this.statusCode = status.getCode();
-		this.statusMessage = status.getMessage();
+		this.STATUS_CODE = status.getCode();
+		this.STATUS_MESSAGE = status.getMessage();
 	}
 
 	public int getStatusCode() {
-		return statusCode;
+		return STATUS_CODE;
 	}
 
 	public String getStatusMessage() {
-		return statusMessage;
+		return STATUS_MESSAGE;
 	}
 
 	@Override
 	public String toString() {
-		return String.format("CustomException[status=%d (%s), message=%s]", statusCode, statusMessage, getMessage());
+		return String.format("CustomException[status=%d (%s), message=%s]", STATUS_CODE, STATUS_MESSAGE, getMessage());
 	}
 }

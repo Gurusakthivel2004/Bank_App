@@ -156,8 +156,8 @@ classes:
         columnName: "log_type"
       rowId:
         columnName: "row_id"
-      userAccountNumber:
-        columnName: "user_account_number"
+      accountNumber:
+        columnName: "account_number"
       logMessage:
         columnName: "log_message"
       timestamp:
@@ -182,3 +182,37 @@ classes:
         columnName: "created_at"
       modifiedAt:
         columnName: "modified_at"
+
+  model.OauthProvider:
+     tableName: "oauth_provider"
+     fields:
+       id:
+         columnName: "id"
+       userId:
+         columnName: "user_id"
+       provider:
+         columnName: "provider"
+       providerUserId:
+         columnName: "provider_user_id"
+       accessToken:
+         columnName: "access_token"
+       refreshToken:
+         columnName: "refresh_token"
+       expiresIn:
+         columnName: "expires_in"
+       createdAt:
+         columnName: "created_at"
+
+  model.UserSession:
+     tableName: "user_session"
+     fields:
+       id:
+         columnName: "id"
+       userId:
+         columnName: "user_id"
+       sessionId:
+         columnName: "session_id"
+       expiresIn:
+         columnName: "expires_in"
+       createdAt:
+         columnName: "created_at"

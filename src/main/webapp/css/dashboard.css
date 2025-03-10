@@ -91,11 +91,11 @@ body {
 
 .tid {
 	padding-left: 30px;
-	flex: 0 0 120px;
+	flex: 0 0 200px;
 }
 
 .tfrom {
-	flex: 0 0 400px;
+	flex: 0 0 300px;
 }
 
 .ttype {

@@ -1,4 +1,4 @@
-package Enum;
+package enums;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -18,25 +18,25 @@ public class Constants {
 		GET_ACCOUNT_BY_ACCOUNTNUMBER("^/Account\\?accountNumber=\\d+$", Arrays.asList("Customer")),
 		GET_ACCOUNT_BY_USERID("^/Account\\?userId=-?\\d+$", Arrays.asList("Customer")),
 		ACCOUNT_CRUD("^/Account$", Arrays.asList("Customer")),
-		GET_USER_WITH_ROLE("^/User\\?userId=\\d+&role=\\w+$", Arrays.asList("Customer")),
-		GET_USERDASHBOARD("^/UserDashboard$", null), TRANSACTION_CRUD("^/Transaction$", null),
-		LOGOUT("^/Logout$", null), LOG("^/Log$", Arrays.asList("Customer", "Employee")),
-		MESSAGE_CRUD("^/Message$", null);
+		GET_USER_WITH_ROLE("^/User\\?userId=\\d+&ROLE=\\w+$", Arrays.asList("Customer")),
+		GET_USERDASHBOARD("^/UserDashboard$"), TRANSACTION_CRUD("^/Transaction$"), LOGOUT("^/Logout$"),
+		LOG("^/Log$", Arrays.asList("Customer", "Employee")), MESSAGE_CRUD("^/Message$"), OAUTH("^/oauth"),
+		OAUTHCALLBACK("^/oauthCallback");
 
-		private final String regexPattern;
+		private final String REGEX_PATTERN;
 		private final List<String> restrictedForRole;
 
-		ValidPaths(String regexPattern, List<String> restrictedForRole) {
-			this.regexPattern = regexPattern;
+		ValidPaths(String REGEX_PATTERN, List<String> restrictedForRole) {
+			this.REGEX_PATTERN = REGEX_PATTERN;
 			this.restrictedForRole = restrictedForRole;
 		}
 
-		ValidPaths(String regexPattern) {
-			this(regexPattern, null);
+		ValidPaths(String REGEX_PATTERN) {
+			this(REGEX_PATTERN, null);
 		}
 
 		public String getRegexPattern() {
-			return regexPattern;
+			return REGEX_PATTERN;
 		}
 
 		public List<String> getRestrictedForRole() {
@@ -52,10 +52,10 @@ public class Constants {
 			return false;
 		}
 
-		public static boolean isPathRestrictedForRole(String path, String role) {
+		public static boolean isPathRestrictedForRole(String path, String ROLE) {
 			for (ValidPaths validPath : ValidPaths.values()) {
 				if (path.matches(validPath.getRegexPattern()) && validPath.getRestrictedForRole() != null
-						&& validPath.getRestrictedForRole().contains(role)) {
+						&& validPath.getRestrictedForRole().contains(ROLE)) {
 					return true;
 				}
 			}
@@ -68,20 +68,20 @@ public class Constants {
 		ACCOUNT_FILTER("accountNumber", ""), USER_ROLE_FILTER("role", ""), LIMIT("limit", ""), STATUS("status", ""),
 		OFFSET("offset", "");
 
-		private final String param;
-		private final String field;
+		private final String PARAM;
+		private final String FIELD;
 
-		ValidQueryParams(String param, String field) {
-			this.param = param;
-			this.field = field;
+		ValidQueryParams(String PARAM, String FIELD) {
+			this.PARAM = PARAM;
+			this.FIELD = FIELD;
 		}
 
 		public String getParam() {
-			return param;
+			return PARAM;
 		}
 
 		public String getField() {
-			return field;
+			return FIELD;
 		}
 
 		public static boolean isValidParam(String key) {
@@ -103,56 +103,6 @@ public class Constants {
 		}
 	}
 
-	public enum SelectFields {
-		USER("User",
-				Arrays.asList("id", "email", "phone", "role", "username", "fullname", "status", "created_at",
-						"modified_at", "performed_by")),
-		CUSTOMER("Customer",
-				combineFields(USER.fields, Arrays.asList("customer.user_id", "pan_number", "aadhar_number"))),
-		CUSTOMERDETAIL("CustomerDetail",
-				combineFields(CUSTOMER.fields,
-						Arrays.asList("customerDetail.user_id", "dob", "father_name", "mother_name", "address",
-								"marital_status"))),
-		STAFF("Staff", combineFields(USER.fields, Arrays.asList("user_id", "branch_id")));
-
-		private final String tableName;
-		private final List<String> fields;
-
-		SelectFields(String tableName, List<String> fields) {
-			this.tableName = tableName;
-			this.fields = fields;
-		}
-
-		public String getTableName() {
-			return tableName;
-		}
-
-		public List<String> getFields() {
-			return fields;
-		}
-
-		public static SelectFields fromTableName(String tableName) {
-			for (SelectFields userField : SelectFields.values()) {
-				if (userField.tableName.equalsIgnoreCase(tableName)) {
-					return userField;
-				}
-			}
-			throw new IllegalArgumentException("No enum constant for table name: " + tableName);
-		}
-
-		public static List<String> getSelectFields(String tableName) {
-			SelectFields userField = fromTableName(tableName);
-			return userField.fields;
-		}
-
-		private static List<String> combineFields(List<String> baseFields, List<String> additionalFields) {
-			List<String> combinedFields = new ArrayList<>(baseFields);
-			combinedFields.addAll(additionalFields);
-			return combinedFields;
-		}
-
-	}
-
 	@SuppressWarnings("serial")
 	public enum RolePermission {
 
@@ -166,7 +116,7 @@ public class Constants {
 				put("Logout", new ArrayList<>(Arrays.asList("DELETE")));
 				put("Message", new ArrayList<>(Arrays.asList("GET", "POST")));
 			}
-		}, new ArrayList<>(Arrays.asList("userId", "role", "branchId"))),
+		}, new ArrayList<>(Arrays.asList("userId", "ROLE", "branchId"))),
 		ROLE_EMPLOYEE("Employee", new HashMap<String, List<String>>() {
 			{
 				put("Account", new ArrayList<>(Arrays.asList("GET", "POST", "PUT")));
@@ -190,25 +140,25 @@ public class Constants {
 			}
 		}, new ArrayList<>());
 
-		private final String role;
+		private final String ROLE;
 		private final Map<String, List<String>> permissions;
-		private final List<String> restrictedParams;
+		private final List<String> RESTRICTED_PARAMS;
 		public static Map<String, RolePermission> ROLE_MAP = new HashMap<>();
 
 		static {
 			for (RolePermission rp : RolePermission.values()) {
-				ROLE_MAP.put(rp.role, rp);
+				ROLE_MAP.put(rp.ROLE, rp);
 			}
 		}
 
-		RolePermission(String role, Map<String, List<String>> permissions, List<String> restrictedParams) {
-			this.role = role;
+		RolePermission(String role, Map<String, List<String>> permissions, List<String> RESTRICTED_PARAMS) {
+			this.ROLE = role;
 			this.permissions = permissions;
-			this.restrictedParams = restrictedParams;
+			this.RESTRICTED_PARAMS = RESTRICTED_PARAMS;
 		}
 
 		public String getRole() {
-			return role;
+			return ROLE;
 		}
 
 		public static List<String> getPermissions(String role, String handler) {
@@ -219,22 +169,72 @@ public class Constants {
 
 		public static List<String> getRestrictedParams(String role) {
 			RolePermission rp = ROLE_MAP.get(role);
-			return (rp != null) ? rp.restrictedParams : new ArrayList<String>();
+			return (rp != null) ? rp.RESTRICTED_PARAMS : new ArrayList<String>();
 		}
+	}
+
+	public enum SelectFields {
+		USER("User",
+				Arrays.asList("id", "email", "phone", "ROLE", "username", "fullname", "status", "created_at",
+						"modified_at", "performed_by")),
+		CUSTOMER("Customer",
+				combineFields(USER.FIELDS, Arrays.asList("customer.user_id", "pan_number", "aadhar_number"))),
+		CUSTOMERDETAIL("CustomerDetail",
+				combineFields(CUSTOMER.FIELDS,
+						Arrays.asList("customerDetail.user_id", "dob", "father_name", "mother_name", "address",
+								"marital_status"))),
+		STAFF("Staff", combineFields(USER.FIELDS, Arrays.asList("user_id", "branch_id")));
+
+		private final String TABLE_NAME;
+		private final List<String> FIELDS;
+
+		SelectFields(String TABLE_NAME, List<String> FIELDS) {
+			this.TABLE_NAME = TABLE_NAME;
+			this.FIELDS = FIELDS;
+		}
+
+		public String getTableName() {
+			return TABLE_NAME;
+		}
+
+		public List<String> getFields() {
+			return FIELDS;
+		}
+
+		public static SelectFields fromTableName(String TABLE_NAME) {
+			for (SelectFields userField : SelectFields.values()) {
+				if (userField.TABLE_NAME.equalsIgnoreCase(TABLE_NAME)) {
+					return userField;
+				}
+			}
+			throw new IllegalArgumentException("No enum constant for table name: " + TABLE_NAME);
+		}
+
+		public static List<String> getSelectFields(String TABLE_NAME) {
+			SelectFields userField = fromTableName(TABLE_NAME);
+			return userField.FIELDS;
+		}
+
+		private static List<String> combineFields(List<String> baseFields, List<String> additionalFields) {
+			List<String> combinedFields = new ArrayList<>(baseFields);
+			combinedFields.addAll(additionalFields);
+			return combinedFields;
+		}
+
 	}
 
 	public static enum Operators {
 		LESS_THAN("<"), GREATER_THAN(">"), LESS_THAN_OR_EQUAL_TO("<="), GREATER_THAN_OR_EQUAL_TO(">="), EQUAL_TO("="),
 		NOT_EQUAL_TO("!="), AND(" AND "), OR(" OR "), NOT(" NOT "), LIKE(" LIKE "), BETWEEN(" BETWEEN "), IN(" IN ");
 
-		private final String symbol;
+		private final String SYMBOL;
 
-		Operators(String symbol) {
-			this.symbol = symbol;
+		Operators(String SYMBOL) {
+			this.SYMBOL = SYMBOL;
 		}
 
 		public String getSymbol() {
-			return symbol;
+			return SYMBOL;
 		}
 
 		public static String get(String operator) {
@@ -273,20 +273,20 @@ public class Constants {
 		TOO_MANY_REQUESTS(429, "Too Many Requests"), NOT_FOUND(404, "Not Found"), OK(200, "OK"),
 		CONFLICT(409, "Conflict"), FORBIDDEN(403, "Forbidden"), UNAUTHORIZED(401, "Unauthorized");
 
-		private final int code;
-		private final String message;
+		private final int CODE;
+		private final String MESSAGE;
 
-		HttpStatusCodes(int code, String message) {
-			this.code = code;
-			this.message = message;
+		HttpStatusCodes(int CODE, String MESSAGE) {
+			this.CODE = CODE;
+			this.MESSAGE = MESSAGE;
 		}
 
 		public int getCode() {
-			return code;
+			return CODE;
 		}
 
 		public String getMessage() {
-			return message;
+			return MESSAGE;
 		}
 	}
 
@@ -349,11 +349,11 @@ public class Constants {
 			return name();
 		}
 
-		public static Role fromString(String role) throws CustomException {
+		public static Role fromString(String ROLE) throws CustomException {
 			try {
-				return Role.valueOf(role);
+				return Role.valueOf(ROLE);
 			} catch (IllegalArgumentException e) {
-				throw new CustomException("Invalid role: " + role, HttpStatusCodes.BAD_REQUEST);
+				throw new CustomException("Invalid ROLE: " + ROLE, HttpStatusCodes.BAD_REQUEST);
 			}
 		}
 	}
@@ -404,7 +404,7 @@ public class Constants {
 			try {
 				return MessageStatus.valueOf(messageStatus);
 			} catch (IllegalArgumentException e) {
-				throw new CustomException("Invalid message status: " + messageStatus, HttpStatusCodes.BAD_REQUEST);
+				throw new CustomException("Invalid MESSAGE status: " + messageStatus, HttpStatusCodes.BAD_REQUEST);
 			}
 		}
 	}

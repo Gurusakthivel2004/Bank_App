@@ -7,22 +7,31 @@ import java.util.Map;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import dao.ActivityLogDAO;
 import dao.DAO;
+import dao.DaoFactory;
 import model.ActivityLog;
-import util.CustomException;
 
 public class ActivityLogService {
 
-	private final Logger logger = LogManager.getLogger(ActivityLogService.class);
+	private static Logger logger = LogManager.getLogger(ActivityLogService.class);
+	private static DAO<ActivityLog> logDao = DaoFactory.getDAO(ActivityLog.class);
 
-	public Map<String, Object> getLogDetails(Map<String, Object> logMap) throws CustomException {
+	private ActivityLogService() {}
+
+	private static class SingletonHelper {
+		private static final ActivityLogService INSTANCE = new ActivityLogService();
+	}
+
+	public static ActivityLogService getInstance() {
+		return SingletonHelper.INSTANCE;
+	}
+
+	public Map<String, Object> getLogDetails(Map<String, Object> logMap) throws Exception {
 		logger.info("Fetching log details..");
 		Map<String, Object> logResult = new HashMap<>();
 
-		DAO<ActivityLog> logDao = new ActivityLogDAO();
 		List<ActivityLog> logs = logDao.get(logMap);
-		Long logCount = logDao.getDataCount(logMap);
+		long logCount = logDao.getDataCount(logMap);
 
 		logResult.put("logs", logs);
 		logResult.put("count", logCount);
