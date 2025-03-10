@@ -1,0 +1,176 @@
+body {
+	background: url('../images/bg.svg') no-repeat center center;
+	background-size: 100%;
+	background-color: whitesmoke;
+}
+
+.full-container {
+	display: flex;
+	margin: auto;
+	height: 980px;
+}
+
+.left-section {
+	flex: 1;
+	height: max-content;
+	max-width: 85px;
+	text-align: center;
+	border-right: 1px solid #f0f1f1;
+	margin-top: auto;
+	margin-bottom: 225px;
+}
+
+.left-section a {
+	font-size: 13px;
+	font-weight: 500;
+	text-decoration: none;
+}
+
+.right-section {
+	flex: 3;
+	padding: 20px;
+	overflow-y: auto;
+}
+
+.tree-item {
+	cursor: pointer;
+	padding: 30px 5px;
+	padding-bottom: 6px;
+	border-bottom: 1px solid #2b0444;
+	color: #2b0444;
+	font-weight: 600;
+	box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.1);
+	font-size: x-large;
+	font-family: sans-serif;
+	background-color: #2b0444;
+}
+
+.tree-item:hover {
+	background-color: #3b1457;
+	color: white;
+}
+
+.account-detail {
+	margin-bottom: 30px;
+}
+
+.transaction-history .transaction-item {
+	display: flex;
+	background-color: #2b0444;
+	padding: 10px 0;
+	box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.1);
+	border-bottom: 2px solid #ddd;
+}
+
+.transaction-history .transaction-item .left {
+	font-size: 16px;
+	color: white;
+}
+
+.transaction-history .transaction-item .right {
+	font-size: 16px;
+	text-align: right;
+	color: #2b0444;
+}
+
+.transaction-item p {
+	margin-bottom: 0;
+	display: flex;
+	align-items: center;
+	font-family: sans-serif;
+	font-size: larger;
+	padding-top: 10px;
+	padding-bottom: 10px;
+}
+
+.tid {
+	padding-left: 30px;
+	flex: 0 0 180px;
+}
+
+.tfrom {
+	flex: 0 0 300px;
+	font-weight: 900;
+}
+
+.ttype {
+	flex: 0 0 200px;
+}
+
+.tamount {
+	flex: 0 0 180px;
+}
+
+.tstatus {
+	flex: 0 0 200px;
+}
+
+.tremarks {
+	flex: 0 0 300px;
+}
+
+.ttimestamp {
+	flex: 0 0 300px;
+}
+
+nav {
+	background-color: #ffffff;
+	box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.1);
+	padding: 10px 20px;
+}
+
+nav a {
+	text-decoration: none;
+	margin-right: 20px;
+	font-family: sans-serif;
+	font-size: large;
+	color: #2b0444;
+}
+
+nav a.logout {
+	color: #d9534f;
+}
+
+.mobile-dropdown .dropdown-menu {
+	width: 100%;
+	margin: auto;
+	text-align: center;
+	border-radius: 8px;
+	background-color: #ffffff;
+	box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.dropdown-item:hover {
+	background-color: #3b1457;
+	color: #ffffff;
+}
+
+.dropdown-item.active {
+	background-color: #3b1457 !important;
+	color: white !important;
+}
+button:hover {
+	transform: scale(1.1);
+	box-shadow: 0px 6px 12px rgba(0, 0, 0, 0.3);
+}
+
+/* Button active effect */
+button:active {
+	transform: scale(1);
+	box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* Button pop animation */
+@keyframes buttonPop {
+	0% {
+		transform: scale(0.8);
+		opacity: 0;
+	}
+	50% {
+		transform: scale(1.2);
+		opacity: 1;
+	}
+	100% {
+		transform: scale(1);
+	}
+}

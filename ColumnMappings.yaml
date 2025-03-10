@@ -1,0 +1,220 @@
+classes:
+  model.Branch:
+    tableName: "branch"
+    autoIncrementField: "id"
+    fields:
+      id:
+        columnName: "id"
+      ifscCode:
+        columnName: "ifsc_code"
+      contactNumber:
+        columnName: "contact_number"
+      name:
+        columnName: "name"
+      address:
+        columnName: "address"
+      createdAt:
+        columnName: "created_at"
+      modifiedAt:
+        columnName: "modified_at"
+      performedBy:
+        columnName: "performed_by"
+
+  model.User:
+    tableName: "user"
+    autoIncrementField: "id"
+    referedField: "id"
+    fields:
+      id:
+        columnName: "id"
+      fullname:
+        columnName: "fullname"
+      email:
+        columnName: "email"
+      phone:
+        columnName: "phone"
+      role:
+        columnName: "role"
+      username:
+        columnName: "username"
+      password:
+        columnName: "password"
+      passwordVersion:
+        columnName: "password_version"
+      status:
+        columnName: "status"
+      createdAt:
+        columnName: "created_at"
+      modifiedAt:
+        columnName: "modified_at"
+      performedBy:
+        columnName: "performed_by"
+
+  model.Customer:
+    tableName: "customer"
+    referenceField: "userId"
+    fields:
+      userId:
+        columnName: "user_id"
+      panNumber:
+        columnName: "pan_number"
+      aadharNumber:
+        columnName: "aadhar_number"
+
+  model.CustomerDetail:
+    tableName: "customerDetail"
+    referenceField: "customerId"
+    fields:
+      customerId:
+        columnName: "user_id"
+      dob:
+        columnName: "dob"
+      fatherName:
+        columnName: "father_name"
+      motherName:
+        columnName: "mother_name"
+      address:
+        columnName: "address"
+      maritalStatus:
+        columnName: "marital_status"
+
+  model.Account:
+    tableName: "account"
+    fields:
+      accountId:
+        columnName: "account_id"
+      accountNumber:
+        columnName: "account_number"
+      branchId:
+        columnName: "branch_id"
+      userId:
+        columnName: "user_id"
+      accountType:
+        columnName: "account_type"
+      status:
+        columnName: "status"
+      balance:
+        columnName: "balance"
+      minBalance:
+        columnName: "min_balance"
+      isPrimary:
+        columnName: "is_primary"
+      createdAt:
+        columnName: "created_at"
+      modifiedAt:
+        columnName: "modified_at"
+      performedBy:
+        columnName: "performed_by"
+
+  model.Staff:
+    tableName: "staff"
+    referenceField: "userId"
+    fields:
+      userId:
+        columnName: "user_id"
+      branchId:
+        columnName: "branch_id"
+
+  model.Transaction:
+    tableName: "transaction"
+    fields:
+      id:
+        columnName: "id"
+      customerId:
+        columnName: "customer_id"
+      accountNumber:
+        columnName: "account_number"
+      transactionAccountNumber:
+        columnName: "transaction_account_number"
+      transactionType:
+        columnName: "transaction_type"
+      transactionStatus:
+        columnName: "status"
+      remarks:
+        columnName: "remarks"
+      amount:
+        columnName: "amount"
+      closingBalance:
+        columnName: "closing_balance"
+      bankName:
+        columnName: "bank_name"
+      transactionIfsc:
+        columnName: "transaction_ifsc"
+      transactionTime:
+        columnName: "transaction_time"
+      performedBy:
+        columnName: "performed_by"
+
+  model.ActivityLog:
+    tableName: "activityLog"
+    fields:
+      id:
+        columnName: "id"
+      userId:
+        columnName: "user_id"
+      tableName:
+        columnName: "table_name"
+      logType:
+        columnName: "log_type"
+      rowId:
+        columnName: "row_id"
+      accountNumber:
+        columnName: "account_number"
+      logMessage:
+        columnName: "log_message"
+      timestamp:
+        columnName: "timestamp"
+      performedBy:
+        columnName: "performed_by"
+
+  model.Message:
+    tableName: "message"
+    fields:
+      id:
+        columnName: "id"
+      senderId:
+        columnName: "sender_id"
+      messageType:
+        columnName: "message_type"
+      messageContent:
+        columnName: "message_content"
+      messageStatus:
+        columnName: "message_status"
+      createdAt:
+        columnName: "created_at"
+      modifiedAt:
+        columnName: "modified_at"
+
+  model.OauthProvider:
+     tableName: "oauth_provider"
+     fields:
+       id:
+         columnName: "id"
+       userId:
+         columnName: "user_id"
+       provider:
+         columnName: "provider"
+       providerUserId:
+         columnName: "provider_user_id"
+       accessToken:
+         columnName: "access_token"
+       refreshToken:
+         columnName: "refresh_token"
+       expiresIn:
+         columnName: "expires_in"
+       createdAt:
+         columnName: "created_at"
+
+  model.UserSession:
+     tableName: "user_session"
+     fields:
+       id:
+         columnName: "id"
+       userId:
+         columnName: "user_id"
+       sessionId:
+         columnName: "session_id"
+       expiresIn:
+         columnName: "expires_in"
+       createdAt:
+         columnName: "created_at"

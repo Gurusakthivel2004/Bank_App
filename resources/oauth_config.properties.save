@@ -1,0 +1,4 @@
+google.auth_url=https://accounts.google.com/o/oauth2/auth
+google.token_url=https://oauth2.googleapis.com/token
+google.client_id=135303677852-68dg0aruho9kbnfgtjcc0iucahlic8r3.apps.googleusercontent.com
+google.client_secret=
