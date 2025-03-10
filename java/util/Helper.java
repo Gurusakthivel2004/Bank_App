@@ -46,6 +46,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.JsonPrimitive;
+import com.password4j.Password;
 
 import enums.Constants.HttpStatusCodes;
 import enums.Constants.Role;
@@ -78,12 +79,35 @@ public class Helper {
 		threadLocal.remove();
 	}
 
-	public static String hashPassword(String password) {
-		return BCrypt.hashpw(password, BCrypt.gensalt());
+	public static String hashPassword(String password, int passwordVersion) {
+		switch (passwordVersion) {
+		case 0:
+			return BCrypt.hashpw(password, BCrypt.gensalt());
+		case 1:
+			return Password.hash(password).addRandomSalt().withArgon2().getResult();
+		default:
+			throw new IllegalArgumentException("Invalid password version");
+		}
 	}
 
-	public static boolean checkPassword(String password, String hashed) {
-		return BCrypt.checkpw(password, hashed);
+	public static boolean checkPassword(User user, String password) throws Exception {
+		int version = user.getPasswordVersion();
+
+		if (version == 0) {
+			return migratePasswordIfValid(user, password);
+		} else if (version == 1) {
+			return Password.check(password, user.getPassword()).withArgon2();
+		} else {
+			throw new IllegalArgumentException("Invalid password version: " + version);
+		}
+	}
+
+	private static boolean migratePasswordIfValid(User user, String password) throws Exception {
+		if (BCrypt.checkpw(password, user.getPassword())) {
+			UserService.getInstance().updateUserPassword(user.getId(), password, user.getRole());
+			return true;
+		}
+		return false;
 	}
 
 	public static void checkNullValues(Object inputObject) throws CustomException {

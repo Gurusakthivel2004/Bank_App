@@ -15,6 +15,7 @@ import enums.Constants.HttpStatusCodes;
 import io.github.cdimascio.dotenv.Dotenv;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
+import schedular.PasswordUpdateScheduler;
 import util.CustomException;
 import util.Helper;
 
@@ -43,6 +44,8 @@ public class Initializer implements ServletContextListener {
 	private static final int REDIS_MIN_IDLE = 1; // Minimum idle connections
 	private static final boolean REDIS_BLOCK_WHEN_EXHAUSTED = true; // Block when no connection
 	private static final int REDIS_CONNECTION_TIMEOUT = 2000; // Connection timeout
+	// SCHEDULAR
+	private static PasswordUpdateScheduler passwordUpdateScheduler = new PasswordUpdateScheduler();
 
 	@Override
 	public void contextInitialized(ServletContextEvent sce) {
@@ -78,6 +81,9 @@ public class Initializer implements ServletContextListener {
 			jedisPool = new JedisPool(poolConfig, REDIS_HOST, REDIS_PORT, REDIS_CONNECTION_TIMEOUT);
 			logger.info("Redis initialized with connection pooling.");
 
+			// start schedular
+//			passwordUpdateScheduler.startScheduler();
+
 		} catch (Exception e) {
 			logger.error("Error initializing resources: {}", e);
 			throw new RuntimeException("Error initializing resources: ", e);
@@ -103,6 +109,15 @@ public class Initializer implements ServletContextListener {
 		} catch (Exception e) {
 			logger.error("Error while closing Redis connection pool: {}", e.getMessage(), e);
 		}
+
+		try {
+			if (passwordUpdateScheduler != null) {
+				passwordUpdateScheduler.stopScheduler();
+			}
+		} catch (Exception e) {
+			logger.error("Error while stopping schedular: {}", e.getMessage(), e);
+		}
+
 	}
 
 	public static HikariDataSource getDataSource() {

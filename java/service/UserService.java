@@ -137,7 +137,7 @@ public class UserService {
 				logger.error("User suspended: {}", username);
 				throw new CustomException("User suspended", HttpStatusCodes.UNAUTHORIZED);
 			}
-			if (!Helper.checkPassword(password, user.getPassword())) {
+			if (!Helper.checkPassword(user, password)) {
 				logger.error("Password mismatch for user: {}", username);
 				throw new CustomException("Password does not match", HttpStatusCodes.UNAUTHORIZED);
 			}
@@ -160,9 +160,9 @@ public class UserService {
 
 			validateNewPassword(newPassword);
 			User user = getUserById(userId);
-			validateCurrentPassword(currentPassword, user.getPassword());
+			validateCurrentPassword(currentPassword, user);
 
-			updateUserPassword(userId, newPassword);
+			updateUserPassword(userId, newPassword, user.getRole());
 			clearUserCache();
 
 			logPasswordUpdateActivity(userId);
@@ -199,18 +199,19 @@ public class UserService {
 		return users.get(0);
 	}
 
-	private void validateCurrentPassword(String currentPassword, String storedPassword) throws CustomException {
-		if (!Helper.checkPassword(currentPassword, storedPassword)) {
+	private void validateCurrentPassword(String currentPassword, User user) throws Exception {
+		if (!Helper.checkPassword(user, currentPassword)) {
 			logger.error("Password mismatch for user");
 			throw new CustomException("Please enter the correct password", HttpStatusCodes.UNAUTHORIZED);
 		}
 	}
 
-	private void updateUserPassword(Long userId, String newPassword) throws Exception {
-		ColumnCriteria columnCriteria = new ColumnCriteria().setFields(new ArrayList<>(Arrays.asList("password")))
-				.setValues(new ArrayList<>(Arrays.asList(Helper.hashPassword(newPassword))));
+	public void updateUserPassword(Long userId, String newPassword, String userRole) throws Exception {
+		ColumnCriteria columnCriteria = new ColumnCriteria()
+				.setFields(new ArrayList<>(Arrays.asList("password", "passwordVersion")))
+				.setValues(new ArrayList<>(Arrays.asList(Helper.hashPassword(newPassword, 1), 1)));
 
-		Role role = Role.fromString((String) Helper.getThreadLocalValue("role"));
+		Role role = Role.fromString(userRole);
 		Class<?> userClass = (role == Role.Customer) ? CustomerDetail.class : Staff.class;
 
 		Map<String, Object> updateQuery = new HashMap<>();

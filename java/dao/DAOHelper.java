@@ -269,6 +269,7 @@ public class DAOHelper {
 		DAOHelper.addConditionIfPresent(criteria, userMap, "role", "user.role", "EQUAL_TO", "");
 		DAOHelper.addConditionIfPresent(criteria, userMap, "email", "user.email", "EQUAL_TO", "");
 		DAOHelper.addConditionIfPresent(criteria, userMap, "status", "user.status", "EQUAL_TO", "");
+		DAOHelper.addConditionIfPresent(criteria, userMap, "passwordVersion", "user.password_version", "EQUAL_TO", -1l);
 	}
 
 	public static Criteria getAccountCriteria(Map<String, Object> accountMap) throws CustomException {

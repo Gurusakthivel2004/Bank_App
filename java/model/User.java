@@ -12,6 +12,7 @@ public class User extends MarkedClass {
 	private Role role;
 	private String username;
 	private String password;
+	private Integer passwordVersion;
 	private Status status;
 	private Long createdAt;
 	private Long modifiedAt;
@@ -150,6 +151,14 @@ public class User extends MarkedClass {
 		return "User [id=" + id + ", fullname=" + fullname + ", email=" + email + ", phone=" + phone + ", role=" + role
 				+ ", username=" + username + ", password=" + password + ", status=" + status + ", createdAt="
 				+ createdAt + ", modifiedAt=" + modifiedAt + ", performedBy=" + performedBy + "]";
+	}
+
+	public Integer getPasswordVersion() {
+		return passwordVersion;
+	}
+
+	public void setPasswordVersion(Integer passwordVersion) {
+		this.passwordVersion = passwordVersion;
 	}
 
 }
