@@ -98,6 +98,7 @@ public class DAOHelper {
 	public static void appendInClause(StringBuilder sql, Criteria condition, List<Object> conditionValues)
 			throws CustomException {
 		List<Object> inValues = condition.getValues();
+		System.out.println(inValues);
 		if (inValues == null || inValues.isEmpty()) {
 			throw new CustomException("IN clause requires at least one value.", HttpStatusCodes.BAD_REQUEST);
 		}

@@ -202,7 +202,10 @@ public class SQLHelper {
 		for (int i = 0; i < columns.size(); i++) {
 			String column = columns.get(i);
 			String operator = operators.get(i);
-			Object value = columnvalues.get(i);
+			Object value = null;
+			if(!columnvalues.isEmpty()) {
+				value = columnvalues.get(i);
+			}
 			sql.append(column).append(" ");
 
 			try {
@@ -327,7 +330,6 @@ public class SQLHelper {
 		StringBuilder deleteSql = new StringBuilder("DELETE FROM ").append(table);
 		List<Object> values = new ArrayList<>();
 		QueryBuilder(deleteSql, conditions, values);
-		Helper.validateQueryConditions(values, "No conditions provided for deletion.");
 		executeNonSelect(deleteSql.toString(), values.toArray());
 	}
 

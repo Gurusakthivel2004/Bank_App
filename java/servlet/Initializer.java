@@ -15,6 +15,7 @@ import enums.Constants.HttpStatusCodes;
 import io.github.cdimascio.dotenv.Dotenv;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
+import schedular.ExpiredSessionSchedular;
 import schedular.PasswordUpdateScheduler;
 import util.CustomException;
 import util.Helper;
@@ -46,6 +47,7 @@ public class Initializer implements ServletContextListener {
 	private static final int REDIS_CONNECTION_TIMEOUT = 2000; // Connection timeout
 	// SCHEDULAR
 	private static PasswordUpdateScheduler passwordUpdateScheduler = new PasswordUpdateScheduler();
+	private static ExpiredSessionSchedular expiredSessionSchedular = new ExpiredSessionSchedular();
 
 	@Override
 	public void contextInitialized(ServletContextEvent sce) {
@@ -83,6 +85,7 @@ public class Initializer implements ServletContextListener {
 
 			// start schedular
 //			passwordUpdateScheduler.startScheduler();
+			expiredSessionSchedular.startScheduler();
 
 		} catch (Exception e) {
 			logger.error("Error initializing resources: {}", e);
