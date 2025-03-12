@@ -38,7 +38,8 @@ public class OauthCallbackController {
 	private DAO<OauthProvider> oauthProviderDAO = OauthProviderDAO.getInstance();
 	private static Logger logger = LogManager.getLogger(OauthCallbackController.class);
 
-	private OauthCallbackController() {}
+	private OauthCallbackController() {
+	}
 
 	private static class SingletonHelper {
 		private static final OauthCallbackController INSTANCE = new OauthCallbackController();
@@ -194,11 +195,13 @@ public class OauthCallbackController {
 		List<OauthProvider> oauthProviders = oauthProviderDAO.get(oauthProviderMap);
 		CacheUtil.saveWithTTL(oauthProvider.getUserId().toString(), oauthProvider.getAccessToken(), 3600);
 
+		long providerId = 0;
 		if (!oauthProviders.isEmpty()) {
 			updateOauthTokens(oauthProvider, oauthProviderMap);
-			return;
+			providerId = oauthProviders.get(0).getId();
+		} else {
+			providerId = oauthProviderDAO.create(oauthProvider);
 		}
-		long providerId = oauthProviderDAO.create(oauthProvider);
 		LoginController.getInstance().saveSessionId(sessionId, oauthProvider.getUserId(), providerId);
 	}
 
@@ -225,7 +228,7 @@ public class OauthCallbackController {
 		oauthProviderMap.put("refreshToken", refreshToken);
 		oauthProviderDAO.update(columnCriteria, oauthProviderMap);
 	}
-	
+
 	private void setCookie(HttpServletResponse response, User user, String sessionId, Map<String, Object> userMap)
 			throws CustomException {
 		Role role = Role.fromString(user.getRole());
