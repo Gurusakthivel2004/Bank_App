@@ -86,6 +86,9 @@ public class LoginController {
 		response.addCookie(cookie);
 
 		CacheUtil.delete(sessionId);
+		Map<String, Object> sessionMap = new HashMap<>();
+		sessionMap.put("sessionId", sessionId);
+		userSessionService.deleteSession(sessionMap);
 		
 		ActivityLog activityLog = new ActivityLog().setLogMessage("Logout").setLogType(LogType.Logout)
 				.setUserAccountNumber(null).setRowId(userId).setTableName("User").setUserId(userId);
