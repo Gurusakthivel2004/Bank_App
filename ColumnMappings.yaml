@@ -214,7 +214,9 @@ classes:
          columnName: "user_id"
        sessionId:
          columnName: "session_id"
-       expiresIn:
-         columnName: "expires_in"
+       providerId:
+         columnName: "provider_id"
+       expiresAt:
+         columnName: "expires_at"
        createdAt:
          columnName: "created_at"

@@ -44,6 +44,7 @@ public class OauthProviderDAO implements DAO<OauthProvider> {
 		DAOHelper.addConditionIfPresent(criteria, oauthMap, "provider", "provider", "EQUAL_TO", "");
 		DAOHelper.addConditionIfPresent(criteria, oauthMap, "accessToken", "access_token", "EQUAL_TO", "");
 		DAOHelper.addConditionIfPresent(criteria, oauthMap, "userId", "user_id", "EQUAL_TO", 0l);
+		DAOHelper.addConditionIfPresent(criteria, oauthMap, "id", "id", "EQUAL_TO", 0l);
 		return SQLHelper.get(criteria, OauthProvider.class);
 	}
 

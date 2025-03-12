@@ -9,7 +9,6 @@ let accountsCount;
 let currentPageIndex = 0;
 let filterOffset = 0;
 const role = getCookie("role");
-const token = getCookie("token");
 
 async function fetchAccounts() {
 	try {
@@ -26,12 +25,10 @@ async function fetchAccounts() {
 			if (filterStatus) accountData.status = filterStatus;
 
 			console.log(accountData);
-			const token = sessionStorage.getItem('token')
 			const response = await fetch('http://localhost:8080/Bank_Application/api/Account', {
 				method: 'POST',
 				headers: {
-					'Content-Type': 'application/json',
-					'Authorization': `Bearer ${token}`
+					'Content-Type': 'application/json'
 				},
 				body: JSON.stringify(accountData)
 			});
@@ -172,8 +169,7 @@ const accountClick = async account => {
 	const userDetailsResponse = await fetch(`http://localhost:8080/Bank_Application/api/User?userId=${account.userId}&role=${userRole}`, {
 		method: 'GET',
 		headers: {
-			'Content-Type': 'application/json',
-			'Authorization': `Bearer ${token}`
+			'Content-Type': 'application/json'
 		},
 	});
 	const result = await userDetailsResponse.json();
@@ -303,8 +299,7 @@ const updateAccount = async accountUpdateData => {
 	const response = await fetch('http://localhost:8080/Bank_Application/api/Account', {
 		method: 'PUT',
 		headers: {
-			'Content-Type': 'application/json',
-			'Authorization': `Bearer ${token}`
+			'Content-Type': 'application/json'
 		},
 		body: JSON.stringify(accountUpdateData)
 	});
@@ -413,8 +408,7 @@ function fetchUserIdDetails(query) {
 	fetch(`http://localhost:8080/Bank_Application/api/User?userId=${query}&notExact=true`, {
 		method: 'GET',
 		headers: {
-			'Content-Type': 'application/json',
-			'Authorization': `Bearer ${token}`
+			'Content-Type': 'application/json'
 		},
 	})
 		.then(response => response.json())

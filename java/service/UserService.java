@@ -95,16 +95,42 @@ public class UserService {
 
 		TaskExecutorService.getInstance().submit(activityLog);
 	}
+	
+	public User getUserById(Long userId) throws Exception {
+		String key = "userId:" + userId;
+		List<User> cachedUsers = CacheUtil.getCachedList(key, new TypeReference<List<User>>() {});
+		if (cachedUsers != null) {
+			return cachedUsers.get(0);
+		}
+		
+		Map<String, Object> userQuery = new HashMap<>();
+		userQuery.put("userId", userId);
+		userQuery.put("password", true);
+		userQuery.put("userClass", User.class);
+
+		List<User> users = userDao.get(userQuery);
+		if (users == null || users.isEmpty()) {
+			throw new CustomException("User not found", HttpStatusCodes.NOT_FOUND);
+		}
+
+		CacheUtil.save(key, users);
+		return users.get(0);
+	}
 
 	public void addStaffDetails(Map<String, Object> userDetails, User user) throws CustomException {
 		logger.info("Fetching additional staff details for employee user.");
 		try {
+			String key = "staffId:" + user.getId();
 			Map<String, Object> userMap = new HashMap<>();
 			userMap.put("userId", user.getId());
 			userMap.put("role", user.getRoleEnum());
 			userMap.put("userClass", Staff.class);
 
-			List<Staff> staffDetails = staffDao.get(userMap);
+			List<Staff> staffDetails = CacheUtil.getCachedList(key, new TypeReference<List<Staff>>() {});
+			if (staffDetails == null) {
+				staffDetails = staffDao.get(userMap);
+				CacheUtil.save(key, staffDetails);
+			}
 
 			if (!staffDetails.isEmpty()) {
 				userDetails.put("branchId", staffDetails.get(0).getBranchId());
@@ -184,19 +210,6 @@ public class UserService {
 
 	private void validateNewPassword(String newPassword) throws Exception {
 		ValidationUtil.validatePassword(newPassword);
-	}
-
-	public User getUserById(Long userId) throws Exception {
-		Map<String, Object> userQuery = new HashMap<>();
-		userQuery.put("userId", userId);
-		userQuery.put("password", true);
-		userQuery.put("userClass", User.class);
-
-		List<User> users = userDao.get(userQuery);
-		if (users == null || users.isEmpty()) {
-			throw new CustomException("User not found", HttpStatusCodes.NOT_FOUND);
-		}
-		return users.get(0);
 	}
 
 	private void validateCurrentPassword(String currentPassword, User user) throws Exception {

@@ -49,10 +49,10 @@ public class OauthController {
 
 		logger.info("Provider parameter received: {}", provider);
 
-		String token = Helper.getTokenFromCookies(request);
+		String token = (String) request.getAttribute("token");
 
 		if (token != null) {
-			logger.info("Token found in cookies: {}", token);
+			logger.info("Updating access token: {}", token);
 			try {
 				OauthCallbackController oauthCallbackController = OauthCallbackController.getInstance();
 				String accessToken = oauthCallbackController.isValidOAuthToken(response, token);

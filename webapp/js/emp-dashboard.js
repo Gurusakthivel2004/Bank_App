@@ -5,6 +5,7 @@ console.log(role);
 document.addEventListener("DOMContentLoaded", async _ => {
 	if (role == null) {
 		document.querySelector('body').style.display = 'none';
+		window.location.href = "error.html";
 	} if (role != null && role == 'Customer') {
 		window.location.href = "dashboard.html";
 	}

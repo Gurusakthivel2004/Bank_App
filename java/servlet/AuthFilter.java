@@ -20,22 +20,26 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import cache.CacheUtil;
 import controller.OauthCallbackController;
 import controller.OauthController;
+import dao.DAO;
+import dao.OauthProviderDAO;
 import enums.Constants.HttpStatusCodes;
 import enums.Constants.RolePermission;
 import enums.Constants.Status;
 import model.Account;
 import model.OauthProvider;
 import model.User;
+import model.UserSession;
 import service.AccountService;
 import service.UserService;
+import service.UserSessionService;
 import util.CustomException;
 import util.Helper;
-import util.JwtUtil;
 
 @SuppressWarnings("serial")
 public class AuthFilter extends HttpFilter implements Filter {
 
 	private static Logger logger = LogManager.getLogger(AuthFilter.class);
+	private DAO<OauthProvider> oauthProviderDAO = OauthProviderDAO.getInstance();
 
 	@Override
 	public void doFilter(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
@@ -54,28 +58,28 @@ public class AuthFilter extends HttpFilter implements Filter {
 			return;
 		}
 
-		String token = Helper.getTokenFromCookies(request);
-		if (token == null) {
+		String sessionId = Helper.getFromCookies(request, "sessionId");
+		if (sessionId == null) {
 			Helper.sendJsonResponse(response, HttpStatusCodes.NOT_FOUND, "Authentication failed.", null);
 			return;
 		}
 
-		logger.info("Authorization token found.");
+		logger.info("session found.");
 
-		Map<String, Object> claimsMap;
+		Map<String, Object> claimsMap = null;
 		try {
-			claimsMap = isValidToken(token) ? JwtUtil.extractToken(token)
-					: validateOAuthToken(token, request, response);
-		} catch (CustomException e) {
-			Helper.sendJsonResponse(response, HttpStatusCodes.BAD_REQUEST, "Invalid token", null);
+			UserSession userSession = isValidSession(sessionId, request, response);
+			
+			claimsMap = Helper.getClaimsFromId(userSession.getUserId());
+			if (claimsMap == null) {
+				throw new IllegalArgumentException("Invalid session");
+			}
+
+		} catch (Exception e) {
+			logger.error(e);
+			Helper.sendJsonResponse(response, HttpStatusCodes.BAD_REQUEST, "Invalid session", null);
 			return;
 		}
-
-		if (claimsMap == null) {
-			Helper.sendJsonResponse(response, HttpStatusCodes.BAD_REQUEST, "Invalid token", null);
-			return;
-		}
-
 		Long userId = (Long) claimsMap.get("id");
 		String role = (String) claimsMap.get("role");
 
@@ -108,22 +112,47 @@ public class AuthFilter extends HttpFilter implements Filter {
 		return false;
 	}
 
-	private boolean isValidToken(String token) throws CustomException {
-		if (Helper.isJwtToken(token)) {
-			try {
-				logger.info("Verifying JWT token...");
-				JwtUtil.verifyToken(token);
-				Long id = JwtUtil.extractUserId(token);
-				String cachedToken = CacheUtil.get(id.toString(), new TypeReference<String>() {
-				});
-				if (cachedToken != null && cachedToken.equals(token)) {
-					return true;
-				}
-			} catch (Exception e) {
-				throw new CustomException("Invalid JWT token", HttpStatusCodes.BAD_REQUEST);
+	private UserSession isValidSession(String sessionId, HttpServletRequest request, HttpServletResponse response)
+			throws Exception {
+		try {
+			logger.info("validating session id...");
+
+			UserSessionService userSessionService = UserSessionService.getInstance();
+			Map<String, Object> sessionMap = new HashMap<>();
+			sessionMap.put("sessionId", sessionId);
+
+			List<UserSession> userSessions = userSessionService.getSessionDetails(sessionMap);
+		
+			if (userSessions == null || userSessions.isEmpty()) {
+				throw new CustomException("Invalid session id, Please signin again", HttpStatusCodes.BAD_REQUEST);
 			}
+
+			UserSession userSession = userSessions.get(0);
+
+			if (userSession.getProviderId() != null) {
+				Map<String, Object> oauthProviderMap = new HashMap<>();
+				oauthProviderMap.put("id", userSession.getProviderId());
+				List<OauthProvider> oauthProviders = oauthProviderDAO.get(oauthProviderMap);
+
+				if (oauthProviders.isEmpty()) {
+					throw new CustomException("Invalid access token", HttpStatusCodes.BAD_REQUEST);
+				}
+				validateOAuthToken(oauthProviders.get(0).getAccessToken(), request, response);
+			} else if (userSession.getExpiresAt() < System.currentTimeMillis()) {
+				throw new CustomException("session expired", HttpStatusCodes.FORBIDDEN);
+			}
+
+			return userSessions.get(0);
+		} catch (Exception e) {
+			logger.error(e);
+			Throwable cause = e.getCause();
+			if (cause instanceof CustomException) {
+				throw e;
+			} else {
+				throw new CustomException("Invalid session Id", HttpStatusCodes.BAD_REQUEST);
+			}
+
 		}
-		return false;
 	}
 
 	private Map<String, Object> validateOAuthToken(String token, HttpServletRequest request,
@@ -138,6 +167,7 @@ public class AuthFilter extends HttpFilter implements Filter {
 		} catch (CustomException e) {
 			logger.warn("Signing in again due to invalid OAuth token.");
 			try {
+				request.setAttribute("token", token);
 				oauthController.handleGet(request, response, "google");
 			} catch (Exception exception) {
 				logger.error(e);

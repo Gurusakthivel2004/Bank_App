@@ -7,6 +7,7 @@ document.addEventListener("DOMContentLoaded", async _ => {
 		document.querySelector('body').style.display = 'none';
 		window.location.href = "error.html";
 	}
+	
 	if (role != null && role !== 'Customer') {
 		window.location.href = "emp-dashboard.html";
 	}

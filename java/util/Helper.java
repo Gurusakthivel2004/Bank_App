@@ -454,10 +454,10 @@ public class Helper {
 		}
 	}
 
-	public static String getTokenFromCookies(HttpServletRequest request) {
+	public static String getFromCookies(HttpServletRequest request, String key) {
 		if (request.getCookies() != null) {
 			for (Cookie cookie : request.getCookies()) {
-				if ("token".equals(cookie.getName())) {
+				if (key.equals(cookie.getName())) {
 					return cookie.getValue();
 				}
 			}

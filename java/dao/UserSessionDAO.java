@@ -33,20 +33,27 @@ public class UserSessionDAO implements DAO<UserSession> {
 
 		Helper.checkNullValues(userSession);
 		Long userSessionId;
+		System.out.println(userSession);
 		userSessionId = ((BigInteger) SQLHelper.insert(userSession)).longValue();
 
 		logger.info("session info created successfully with ID: " + userSessionId);
 		return userSessionId;
 	}
 
-	public List<UserSession> get(Map<String, Object> oauthMap) throws Exception {
+	public List<UserSession> get(Map<String, Object> sessionMap) throws Exception {
 		Criteria criteria = DAOHelper.initializeCriteria(UserSession.class);
-		DAOHelper.addConditionIfPresent(criteria, oauthMap, "sessionId", "session_id", "EQUAL_TO", "");
-		DAOHelper.addConditionIfPresent(criteria, oauthMap, "userId", "user_id", "EQUAL_TO", 0l);
+		DAOHelper.addConditionIfPresent(criteria, sessionMap, "sessionId", "session_id", "EQUAL_TO", "");
+		DAOHelper.addConditionIfPresent(criteria, sessionMap, "userId", "user_id", "EQUAL_TO", 0l);
 		return SQLHelper.get(criteria, UserSession.class);
 	}
 
-	public void update(ColumnCriteria columnCriteria, Map<String, Object> oauthMap) throws Exception {
+	public void update(ColumnCriteria columnCriteria, Map<String, Object> sessionMap) throws Exception {
+		logger.info("Removing session details {}", sessionMap);
+		Criteria criteria = new Criteria().setClazz(UserSession.class);
+		DAOHelper.addConditionIfPresent(criteria, sessionMap, "sessionId", "session_id", "EQUAL_TO", "");
+		DAOHelper.addConditionIfPresent(criteria, sessionMap, "userId", "user_id", "EQUAL_TO", 0l);
+
+		SQLHelper.delete(criteria);
 	}
 
 	public long getDataCount(Map<String, Object> messageMap) throws Exception {
