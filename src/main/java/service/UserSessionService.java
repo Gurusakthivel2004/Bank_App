@@ -1,15 +1,17 @@
 package service;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+
+import cache.CacheUtil;
 import dao.DAO;
 import dao.DaoFactory;
-import enums.Constants.LogType;
-import model.ActivityLog;
 import model.UserSession;
 import util.Helper;
 
@@ -31,23 +33,41 @@ public class UserSessionService {
 
 	public List<UserSession> getSessionDetails(Map<String, Object> sessionMap) throws Exception {
 		logger.info("Fetching session details..");
-		List<UserSession> userSessions = userSessionDAO.get(sessionMap);
+		List<UserSession> userSessions = new ArrayList<UserSession>();
+		String sessionId = null;
+		
+		if (sessionMap.containsKey("sessionId")) {
+			sessionId = sessionMap.get("sessionId").toString();
+			UserSession userSession = CacheUtil.get(sessionId, new TypeReference<UserSession>() {
+			});
+			if (userSession != null) {
+				userSessions.add(userSession);
+				return userSessions;
+			}
+		}
+
+		userSessions = userSessionDAO.get(sessionMap);
+
+		if (userSessions != null && !userSessions.isEmpty() && sessionId != null) {
+			CacheUtil.save(sessionId, userSessions.get(0));
+		}
+
 		logger.info("Retrieved session details..");
 		return userSessions;
 	}
 
-	public void createBranch(Map<String, Object> sessionMap) throws Exception {
+	public void createSession(Map<String, Object> sessionMap) throws Exception {
 		logger.info("Creating a new session with data: {}", sessionMap);
 
 		UserSession userSession = Helper.createPojoFromMap(sessionMap, UserSession.class);
 
-		long userSessionId = userSessionDAO.create(userSession);
+		userSessionDAO.create(userSession);
+	}
 
-		ActivityLog activityLog = new ActivityLog().setLogMessage("Session created").setLogType(LogType.Insert)
-				.setUserAccountNumber(null).setRowId(userSessionId).setTableName("UserSession")
-				.setUserId((Long) sessionMap.get("userId"));
+	public void deleteSession(Map<String, Object> sessionMap) throws Exception {
+		logger.info("Removing session with data: {}", sessionMap);
 
-		TaskExecutorService.getInstance().submit(activityLog);
+		userSessionDAO.update(null, sessionMap);
 	}
 
 }

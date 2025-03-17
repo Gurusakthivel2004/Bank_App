@@ -95,16 +95,42 @@ public class UserService {
 
 		TaskExecutorService.getInstance().submit(activityLog);
 	}
+	
+	public User getUserById(Long userId) throws Exception {
+		String key = "userId:" + userId;
+		List<User> cachedUsers = CacheUtil.getCachedList(key, new TypeReference<List<User>>() {});
+		if (cachedUsers != null) {
+			return cachedUsers.get(0);
+		}
+		
+		Map<String, Object> userQuery = new HashMap<>();
+		userQuery.put("userId", userId);
+		userQuery.put("password", true);
+		userQuery.put("userClass", User.class);
+
+		List<User> users = userDao.get(userQuery);
+		if (users == null || users.isEmpty()) {
+			throw new CustomException("User not found", HttpStatusCodes.NOT_FOUND);
+		}
+
+		CacheUtil.save(key, users);
+		return users.get(0);
+	}
 
 	public void addStaffDetails(Map<String, Object> userDetails, User user) throws CustomException {
 		logger.info("Fetching additional staff details for employee user.");
 		try {
+			String key = "staffId:" + user.getId();
 			Map<String, Object> userMap = new HashMap<>();
 			userMap.put("userId", user.getId());
 			userMap.put("role", user.getRoleEnum());
 			userMap.put("userClass", Staff.class);
 
-			List<Staff> staffDetails = staffDao.get(userMap);
+			List<Staff> staffDetails = CacheUtil.getCachedList(key, new TypeReference<List<Staff>>() {});
+			if (staffDetails == null) {
+				staffDetails = staffDao.get(userMap);
+				CacheUtil.save(key, staffDetails);
+			}
 
 			if (!staffDetails.isEmpty()) {
 				userDetails.put("branchId", staffDetails.get(0).getBranchId());
@@ -137,7 +163,7 @@ public class UserService {
 				logger.error("User suspended: {}", username);
 				throw new CustomException("User suspended", HttpStatusCodes.UNAUTHORIZED);
 			}
-			if (!Helper.checkPassword(password, user.getPassword())) {
+			if (!Helper.checkPassword(user, password)) {
 				logger.error("Password mismatch for user: {}", username);
 				throw new CustomException("Password does not match", HttpStatusCodes.UNAUTHORIZED);
 			}
@@ -160,9 +186,9 @@ public class UserService {
 
 			validateNewPassword(newPassword);
 			User user = getUserById(userId);
-			validateCurrentPassword(currentPassword, user.getPassword());
+			validateCurrentPassword(currentPassword, user);
 
-			updateUserPassword(userId, newPassword);
+			updateUserPassword(userId, newPassword, user.getRole());
 			clearUserCache();
 
 			logPasswordUpdateActivity(userId);
@@ -186,31 +212,19 @@ public class UserService {
 		ValidationUtil.validatePassword(newPassword);
 	}
 
-	public User getUserById(Long userId) throws Exception {
-		Map<String, Object> userQuery = new HashMap<>();
-		userQuery.put("userId", userId);
-		userQuery.put("password", true);
-		userQuery.put("userClass", User.class);
-
-		List<User> users = userDao.get(userQuery);
-		if (users == null || users.isEmpty()) {
-			throw new CustomException("User not found", HttpStatusCodes.NOT_FOUND);
-		}
-		return users.get(0);
-	}
-
-	private void validateCurrentPassword(String currentPassword, String storedPassword) throws CustomException {
-		if (!Helper.checkPassword(currentPassword, storedPassword)) {
+	private void validateCurrentPassword(String currentPassword, User user) throws Exception {
+		if (!Helper.checkPassword(user, currentPassword)) {
 			logger.error("Password mismatch for user");
 			throw new CustomException("Please enter the correct password", HttpStatusCodes.UNAUTHORIZED);
 		}
 	}
 
-	private void updateUserPassword(Long userId, String newPassword) throws Exception {
-		ColumnCriteria columnCriteria = new ColumnCriteria().setFields(new ArrayList<>(Arrays.asList("password")))
-				.setValues(new ArrayList<>(Arrays.asList(Helper.hashPassword(newPassword))));
+	public void updateUserPassword(Long userId, String newPassword, String userRole) throws Exception {
+		ColumnCriteria columnCriteria = new ColumnCriteria()
+				.setFields(new ArrayList<>(Arrays.asList("password", "passwordVersion")))
+				.setValues(new ArrayList<>(Arrays.asList(Helper.hashPassword(newPassword, 1), 1)));
 
-		Role role = Role.fromString((String) Helper.getThreadLocalValue("role"));
+		Role role = Role.fromString(userRole);
 		Class<?> userClass = (role == Role.Customer) ? CustomerDetail.class : Staff.class;
 
 		Map<String, Object> updateQuery = new HashMap<>();

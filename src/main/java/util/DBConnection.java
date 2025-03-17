@@ -5,7 +5,8 @@ import java.sql.SQLException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import com.zaxxer.hikari.HikariDataSource;
-import servlet.Initializer;
+
+import initializer.Initializer;
 
 public class DBConnection {
 

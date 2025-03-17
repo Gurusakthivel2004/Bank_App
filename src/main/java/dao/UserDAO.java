@@ -18,8 +18,10 @@ import util.SQLHelper;
 public class UserDAO<T extends User> implements DAO<T> {
 
 	private static Logger logger = LogManager.getLogger(UserDAO.class);
-	
-	private UserDAO() {}
+	private static final Integer DEFAULT_VERSION = 1;
+
+	private UserDAO() {
+	}
 
 	private static class SingletonHelper {
 		private static final UserDAO<?> INSTANCE = new UserDAO<>();
@@ -34,11 +36,11 @@ public class UserDAO<T extends User> implements DAO<T> {
 		if (user instanceof CustomerDetail) {
 			((CustomerDetail) user).setCreatedAt(System.currentTimeMillis())
 					.setPerformedBy((long) Helper.getThreadLocalValue("id"))
-					.setPassword(Helper.hashPassword(("default"))).setModifiedAt(System.currentTimeMillis());
+					.setPassword(Helper.hashPassword("default", DEFAULT_VERSION)).setModifiedAt(System.currentTimeMillis());
 		} else if (user instanceof Staff) {
 			((Staff) user).setCreatedAt(System.currentTimeMillis())
 					.setPerformedBy((long) Helper.getThreadLocalValue("id"))
-					.setPassword(Helper.hashPassword(("default"))).setModifiedAt(System.currentTimeMillis());
+					.setPassword(Helper.hashPassword("default", DEFAULT_VERSION)).setModifiedAt(System.currentTimeMillis());
 		}
 		return ((BigInteger) SQLHelper.insert(user)).longValue();
 	}

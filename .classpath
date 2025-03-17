@@ -8,6 +8,7 @@
 	</classpathentry>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.8">
 		<attributes>
+			<attribute name="module" value="true"/>
 			<attribute name="maven.pomderived" value="true"/>
 		</attributes>
 	</classpathentry>
@@ -16,7 +17,6 @@
 			<attribute name="owner.project.facets" value="jst.web"/>
 		</attributes>
 	</classpathentry>
-	<classpathentry kind="lib" path="/home/guru-pt7672/Downloads/mysql-connector-j-9.0.0/mysql-connector-j-9.0.0.jar"/>
 	<classpathentry excluding="**" kind="src" output="target/classes" path="src/main/resources">
 		<attributes>
 			<attribute name="maven.pomderived" value="true"/>
@@ -37,44 +37,28 @@
 			<attribute name="optional" value="true"/>
 		</attributes>
 	</classpathentry>
-	<classpathentry kind="con" path="org.eclipse.m2e.MAVEN2_CLASSPATH_CONTAINER">
-		<attributes>
-			<attribute name="maven.pomderived" value="true"/>
-		</attributes>
-	</classpathentry>
-	<classpathentry kind="lib" path="src/main/webapp/WEB-INF/lib /jbcrypt-0.4.jar"/>
-	<classpathentry kind="lib" path="src/main/webapp/WEB-INF/lib /commons-pool2-2.11.1.jar"/>
-	<classpathentry kind="lib" path="src/main/webapp/WEB-INF/lib /gson-2.10.1.jar"/>
-	<classpathentry kind="lib" path="src/main/webapp/WEB-INF/lib /HikariCP-4.0.3.jar"/>
-	<classpathentry kind="lib" path="src/main/webapp/WEB-INF/lib /jackson-annotations-2.15.2.jar"/>
-	<classpathentry kind="lib" path="src/main/webapp/WEB-INF/lib /jackson-core-2.15.2.jar"/>
-	<classpathentry kind="lib" path="src/main/webapp/WEB-INF/lib /jackson-databind-2.15.2.jar"/>
-	<classpathentry kind="lib" path="src/main/webapp/WEB-INF/lib /java-dotenv-3.1.1.jar"/>
-	<classpathentry kind="lib" path="src/main/webapp/WEB-INF/lib /java-jwt-4.4.0.jar"/>
-	<classpathentry kind="lib" path="src/main/webapp/WEB-INF/lib /jedis-5.2.0.jar"/>
-	<classpathentry kind="lib" path="src/main/webapp/WEB-INF/lib /log4j-api-2.17.1.jar"/>
-	<classpathentry kind="lib" path="src/main/webapp/WEB-INF/lib /log4j-core-2.17.1.jar"/>
-	<classpathentry kind="lib" path="src/main/webapp/WEB-INF/lib /mysql-connector-j-9.0.0.jar"/>
-	<classpathentry kind="lib" path="src/main/webapp/WEB-INF/lib /slf4j-api-1.7.36.jar"/>
-	<classpathentry kind="lib" path="src/main/webapp/WEB-INF/lib /slf4j-simple-1.7.36.jar"/>
-	<classpathentry kind="lib" path="src/main/webapp/WEB-INF/lib /snakeyaml-2.2.jar"/>
-	<classpathentry kind="lib" path="src/main/webapp/WEB-INF/lib /snakeyaml-2.2-sources.jar"/>
-	<classpathentry kind="lib" path="/home/guru-pt7672/git/BankApplication/Bank_Application/src/main/webapp/WEB-INF/lib /commons-pool2-2.11.1.jar"/>
-	<classpathentry kind="lib" path="/home/guru-pt7672/git/BankApplication/Bank_Application/src/main/webapp/WEB-INF/lib /gson-2.10.1.jar"/>
-	<classpathentry kind="lib" path="/home/guru-pt7672/git/BankApplication/Bank_Application/src/main/webapp/WEB-INF/lib /HikariCP-4.0.3.jar"/>
-	<classpathentry kind="lib" path="/home/guru-pt7672/git/BankApplication/Bank_Application/src/main/webapp/WEB-INF/lib /jackson-annotations-2.15.2.jar"/>
-	<classpathentry kind="lib" path="/home/guru-pt7672/git/BankApplication/Bank_Application/src/main/webapp/WEB-INF/lib /jackson-core-2.15.2.jar"/>
-	<classpathentry kind="lib" path="/home/guru-pt7672/git/BankApplication/Bank_Application/src/main/webapp/WEB-INF/lib /jackson-databind-2.15.2.jar"/>
-	<classpathentry kind="lib" path="/home/guru-pt7672/git/BankApplication/Bank_Application/src/main/webapp/WEB-INF/lib /java-dotenv-3.1.1.jar"/>
-	<classpathentry kind="lib" path="/home/guru-pt7672/git/BankApplication/Bank_Application/src/main/webapp/WEB-INF/lib /java-jwt-4.4.0.jar"/>
-	<classpathentry kind="lib" path="/home/guru-pt7672/git/BankApplication/Bank_Application/src/main/webapp/WEB-INF/lib /jbcrypt-0.4.jar"/>
-	<classpathentry kind="lib" path="/home/guru-pt7672/git/BankApplication/Bank_Application/src/main/webapp/WEB-INF/lib /jedis-5.2.0.jar"/>
-	<classpathentry kind="lib" path="/home/guru-pt7672/git/BankApplication/Bank_Application/src/main/webapp/WEB-INF/lib /log4j-api-2.17.1.jar"/>
-	<classpathentry kind="lib" path="/home/guru-pt7672/git/BankApplication/Bank_Application/src/main/webapp/WEB-INF/lib /log4j-core-2.17.1.jar"/>
-	<classpathentry kind="lib" path="/home/guru-pt7672/git/BankApplication/Bank_Application/src/main/webapp/WEB-INF/lib /mysql-connector-j-9.0.0.jar"/>
-	<classpathentry kind="lib" path="/home/guru-pt7672/git/BankApplication/Bank_Application/src/main/webapp/WEB-INF/lib /slf4j-api-1.7.36.jar"/>
-	<classpathentry kind="lib" path="/home/guru-pt7672/git/BankApplication/Bank_Application/src/main/webapp/WEB-INF/lib /slf4j-simple-1.7.36.jar"/>
-	<classpathentry kind="lib" path="/home/guru-pt7672/git/BankApplication/Bank_Application/src/main/webapp/WEB-INF/lib /snakeyaml-2.2.jar"/>
-	<classpathentry kind="lib" path="/home/guru-pt7672/git/BankApplication/Bank_Application/src/main/webapp/WEB-INF/lib /snakeyaml-2.2-sources.jar"/>
+	<classpathentry kind="lib" path="webapp/WEB-INF/lib/commons-pool2-2.11.1.jar"/>
+	<classpathentry kind="lib" path="webapp/WEB-INF/lib/gson-2.10.1.jar"/>
+	<classpathentry kind="lib" path="webapp/WEB-INF/lib/HikariCP-4.0.3.jar"/>
+	<classpathentry kind="lib" path="webapp/WEB-INF/lib/jackson-annotations-2.15.2.jar"/>
+	<classpathentry kind="lib" path="webapp/WEB-INF/lib/jackson-core-2.15.2.jar"/>
+	<classpathentry kind="lib" path="webapp/WEB-INF/lib/jackson-databind-2.15.2.jar"/>
+	<classpathentry kind="lib" path="webapp/WEB-INF/lib/jakarta.mail-1.6.3.jar"/>
+	<classpathentry kind="lib" path="webapp/WEB-INF/lib/java-dotenv-3.1.1.jar"/>
+	<classpathentry kind="lib" path="webapp/WEB-INF/lib/java-jwt-4.4.0.jar"/>
+	<classpathentry kind="lib" path="webapp/WEB-INF/lib/javax.servlet-api-4.0.1.jar"/>
+	<classpathentry kind="lib" path="webapp/WEB-INF/lib/javax.websocket-api-1.1.jar"/>
+	<classpathentry kind="lib" path="webapp/WEB-INF/lib/jbcrypt-0.4.jar"/>
+	<classpathentry kind="lib" path="webapp/WEB-INF/lib/jedis-5.2.0.jar"/>
+	<classpathentry kind="lib" path="webapp/WEB-INF/lib/liquibase-core-4.24.0.jar"/>
+	<classpathentry kind="lib" path="webapp/WEB-INF/lib/log4j-api-2.17.1.jar"/>
+	<classpathentry kind="lib" path="webapp/WEB-INF/lib/log4j-core-2.17.1.jar"/>
+	<classpathentry kind="lib" path="webapp/WEB-INF/lib/mysql-connector-j-9.0.0.jar"/>
+	<classpathentry kind="lib" path="webapp/WEB-INF/lib/password4j-1.8.0.jar"/>
+	<classpathentry kind="lib" path="webapp/WEB-INF/lib/picocli-4.6.3.jar"/>
+	<classpathentry kind="lib" path="webapp/WEB-INF/lib/slf4j-api-1.7.36.jar"/>
+	<classpathentry kind="lib" path="webapp/WEB-INF/lib/slf4j-simple-1.7.36.jar"/>
+	<classpathentry kind="lib" path="webapp/WEB-INF/lib/snakeyaml-2.2.jar"/>
+	<classpathentry kind="lib" path="webapp/WEB-INF/lib/snakeyaml-2.2-sources.jar"/>
 	<classpathentry kind="output" path="target/classes"/>
 </classpath>

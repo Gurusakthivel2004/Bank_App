@@ -1,11 +1,12 @@
 package model;
 
-public class UserSession {
+public class UserSession extends MarkedClass {
 
 	private Long id;
 	private Long userId;
 	private String sessionId;
-	private Long expiresIn;
+	private Long providerId;
+	private Long expiresAt;
 	private Long createdAt;
 
 	public Long getId() {
@@ -32,14 +33,6 @@ public class UserSession {
 		this.sessionId = sessionId;
 	}
 
-	public Long getExpiresIn() {
-		return expiresIn;
-	}
-
-	public void setExpiresIn(Long expiresIn) {
-		this.expiresIn = expiresIn;
-	}
-
 	public Long getCreatedAt() {
 		return createdAt;
 	}
@@ -48,10 +41,26 @@ public class UserSession {
 		this.createdAt = createdAt;
 	}
 
+	public Long getProviderId() {
+		return providerId;
+	}
+
+	public void setProviderId(Long providerId) {
+		this.providerId = providerId;
+	}
+
+	public Long getExpiresAt() {
+		return expiresAt;
+	}
+
+	public void setExpiresAt(Long expiresAt) {
+		this.expiresAt = expiresAt;
+	}
+
 	@Override
 	public String toString() {
-		return "UserSession [id=" + id + ", userId=" + userId + ", sessionId=" + sessionId + ", expiresIn=" + expiresIn
-				+ ", createdAt=" + createdAt + "]";
+		return "UserSession [id=" + id + ", userId=" + userId + ", sessionId=" + sessionId + ", providerId="
+				+ providerId + ", expiresAt=" + expiresAt + ", createdAt=" + createdAt + "]";
 	}
 
 }

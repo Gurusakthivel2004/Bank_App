@@ -6,3 +6,5 @@ Thumbs.db
 *.log
 *.class
 app.log
+*.jar
+webapp/WEB-INF/lib/*

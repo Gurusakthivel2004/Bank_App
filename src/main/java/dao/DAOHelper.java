@@ -98,6 +98,7 @@ public class DAOHelper {
 	public static void appendInClause(StringBuilder sql, Criteria condition, List<Object> conditionValues)
 			throws CustomException {
 		List<Object> inValues = condition.getValues();
+		System.out.println(inValues);
 		if (inValues == null || inValues.isEmpty()) {
 			throw new CustomException("IN clause requires at least one value.", HttpStatusCodes.BAD_REQUEST);
 		}
@@ -269,6 +270,7 @@ public class DAOHelper {
 		DAOHelper.addConditionIfPresent(criteria, userMap, "role", "user.role", "EQUAL_TO", "");
 		DAOHelper.addConditionIfPresent(criteria, userMap, "email", "user.email", "EQUAL_TO", "");
 		DAOHelper.addConditionIfPresent(criteria, userMap, "status", "user.status", "EQUAL_TO", "");
+		DAOHelper.addConditionIfPresent(criteria, userMap, "passwordVersion", "user.password_version", "EQUAL_TO", -1l);
 	}
 
 	public static Criteria getAccountCriteria(Map<String, Object> accountMap) throws CustomException {

@@ -7,6 +7,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -55,7 +56,7 @@ public class OauthCallbackController {
 		if (provider == null || code == null) {
 			Helper.sendJsonResponse(response, HttpStatusCodes.BAD_REQUEST, "Invalid Oauth callback.", null);
 			return;
-		} 
+		}
 
 		Dotenv dotenv = Helper.loadDotEnv();
 		String providerCap = provider.toUpperCase();
@@ -176,20 +177,10 @@ public class OauthCallbackController {
 		oauthProvider.setUserId(user.getId());
 		oauthProvider.setCreatedAt(System.currentTimeMillis());
 
-		createOrUpdate(oauthProvider);
+		String sessionId = UUID.randomUUID().toString();
+		createOrUpdate(oauthProvider, sessionId);
+		setCookie(response, user, sessionId, userMap);
 
-		Helper.setCookie(response, "phone", user.getPhone(), 604800, false);
-		Helper.setCookie(response, "email", email, 604800, false);
-		Helper.setCookie(response, "token", oauthProvider.getAccessToken(), 604800, true);
-		Helper.setCookie(response, "fullname", user.getFullname(), 604800, false);
-		Helper.setCookie(response, "status", user.getStatus(), 604800, false);
-		Helper.setCookie(response, "role", role.toString(), 604800, false);
-		Helper.setCookie(response, "id", user.getId(), 604800, false);
-
-		if (role != Role.Customer) {
-			userService.addStaffDetails(userMap, user);
-			Helper.setCookie(response, "branchId", userMap.get("branchId"), 604800, false);
-		}
 		if (role == Role.Customer) {
 			response.sendRedirect("http://localhost:8080/Bank_Application/dashboard.html");
 		} else {
@@ -197,18 +188,21 @@ public class OauthCallbackController {
 		}
 	}
 
-	private void createOrUpdate(OauthProvider oauthProvider) throws Exception {
+	private void createOrUpdate(OauthProvider oauthProvider, String sessionId) throws Exception {
 		Map<String, Object> oauthProviderMap = new HashMap<>();
 		oauthProviderMap.put("userId", oauthProvider.getUserId());
 		oauthProviderMap.put("provider", oauthProvider.getProvider());
 		List<OauthProvider> oauthProviders = oauthProviderDAO.get(oauthProviderMap);
 		CacheUtil.saveWithTTL(oauthProvider.getUserId().toString(), oauthProvider.getAccessToken(), 3600);
 
+		long providerId = 0;
 		if (!oauthProviders.isEmpty()) {
 			updateOauthTokens(oauthProvider, oauthProviderMap);
-			return;
+			providerId = oauthProviders.get(0).getId();
+		} else {
+			providerId = oauthProviderDAO.create(oauthProvider);
 		}
-		oauthProviderDAO.create(oauthProvider);
+		LoginController.getInstance().saveSessionId(sessionId, oauthProvider.getUserId(), providerId);
 	}
 
 	private void updateOauthTokens(OauthProvider oauthProvider, Map<String, Object> oauthProviderMap) throws Exception {
@@ -233,6 +227,24 @@ public class OauthCallbackController {
 		Map<String, Object> oauthProviderMap = new HashMap<String, Object>();
 		oauthProviderMap.put("refreshToken", refreshToken);
 		oauthProviderDAO.update(columnCriteria, oauthProviderMap);
+	}
+
+	private void setCookie(HttpServletResponse response, User user, String sessionId, Map<String, Object> userMap)
+			throws CustomException {
+		Role role = Role.fromString(user.getRole());
+
+		Helper.setCookie(response, "phone", user.getPhone(), 604800, false);
+		Helper.setCookie(response, "email", user.getEmail(), 604800, false);
+		Helper.setCookie(response, "sessionId", sessionId, 604800, true);
+		Helper.setCookie(response, "fullname", user.getFullname(), 604800, false);
+		Helper.setCookie(response, "status", user.getStatus(), 604800, false);
+		Helper.setCookie(response, "role", role.toString(), 604800, false);
+		Helper.setCookie(response, "id", user.getId(), 604800, false);
+
+		if (role != Role.Customer) {
+			userService.addStaffDetails(userMap, user);
+			Helper.setCookie(response, "branchId", userMap.get("branchId"), 604800, false);
+		}
 	}
 
 }

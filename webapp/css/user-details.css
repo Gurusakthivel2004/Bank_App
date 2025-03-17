@@ -1,0 +1,256 @@
+body {
+	background: url('../images/bg.svg') no-repeat center center;
+	background-size: 100%;
+	background-color: whitesmoke;
+}
+
+.full-container {
+	display: flex;
+	margin: auto;
+	height: 980px;
+}
+
+.left-section {
+	flex: 1;
+	height: max-content;
+	max-width: 85px;
+	text-align: center;
+	border-right: 1px solid #f0f1f1;
+	margin-top: auto;
+	margin-bottom: 225px;
+}
+
+.left-section a {
+	font-size: 13px;
+	font-weight: 500;
+	text-decoration: none;
+}
+
+.right-section {
+	flex: 3;
+	padding: 20px;
+	overflow-y: auto;
+}
+
+.tree-item {
+	cursor: pointer;
+	padding: 30px 5px;
+	padding-bottom: 6px;
+	border-bottom: 1px solid #2b0444;
+	color: #2b0444;
+	font-weight: 600;
+	box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.1);
+	font-size: x-large;
+	font-family: sans-serif;
+	background-color: #2b0444;
+}
+
+.tree-item:hover {
+	background-color: #3b1457;
+	color: white;
+}
+
+.tree-subitem {
+	padding-left: 15px;
+	display: none;
+	color: #e0e0e0;
+}
+
+.account-detail {
+	margin-bottom: 30px;
+}
+
+.accounts-list .account-item {
+	display: flex;
+	background-color: #2b0444;
+	padding: 10px 0;
+	box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.1);
+	border-bottom: 2px solid #ddd;
+}
+
+.accounts-list .account-item .left {
+	font-size: 16px;
+	color: white;
+}
+
+.accounts-list .account-item .right {
+	font-size: 16px;
+	text-align: right;
+	color: #2b0444;
+}
+
+.account-item p {
+	margin-bottom: 0;
+	display: flex;
+	align-items: center;
+	font-family: sans-serif;
+	font-size: larger;
+	padding-top: 10px;
+	padding-bottom: 10px;
+}
+
+.userid {
+	padding-left: 50px;
+	flex: 0 0 250px;
+}
+
+.username {
+	flex: 0 0 300px;
+}
+
+.useremail {
+	flex: 0 0 300px;
+}
+
+.userphone {
+	flex: 0 0 250px;
+}
+
+.userusername {
+	flex: 0 0 250px;
+}
+
+.userstatus {
+	flex: 0 0 180px;
+}
+
+.usercreatedAt {
+	flex: 0 0 250px;
+}
+
+nav {
+	background-color: #ffffff;
+	box-shadow: 2px 4px 5px rgba(0, 0, 0, 0.1);
+	padding: 10px 20px;
+}
+
+.editAllButton {
+	background: url('../images/editOne.svg') no-repeat center center;
+	width: 23px;
+	height: 23px;
+}
+
+.editAllButton:hover {
+	opacity: 0.7;
+}
+
+.saveAllButton {
+	background: url('../images/save.svg') no-repeat center center;
+	width: 23px;
+	height: 23px;
+}
+
+.saveAllButton:hover {
+	opacity: 0.7;
+}
+
+.usermodal-content {
+	position: relative;
+	background: #ffffff;
+	padding: 25px;
+	border-radius: 12px;
+	width: auto;
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+	animation: slideIn 0.3s ease;
+}
+
+.create-btn {
+	width: 40px;
+	height: 40px;
+	border-radius: 50%;
+	background: linear-gradient(135deg, #6c63ff, #4a47a3);
+	box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	cursor: pointer;
+	transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.create-btn img {
+	width: 24px;
+	height: 24px;
+}
+
+.create-btn:hover {
+	transform: scale(1.1);
+	box-shadow: 0 6px 8px rgba(0, 0, 0, 0.3);
+}
+
+.dropdown-container {
+	position: relative;
+	display: inline-block;
+}
+@keyframes fadeIn {
+	from {
+		opacity: 0;
+	}
+	to {
+		opacity: 1;
+	}
+}
+
+@keyframes scaleIn {
+	0% {
+		transform: scale(0.7);
+		opacity: 0.3;
+	}
+	100% {
+		transform: scale(1);
+		opacity: 1;
+	}
+}
+
+@keyframes pulse {
+	0% {
+		transform: scale(1);
+	}
+	50% {
+		transform: scale(1.1);
+	}
+	100% {
+		transform: scale(1);
+	}
+}
+
+@keyframes textAppear {
+	from {
+		transform: translateY(-20px);
+		opacity: 0;
+	}
+	to {
+		transform: translateY(0);
+		opacity: 1;
+	}
+}
+button:hover {
+	transform: scale(1.1);
+	box-shadow: 0px 6px 12px rgba(0, 0, 0, 0.3);
+}
+
+button:active {
+	transform: scale(1);
+	box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+@keyframes buttonPop {
+	0% {
+		transform: scale(0.8);
+		opacity: 0;
+	}
+	50% {
+		transform: scale(1.2);
+		opacity: 1;
+	}
+	100% {
+		transform: scale(1);
+	}
+}
+@keyframes fadeOut {
+	0% {
+		opacity: 1;
+	}
+	100% {
+		opacity: 0;
+	}
+}

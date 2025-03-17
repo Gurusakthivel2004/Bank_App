@@ -2,9 +2,11 @@ package cache;
 
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
-import servlet.Initializer;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+
+import initializer.Initializer;
 
 public class RedisCache {
 

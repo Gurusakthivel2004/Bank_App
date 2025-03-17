@@ -1,0 +1,398 @@
+nav a {
+	text-decoration: none;
+	margin-right: 20px;
+	font-family: sans-serif;
+	font-size: large;
+	color: #2b0444;
+}
+
+nav a.logout {
+	color: #d9534f;
+}
+
+.profile-item {
+	display: flex;
+	justify-content: flex-start;
+	align-items: center;
+	margin-bottom: 15px;
+	padding: 2px;
+}
+
+.detail-item {
+	display: flex;
+	justify-content: flex-start;
+	font-family: 'Roboto', sans-serif;
+	align-items: center;
+	margin-bottom: 15px;
+	padding: 2px;
+}
+
+.detail-label {
+	font-weight: 500;
+	color: #2b0444;
+	min-width: 146px;
+	font-size: 16px;
+	text-align: left;
+}
+
+.detail-value {
+	font-weight: 600;
+	color: #333;
+	font-size: 16px;
+	margin-left: 10px;
+}
+
+.menu-toggle {
+	background: none;
+	border: none;
+	font-size: 24px;
+	color: #2b0444;
+}
+
+.closebtn-close {
+	background: url('./images/close.svg') no-repeat center center;
+	width: 30px;
+	height: 30px;
+	border: 0;
+}
+
+.side-panel {
+	height: 100%;
+	width: 0;
+	position: fixed;
+	top: 0;
+	right: 0;
+	background-color: #ffffff;
+	overflow-x: hidden;
+	transition: 0.3s ease-in-out;
+	padding-top: 20px;
+	box-shadow: -3px 0 10px rgba(0, 0, 0, 0.2);
+	z-index: 9999;
+	border-left: 1px solid #ccc;
+}
+
+.side-panel.open {
+	width: 350px;
+}
+
+.close-btn {
+	font-size: 24px;
+	background: none;
+	border: none;
+	cursor: pointer;
+	color: #2b0444;
+	position: absolute;
+	top: 15px;
+	right: 15px;
+}
+
+.side-panel-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	padding: 10px 20px;
+	font-family: 'Roboto', sans-serif;
+	color: #2b0444;
+	border-bottom: 1px solid #ddd;
+	color: #2b0444;
+}
+
+.side-panel-header h2 {
+	margin: 0;
+	font-size: 18px;
+	font-weight: 700;
+}
+
+.side-panel-content {
+	padding: 24px;
+	margin: 10px 0px;
+}
+
+hr {
+	margin: 10px 0;
+	border: 1px;
+	height: 1px;
+	background-color: black;
+}
+
+ul {
+	padding: 0;
+	width: 100%;
+	text-align: center;
+}
+
+.dropdown-items li {
+	margin: 15px 0;
+	list-style-type: none;
+	text-align: center;
+}
+
+.dropdown-items li a {
+	text-decoration: none;
+	color: #2b0444;
+	font-weight: 700;
+	padding: 10px;
+	display: block;
+	border-radius: 8px;
+	transition: background-color 0.3s ease;
+	text-align: center;
+}
+
+.dropdown-item.active {
+	background-color: #3b1457 !important;
+	color: white !important;
+}
+
+.logoutButton:hover {
+	color: white;
+	background: red;
+}
+
+.editButton:hover {
+	color: white;
+	background: #2b0444;
+}
+
+.modal-overlay {
+	position: fixed;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	background: rgba(0, 0, 0, 0.5);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	z-index: 1000;
+}
+
+.modal-content {
+	position: relative;
+	background: #ffffff;
+	padding: 25px;
+	border-radius: 12px;
+	max-width: 620px;
+	width: 80%;
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+	animation: slideIn 0.3s ease;
+}
+
+.dropdown-items li a.text-danger {
+	color: red;
+}
+
+.profile-detail-item {
+	display: flex;
+	justify-content: flex-start;
+	align-items: center;
+	margin-bottom: 15px;
+	padding: 2px;
+	font-family: 'Roboto', sans-serif;
+	color: #2a2a3b;
+	font-size: 16px;
+}
+
+.profile-detail-label {
+	font-weight: 500;
+	color: #3d3d58;
+	min-width: 120px;
+	font-size: 16px;
+	text-align: left;
+}
+
+.profile-detail-value {
+	font-weight: 600;
+	color: #333;
+	font-size: 16px;
+	margin-left: 10px;
+}
+
+.notification-dropdown {
+	position: absolute;
+	top: 64px;
+	right: -69px;
+	background: #ffffff;
+	padding: 10px 15px;
+	border-radius: 8px;
+	width: 300px;
+	box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.1);
+	z-index: 1000;
+	overflow-y: auto;
+	max-height: 400px;
+	display: none;
+}
+
+.notification-item {
+	padding: 10px 15px;
+	background: #f9f9f9;
+	border-radius: 6px;
+	margin-bottom: 8px;
+	transition: all 0.2s ease;
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	cursor: pointer;
+}
+
+.notification-item:hover {
+	background: #eef4ff;
+}
+
+.notif-content {
+	display: flex;
+	flex-direction: column;
+	width: 80%; /* Adjust width to give space for the tick button */
+}
+
+.notif-content p {
+	margin: 0;
+	color: #444;
+	font-size: 14px;
+	line-height: 1.4;
+}
+
+.notif-content strong {
+	font-size: 15px;
+	color: #333;
+}
+
+.notif-content small {
+	color: #777;
+	font-size: 12px;
+}
+
+.tick-btn {
+	background: #28a745;
+	border: none;
+	color: white;
+	border-radius: 50%;
+	width: 25px;
+	height: 25px;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	font-size: 16px;
+	cursor: pointer;
+	transition: background-color 0.3s ease;
+}
+
+.tick-btn:hover {
+	background: #218838;
+}
+
+.load-more-btn {
+	width: 100%;
+	padding: 10px;
+	margin-top: 10px;
+	background: #6aa0d6;
+	color: white;
+	border: none;
+	border-radius: 5px;
+	font-size: 14px;
+	cursor: pointer;
+	transition: background 0.3s ease, transform 0.3s ease;
+	display: block;
+	text-align: center;
+}
+
+.load-more-btn:hover {
+	background: #0056b3;
+	transform: translateY(-2px);
+}
+
+#notificationBadge {
+	position: absolute;
+	top: 6px;
+	right: 6px;
+	background: red;
+	color: white;
+	border-radius: 50%;
+	width: 18px;
+	height: 18px;
+	display: grid;
+	align-items: center;
+	justify-content: center;
+	font-size: 12px;
+	font-weight: bold;
+	display: none;
+}
+
+.notification-item:last-child {
+	margin-bottom: 0;
+}
+
+@keyframes fadeIn {
+	from {
+		opacity: 0;
+	}
+	to {
+		opacity: 1;
+	}
+}
+
+@keyframes scaleIn {
+	0% {
+		transform: scale(0.7);
+		opacity: 0.3;
+	}
+	100% {
+		transform: scale(1);
+		opacity: 1;
+	}
+}
+
+@keyframes pulse {
+	0% {
+		transform: scale(1);
+	}
+	50% {
+		transform: scale(1.1);
+	}
+	100% {
+		transform: scale(1);
+	}
+}
+
+@keyframes textAppear {
+	from {
+		transform: translateY(-20px);
+		opacity: 0;
+	}
+	to {
+		transform: translateY(0);
+		opacity: 1;
+	}
+}
+button:hover {
+	transform: scale(1.1);
+	box-shadow: 0px 6px 12px rgba(0, 0, 0, 0.3);
+}
+
+/* Button active effect */
+button:active {
+	transform: scale(1);
+	box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* Button pop animation */
+@keyframes buttonPop {
+	0% {
+		transform: scale(0.8);
+		opacity: 0;
+	}
+	50% {
+		transform: scale(1.2);
+		opacity: 1;
+	}
+	100% {
+		transform: scale(1);
+	}
+}
+@keyframes fadeOut {
+	0% {
+		opacity: 1;
+	}
+	100% {
+		opacity: 0;
+	}
+}

@@ -1,6 +1,7 @@
 package util;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
@@ -46,6 +47,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.JsonPrimitive;
+import com.password4j.Password;
 
 import enums.Constants.HttpStatusCodes;
 import enums.Constants.Role;
@@ -78,12 +80,35 @@ public class Helper {
 		threadLocal.remove();
 	}
 
-	public static String hashPassword(String password) {
-		return BCrypt.hashpw(password, BCrypt.gensalt());
+	public static String hashPassword(String password, int passwordVersion) {
+		switch (passwordVersion) {
+		case 0:
+			return BCrypt.hashpw(password, BCrypt.gensalt());
+		case 1:
+			return Password.hash(password).addRandomSalt().withArgon2().getResult();
+		default:
+			throw new IllegalArgumentException("Invalid password version");
+		}
 	}
 
-	public static boolean checkPassword(String password, String hashed) {
-		return BCrypt.checkpw(password, hashed);
+	public static boolean checkPassword(User user, String password) throws Exception {
+		int version = user.getPasswordVersion();
+
+		if (version == 0) {
+			return migratePasswordIfValid(user, password);
+		} else if (version == 1) {
+			return Password.check(password, user.getPassword()).withArgon2();
+		} else {
+			throw new IllegalArgumentException("Invalid password version: " + version);
+		}
+	}
+
+	private static boolean migratePasswordIfValid(User user, String password) throws Exception {
+		if (BCrypt.checkpw(password, user.getPassword())) {
+			UserService.getInstance().updateUserPassword(user.getId(), password, user.getRole());
+			return true;
+		}
+		return false;
 	}
 
 	public static void checkNullValues(Object inputObject) throws CustomException {
@@ -430,10 +455,10 @@ public class Helper {
 		}
 	}
 
-	public static String getTokenFromCookies(HttpServletRequest request) {
+	public static String getFromCookies(HttpServletRequest request, String key) {
 		if (request.getCookies() != null) {
 			for (Cookie cookie : request.getCookies()) {
-				if ("token".equals(cookie.getName())) {
+				if (key.equals(cookie.getName())) {
 					return cookie.getValue();
 				}
 			}
@@ -465,7 +490,11 @@ public class Helper {
 	}
 
 	public static Dotenv loadDotEnv() {
-		return Dotenv.configure().directory("/home/guru-pt7672/git/BankApplication/Bank_Application").load();
+		URL resource = Helper.class.getClassLoader().getResource(".env");
+		if (resource == null) {
+			throw new IllegalStateException(".env file not found!");
+		}
+		return Dotenv.configure().directory(new File(resource.getPath()).getParent()).load();
 	}
 
 	public static void setCookie(HttpServletResponse response, String name, Object value, int maxAge,
@@ -510,7 +539,8 @@ public class Helper {
 	public static <T> T createPojoFromMap(Map<String, Object> map, Class<T> clazz) throws CustomException {
 		try {
 			T pojo = clazz.getDeclaredConstructor().newInstance();
-
+			System.out.println(map.keySet());
+			System.out.println(map.values());
 			for (Map.Entry<String, Object> entry : map.entrySet()) {
 
 				String key = entry.getKey();
