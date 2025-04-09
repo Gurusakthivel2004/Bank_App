@@ -151,7 +151,6 @@ public class TransactionService {
 			long txId = prepareRecipientTransaction(transaction, "Horizon".equals(transaction.getBankName()), account,
 					branchId);
 			logger.info("Transaction successfully created for account number: {}", transaction.getAccountNumber());
-
 			if (!transaction.getTransactionTypeEnum().equals(TransactionType.FixedDeposit)) {
 				NotificationService.getInstance().sendOtp(customerId, accountNumber);
 			}
