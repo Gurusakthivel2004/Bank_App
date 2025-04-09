@@ -4,6 +4,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import javax.servlet.http.HttpSession;
+
 import dao.AccountDAO;
 import dao.DAO;
 import enums.Constants.HttpStatusCodes;
@@ -15,8 +17,9 @@ import model.User;
 
 public class AuthUtils {
 
-	private static int ATTEMPTS_LIMIT = 5;
+	private static int ATTEMPTS_LIMIT = 4;
 	private static int TIMEOUT_SECONDS = 300;
+	private static int CAPTCHA_TRIGGER_LIMIT = 2;
 	private static Map<String, Integer> failedAttemptsMap = new HashMap<>();
 	private static Map<String, Long> lockoutTimestampMap = new HashMap<>();
 	private static Long userId = (Long) Helper.getThreadLocalValue("id");
@@ -38,9 +41,15 @@ public class AuthUtils {
 	public static void handleFailedAttempt(String username) {
 		int attempts = failedAttemptsMap.getOrDefault(username, 0) + 1;
 		failedAttemptsMap.put(username, attempts);
+
 		if (attempts >= ATTEMPTS_LIMIT) {
 			lockoutTimestampMap.put(username, System.currentTimeMillis());
 		}
+	}
+
+	public static boolean isCaptchaRequired(String username, HttpSession session) {
+		return session.getAttribute("captchaVerified") == null
+				&& failedAttemptsMap.getOrDefault(username, 0) >= CAPTCHA_TRIGGER_LIMIT;
 	}
 
 	public static void resetFailedAttempts(String username) {
@@ -52,8 +61,7 @@ public class AuthUtils {
 		if (lockoutTimestampMap.containsKey(username)) {
 			long lockoutTime = lockoutTimestampMap.get(username);
 			if ((System.currentTimeMillis() - lockoutTime) / 1000 >= TIMEOUT_SECONDS) {
-				lockoutTimestampMap.remove(username);
-				failedAttemptsMap.remove(username);
+				resetFailedAttempts(username);
 				return false;
 			}
 			return true;

@@ -1,6 +1,5 @@
 package dao;
 
-import java.math.BigInteger;
 import java.util.List;
 import java.util.Map;
 
@@ -18,7 +17,8 @@ public class ActivityLogDAO implements DAO<ActivityLog> {
 
 	private static Logger logger = LogManager.getLogger(ActivityLogDAO.class);
 
-	private ActivityLogDAO() {}
+	private ActivityLogDAO() {
+	}
 
 	private static class SingletonHelper {
 		private static final ActivityLogDAO INSTANCE = new ActivityLogDAO();
@@ -32,12 +32,8 @@ public class ActivityLogDAO implements DAO<ActivityLog> {
 		logger.info("Inserting log details...");
 
 		Helper.checkNullValues(activityLog);
-		Long logId;
-
-		logId = ((BigInteger) SQLHelper.insert(activityLog)).longValue();
-
-		logger.info("Log created successfully with ID: " + logId);
-		return logId;
+		Object insertedValue = SQLHelper.insert(activityLog);
+		return Helper.convertToLong(insertedValue);
 	}
 
 	public List<ActivityLog> get(Map<String, Object> logMap) throws Exception {

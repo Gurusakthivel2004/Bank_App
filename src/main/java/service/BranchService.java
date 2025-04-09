@@ -25,8 +25,7 @@ public class BranchService {
 	private static Logger logger = LogManager.getLogger(BranchService.class);
 	private DAO<Branch> branchDAO = DaoFactory.getDAO(Branch.class);
 
-	private BranchService() {
-	}
+	private BranchService() {}
 
 	private static class SingletonHelper {
 		private static final BranchService INSTANCE = new BranchService();
@@ -46,15 +45,13 @@ public class BranchService {
 			throw new CustomException("Invalid branch id ", HttpStatusCodes.BAD_REQUEST);
 		}
 		String key = "branchInfo" + branchId;
-		List<Branch> cachedBranch = CacheUtil.getCachedList(key, new TypeReference<List<Branch>>() {
-		});
+		List<Branch> cachedBranch = CacheUtil.getCachedList(key, new TypeReference<List<Branch>>() {});
 		if (cachedBranch != null && role == Role.Customer) {
 			return cachedBranch;
 		}
+		
 		logger.info("Fetching branch details for branchId: {}", branchId);
-
 		List<Branch> branches = branchDAO.get(branchMap);
-
 		if (branches.isEmpty()) {
 			logger.warn("No branch details found for branchId: {}", branchId);
 			throw new CustomException("No branch details found for branchId: " + branchId, HttpStatusCodes.BAD_REQUEST);
@@ -62,7 +59,6 @@ public class BranchService {
 		if (!notExact) {
 			CacheUtil.save(key, branches);
 		}
-		logger.info("Updated cache with branchId: {} details", branchId);
 		return branches;
 	}
 
@@ -77,7 +73,7 @@ public class BranchService {
 		ActivityLog activityLog = new ActivityLog().setLogMessage("Branch created").setLogType(LogType.Insert)
 				.setUserAccountNumber(null).setRowId(branchId).setTableName("Branch").setUserId(null);
 
-		TaskExecutorService.getInstance().submit(activityLog);
+		Helper.logActivity(activityLog);
 	}
 
 }

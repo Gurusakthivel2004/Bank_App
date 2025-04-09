@@ -155,6 +155,7 @@ public class OauthCallbackController {
 			throw new CustomException("Session expired. Please sign in again.", HttpStatusCodes.UNAUTHORIZED);
 		}
 		JsonObject tokenJson = JsonParser.parseString(response).getAsJsonObject();
+		
 		String accessToken = tokenJson.get("access_token").getAsString();
 		return accessToken;
 	}
@@ -182,9 +183,9 @@ public class OauthCallbackController {
 		setCookie(response, user, sessionId, userMap);
 
 		if (role == Role.Customer) {
-			response.sendRedirect("http://localhost:8080/Bank_Application/dashboard.html");
+			response.sendRedirect("/Bank_Application/dashboard.html");
 		} else {
-			response.sendRedirect("http://localhost:8080/Bank_Application/emp-dashboard.html");
+			response.sendRedirect("/Bank_Application/emp-dashboard.html");
 		}
 	}
 

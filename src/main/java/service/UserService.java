@@ -8,6 +8,8 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import javax.servlet.http.HttpSession;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -37,8 +39,7 @@ public class UserService {
 	private DAO<CustomerDetail> customerDao = DaoFactory.getDAO(CustomerDetail.class);
 	private DAO<Staff> staffDao = DaoFactory.getDAO(Staff.class);
 
-	private UserService() {
-	}
+	private UserService() {}
 
 	private static class SingletonHelper {
 		private static final UserService INSTANCE = new UserService();
@@ -48,10 +49,11 @@ public class UserService {
 		return SingletonHelper.INSTANCE;
 	}
 
-	public Map<String, Object> userLogin(String username, String password) throws Exception {
+	public Map<String, Object> userLogin(String username, String password, HttpSession session) throws Exception {
 		logger.info("Attempting login for username: {}", username);
 
 		checkUserLockout(username);
+		checkCaptchaRequirement(username, session);
 
 		User user = validateCredentials(username, password);
 		Map<String, Object> userDetails = collectUserDetails(user);
@@ -61,6 +63,13 @@ public class UserService {
 		}
 		logUserLoginActivity(user);
 		return userDetails;
+	}
+
+	private void checkCaptchaRequirement(String username, HttpSession session) throws CustomException {
+		if (AuthUtils.isCaptchaRequired(username, session)) {
+			logger.warn("User {} must solve CAPTCHA before logging in", username);
+			throw new CustomException("CAPTCHA verification required before login.", HttpStatusCodes.FORBIDDEN);
+		}
 	}
 
 	private void checkUserLockout(String username) throws CustomException {
@@ -93,16 +102,17 @@ public class UserService {
 				.setUserAccountNumber(null).setRowId(user.getId()).setTableName("User").setUserId(user.getId())
 				.setPerformedBy(user.getId());
 
-		TaskExecutorService.getInstance().submit(activityLog);
+		Helper.logActivity(activityLog);
 	}
-	
+
 	public User getUserById(Long userId) throws Exception {
 		String key = "userId:" + userId;
-		List<User> cachedUsers = CacheUtil.getCachedList(key, new TypeReference<List<User>>() {});
+		List<User> cachedUsers = CacheUtil.getCachedList(key, new TypeReference<List<User>>() {
+		});
 		if (cachedUsers != null) {
 			return cachedUsers.get(0);
 		}
-		
+
 		Map<String, Object> userQuery = new HashMap<>();
 		userQuery.put("userId", userId);
 		userQuery.put("password", true);
@@ -126,7 +136,8 @@ public class UserService {
 			userMap.put("role", user.getRoleEnum());
 			userMap.put("userClass", Staff.class);
 
-			List<Staff> staffDetails = CacheUtil.getCachedList(key, new TypeReference<List<Staff>>() {});
+			List<Staff> staffDetails = CacheUtil.getCachedList(key, new TypeReference<List<Staff>>() {
+			});
 			if (staffDetails == null) {
 				staffDetails = staffDao.get(userMap);
 				CacheUtil.save(key, staffDetails);
@@ -242,7 +253,7 @@ public class UserService {
 		ActivityLog activityLog = new ActivityLog().setLogMessage("Password updated").setLogType(LogType.Update)
 				.setUserAccountNumber(null).setRowId(userId).setTableName("User").setUserId(userId);
 
-		TaskExecutorService.getInstance().submit(activityLog);
+		Helper.logActivity(activityLog);
 	}
 
 	public <T extends User> Map<String, Object> getUserDetails(Map<String, Object> userMap) throws Exception {
@@ -328,7 +339,7 @@ public class UserService {
 			ActivityLog activityLog = new ActivityLog().setLogMessage("User created").setLogType(LogType.Insert)
 					.setUserAccountNumber(null).setRowId(userId).setTableName("User").setUserId(userId);
 
-			TaskExecutorService.getInstance().submit(activityLog);
+			Helper.logActivity(activityLog);
 		} catch (CustomException e) {
 			logger.error("Error creating user. User data: {}. Error: {}", userMap, e);
 			throw e;
@@ -351,9 +362,7 @@ public class UserService {
 
 			Role role = extractRole(userMap);
 			Class<? extends User> clazz = (role == Role.Customer) ? CustomerDetail.class : Staff.class;
-
 			ValidationUtil.validateUpdateFields(updatedValues, clazz);
-
 			List<User> users = fetchExistingUsers(userMap);
 			if (users == null || users.isEmpty()) {
 				throw new CustomException("User not found.", HttpStatusCodes.BAD_REQUEST);
@@ -424,7 +433,7 @@ public class UserService {
 				.setLogType(LogType.Update).setUserAccountNumber(null).setRowId(userId).setTableName("User")
 				.setUserId(userId);
 
-		TaskExecutorService.getInstance().submit(activityLog);
+		Helper.logActivity(activityLog);
 	}
 
 }

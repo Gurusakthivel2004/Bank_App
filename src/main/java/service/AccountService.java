@@ -38,8 +38,7 @@ public class AccountService {
 	private static Logger logger = LogManager.getLogger(AccountService.class);
 	private DAO<Account> accountDAO = DaoFactory.getDAO(Account.class);
 
-	private AccountService() {
-	}
+	private AccountService() {}
 
 	private static class SingletonHelper {
 		private static final AccountService INSTANCE = new AccountService();
@@ -237,13 +236,13 @@ public class AccountService {
 		ActivityLog activityLog = new ActivityLog().setLogMessage("Account created").setLogType(LogType.Insert)
 				.setRowId(accountId).setTableName("Account").setUserId(userId);
 
-		TaskExecutorService.getInstance().submit(activityLog);
+		Helper.logActivity(activityLog);
 	}
 
 	private void logActivity(Long accountNumber, String logMessage) throws Exception {
 		ActivityLog activityLog = new ActivityLog().setLogMessage(logMessage).setLogType(LogType.Update)
 				.setUserAccountNumber(accountNumber).setRowId(accountNumber).setTableName("Account");
-		TaskExecutorService.getInstance().submit(activityLog);
+		Helper.logActivity(activityLog);
 	}
 
 }

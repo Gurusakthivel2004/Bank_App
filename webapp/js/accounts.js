@@ -25,7 +25,7 @@ async function fetchAccounts() {
 			if (filterStatus) accountData.status = filterStatus;
 
 			console.log(accountData);
-			const response = await fetch('http://localhost:8080/Bank_Application/api/Account', {
+			const response = await fetch('/Bank_Application/api/Account', {
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json'
@@ -33,12 +33,12 @@ async function fetchAccounts() {
 				body: JSON.stringify(accountData)
 			});
 			const accountsResult = await response.json();
-			if (accountsResult.message == 'Invalid token' || accountsResult.message == 'Invalid Access token') {
+			if (accountsResult.message != null && (accountsResult.message.includes('Session expired') || accountsResult.message == 'Invalid Access token')) {
 				document.querySelector('body').style.display = 'none';
 				deleteAllCookies();
 				window.location.href = "error.html";
 			} else if (accountsResult.message == 'You dont have a account ') {
-				document.querySelector('body').style.display = 'none'; 
+				document.querySelector('body').style.display = 'none';
 				deleteAllCookies();
 				sessionStorage.setItem('error', "No Account exists for the user.");
 				window.location.href = "index.html";
@@ -166,7 +166,7 @@ const updateBranch = async _ => {
 
 const accountClick = async account => {
 	const userRole = account.accountType == "Operational" ? "Employee" : "Customer";
-	const userDetailsResponse = await fetch(`http://localhost:8080/Bank_Application/api/User?userId=${account.userId}&role=${userRole}`, {
+	const userDetailsResponse = await fetch(`/Bank_Application/api/User?userId=${account.userId}&role=${userRole}`, {
 		method: 'GET',
 		headers: {
 			'Content-Type': 'application/json'
@@ -296,7 +296,7 @@ async function saveStatus() {
 }
 
 const updateAccount = async accountUpdateData => {
-	const response = await fetch('http://localhost:8080/Bank_Application/api/Account', {
+	const response = await fetch('/Bank_Application/api/Account', {
 		method: 'PUT',
 		headers: {
 			'Content-Type': 'application/json'
@@ -306,6 +306,11 @@ const updateAccount = async accountUpdateData => {
 	const result = await response.json();
 	console.log(result);
 	const successPop = document.getElementById('successModal');
+	if (result.message != null && (result.message.includes('Session expired') || result.message == 'Invalid Access token')) {
+		document.querySelector('body').style.display = 'none';
+		deleteAllCookies();
+		window.location.href = "error.html";
+	}
 	if (result.message == 'success') {
 		toggleModal('accountDetailsModal')
 		document.getElementById('successMessage').innerHTML = "Account updated successfully!";
@@ -362,11 +367,10 @@ async function saveAccount() {
 
 	console.log("Account Details Saved:", accountDetails);
 
-	const response = await fetch('http://localhost:8080/Bank_Application/api/Account', {
+	const response = await fetch('/Bank_Application/api/Account', {
 		method: 'POST',
 		headers: {
-			'Content-Type': 'application/json',
-			'Authorization': `Bearer ${token}`
+			'Content-Type': 'application/json'
 		},
 		body: JSON.stringify(accountDetails)
 	});
@@ -380,6 +384,11 @@ async function saveAccount() {
 		userIdInput.value = '';
 		balanceInput.value = '0.0';
 		accountTypeSelect.value = '';
+	}
+	else if (result.message.includes('Session expired') || result.message == 'Invalid Access token') {
+		document.querySelector('body').style.display = 'none';
+		deleteAllCookies();
+		window.location.href = "error.html";
 	} else {
 		const errorMessage = document.getElementById('accountMessage');
 		errorMessage.style.display = 'block';
@@ -405,7 +414,7 @@ function fetchUserIdDetails(query) {
 		userDropdown.innerHTML = '<div class="dropdown-option" style="padding: 10px; color: grey;">Enter a user ID</div>';
 		return;
 	}
-	fetch(`http://localhost:8080/Bank_Application/api/User?userId=${query}&notExact=true`, {
+	fetch(`/Bank_Application/api/User?userId=${query}&notExact=true`, {
 		method: 'GET',
 		headers: {
 			'Content-Type': 'application/json'
@@ -413,6 +422,11 @@ function fetchUserIdDetails(query) {
 	})
 		.then(response => response.json())
 		.then(data => {
+			if (data.message != null && (data.message.includes('Session expired') || data.message == 'Invalid Access token')) {
+				document.querySelector('body').style.display = 'none';
+				deleteAllCookies();
+				window.location.href = "error.html";
+			}
 			console.log(data);
 			if (!data || data.length === 0) {
 				userDropdown.innerHTML = '<div class="dropdown-option" style="padding: 10px; color: grey;">User ID not found</div>';
@@ -483,7 +497,7 @@ function fetchDropdownOptions(query) {
 		return;
 	}
 
-	fetch(`http://localhost:8080/Bank_Application/api/Branch?branchId=${query}&notExact=true`, {
+	fetch(`/Bank_Application/api/Branch?branchId=${query}&notExact=true`, {
 		method: 'GET',
 		headers: {
 			'Content-Type': 'application/json',
@@ -493,6 +507,11 @@ function fetchDropdownOptions(query) {
 		.then(response => response.json())
 		.then(data => {
 			console.log(data);
+			if (data.message != null && (data.message.includes('Session expired') || data.message == 'Invalid Access token')) {
+				document.querySelector('body').style.display = 'none';
+				deleteAllCookies();
+				window.location.href = "error.html";
+			}
 			if (!data || data.length === 0) {
 				dropdown.innerHTML = '<div class="dropdown-option" style="padding: 10px; color: grey;">Branch ID not found</div>';
 				dropdown.style.display = 'block';

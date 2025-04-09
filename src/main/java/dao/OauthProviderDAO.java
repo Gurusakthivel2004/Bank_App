@@ -1,6 +1,5 @@
 package dao;
 
-import java.math.BigInteger;
 import java.util.List;
 import java.util.Map;
 
@@ -32,11 +31,9 @@ public class OauthProviderDAO implements DAO<OauthProvider> {
 		logger.info("Inserting provider info...");
 
 		Helper.checkNullValues(oauthProvider);
-		Long oauthId;
-		oauthId = ((BigInteger) SQLHelper.insert(oauthProvider)).longValue();
+		Object insertedValue = SQLHelper.insert(oauthProvider);
 
-		logger.info("provider info created successfully with ID: " + oauthId);
-		return oauthId;
+		return Helper.convertToLong(insertedValue);
 	}
 
 	public List<OauthProvider> get(Map<String, Object> oauthMap) throws Exception {

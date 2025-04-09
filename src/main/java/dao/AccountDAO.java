@@ -1,7 +1,5 @@
 package dao;
 
-import java.math.BigInteger;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -15,14 +13,15 @@ import model.Account;
 import model.ColumnCriteria;
 import model.Criteria;
 import model.JoinObject;
-import util.CustomException;
+import util.Helper;
 import util.SQLHelper;
 
 public class AccountDAO implements DAO<Account>, DAOJoin<Account> {
 
 	private static Logger logger = LogManager.getLogger(AccountDAO.class);
 
-	private AccountDAO() {}
+	private AccountDAO() {
+	}
 
 	private static class SingletonHelper {
 		private static final AccountDAO INSTANCE = new AccountDAO();
@@ -41,7 +40,7 @@ public class AccountDAO implements DAO<Account>, DAOJoin<Account> {
 		SQLHelper.update(columnCriteria, criteria);
 	}
 
-	public List<Account> get(Map<String, Object> accountMap) throws CustomException, SQLException {
+	public List<Account> get(Map<String, Object> accountMap) throws Exception {
 		logger.info("Fetching account data");
 		Criteria criteria = DAOHelper.getAccountCriteria(accountMap);
 		return SQLHelper.get(criteria, Account.class);
@@ -72,8 +71,8 @@ public class AccountDAO implements DAO<Account>, DAOJoin<Account> {
 		logger.info("Creating account: {}", account);
 
 		account.setCreatedAt(System.currentTimeMillis());
-
-		Long accountId = ((BigInteger) SQLHelper.insert(account)).longValue();
+		Object insertedValue = SQLHelper.insert(account);
+		Long accountId = Helper.convertToLong(insertedValue);
 		logger.debug("Account ID generated: {}", accountId);
 
 		ColumnCriteria columnCriteria = new ColumnCriteria().setFields(Arrays.asList("accountNumber"));

@@ -1,6 +1,5 @@
 package dao;
 
-import java.math.BigInteger;
 import java.util.List;
 import java.util.Map;
 
@@ -32,17 +31,24 @@ public class UserDAO<T extends User> implements DAO<T> {
 	}
 
 	public long create(T user) throws Exception {
+		// Ensure no null values in the user object
 		Helper.checkNullValues(user);
+
+		// Set default fields for specific user types
 		if (user instanceof CustomerDetail) {
 			((CustomerDetail) user).setCreatedAt(System.currentTimeMillis())
 					.setPerformedBy((long) Helper.getThreadLocalValue("id"))
-					.setPassword(Helper.hashPassword("default", DEFAULT_VERSION)).setModifiedAt(System.currentTimeMillis());
+					.setPassword(Helper.hashPassword("default", DEFAULT_VERSION))
+					.setModifiedAt(System.currentTimeMillis()).setPasswordVersion(DEFAULT_VERSION);
 		} else if (user instanceof Staff) {
 			((Staff) user).setCreatedAt(System.currentTimeMillis())
 					.setPerformedBy((long) Helper.getThreadLocalValue("id"))
-					.setPassword(Helper.hashPassword("default", DEFAULT_VERSION)).setModifiedAt(System.currentTimeMillis());
+					.setPassword(Helper.hashPassword("default", DEFAULT_VERSION))
+					.setModifiedAt(System.currentTimeMillis()).setPasswordVersion(DEFAULT_VERSION);
 		}
-		return ((BigInteger) SQLHelper.insert(user)).longValue();
+
+		Object insertedValue = SQLHelper.insert(user);
+		return Helper.convertToLong(insertedValue);
 	}
 
 	@SuppressWarnings("unchecked")

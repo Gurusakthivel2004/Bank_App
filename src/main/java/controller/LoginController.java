@@ -9,6 +9,7 @@ import java.util.concurrent.TimeUnit;
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
 
 import com.google.gson.JsonObject;
 
@@ -52,14 +53,14 @@ public class LoginController {
 		String password = Helper.decryptAES(encryptedPassword, iv);
 
 		Map<String, Object> userDetails = new HashMap<>();
-
+		HttpSession session = request.getSession();
 		try {
-			userDetails = userService.userLogin(username, password);
+			userDetails = userService.userLogin(username, password, session);
 		} catch (CustomException e) {
 			AuthUtils.handleFailedAttempt(username);
 			throw e;
 		}
-
+		AuthUtils.resetFailedAttempts(username);
 		String sessionId = UUID.randomUUID().toString();
 		Long userId = (Long) userDetails.get("id");
 
@@ -86,7 +87,7 @@ public class LoginController {
 		response.addCookie(cookie);
 
 		CacheUtil.delete(sessionId);
-	
+
 		Map<String, Object> sessionMap = new HashMap<>();
 		sessionMap.put("sessionId", sessionId);
 		userSessionService.deleteSession(sessionMap);

@@ -25,7 +25,7 @@ async function fetchTransactions() {
 			if (filterType) transactionData.transactionType = filterType;
 			if (filterFromDate) transactionData.from = filterFromDate;
 			if (filterToDate) transactionData.to = filterToDate;
-			const response = await fetch('http://localhost:8080/Bank_Application/api/Transaction', {
+			const response = await fetch('/Bank_Application/api/Transaction', {
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json',
@@ -34,7 +34,7 @@ async function fetchTransactions() {
 			});
 			const transactionsMap = await response.json();
 			console.log(transactionsMap)
-			if (transactionsMap.message == 'Invalid token' || transactionsMap.message == 'Invalid Access token') {
+			if (transactionsMap.message != null && (transactionsMap.message.includes('Session expired') || transactionsMap.message == 'Invalid Access token')) {
 				document.querySelector('body').style.display = 'none';
 				deleteAllCookies();
 				window.location.href = "error.html";
@@ -77,7 +77,7 @@ async function download() {
 		if (filterFromDate) transactionData.from = filterFromDate;
 		if (filterToDate) transactionData.to = filterToDate;
 
-		const response = await fetch('http://localhost:8080/Bank_Application/api/Transaction', {
+		const response = await fetch('/Bank_Application/api/Transaction', {
 			method: 'POST',
 			headers: {
 				'Content-Type': 'application/json',

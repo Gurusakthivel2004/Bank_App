@@ -8,10 +8,12 @@ import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.lang.reflect.Field;
 import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.security.SecureRandom;
 import java.sql.Date;
 import java.sql.SQLException;
 import java.time.LocalDate;
@@ -49,11 +51,17 @@ import com.google.gson.JsonParser;
 import com.google.gson.JsonPrimitive;
 import com.password4j.Password;
 
+import dao.ActivityLogDAO;
+import dao.DAO;
+import dao.DaoFactory;
 import enums.Constants.HttpStatusCodes;
 import enums.Constants.Role;
+import enums.Constants.TaskExecutor;
 import enums.Constants.ValidQueryParams;
 import io.github.cdimascio.dotenv.Dotenv;
+import model.ActivityLog;
 import model.User;
+import service.BackgroundService;
 import service.UserService;
 import util.ColumnYamlUtil.ClassMapping;
 
@@ -375,10 +383,11 @@ public class Helper {
 		}
 	}
 
-	public static void sendErrorResponse(HttpServletResponse response, String errorMessage) throws IOException {
+	public static void sendErrorResponse(HttpServletResponse response, String errorMessage, int statusCode)
+			throws IOException {
 		JsonObject responseJson = new JsonObject();
 		responseJson.addProperty("message", errorMessage);
-		response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+		response.setStatus(statusCode);
 
 		try (PrintWriter out = response.getWriter()) {
 			out.print(responseJson.toString());
@@ -511,6 +520,84 @@ public class Helper {
 		}
 	}
 
+	public static long convertToLong(Object insertedValue) throws Exception {
+		if (insertedValue instanceof BigInteger) {
+			return ((BigInteger) insertedValue).longValue();
+		} else if (insertedValue instanceof Long) {
+			return (Long) insertedValue;
+		} else {
+			throw new Exception("Unexpected return type from insert operation.");
+		}
+	}
+
+	public static String generateOTP() {
+		SecureRandom random = new SecureRandom();
+		int otp = 100000 + random.nextInt(900000);
+		return String.valueOf(otp);
+	}
+
+	public static String getAppRoot() {
+		try {
+			URL resource = Helper.class.getProtectionDomain().getCodeSource().getLocation();
+			if (resource == null) {
+				throw new IllegalStateException("Application root directory not found!");
+			}
+			File root = new File(resource.toURI()).getParentFile();
+			File logsDir = new File(root, "logs");
+
+			if (!logsDir.exists()) {
+				logsDir.mkdirs();
+			}
+			return root.getAbsolutePath();
+		} catch (Exception e) {
+			throw new RuntimeException("Failed to determine application root", e);
+		}
+	}
+
+	public static void setupLogDirectory() {
+		System.setProperty("app.root", getAppRoot());
+	}
+
+	public static void logActivity(ActivityLog activityLog) {
+
+		DAO<ActivityLog> activityLogDAO = DaoFactory.getDAO(ActivityLog.class);
+		try {
+			if (activityLog.getPerformedBy() == null) {
+				long userId = (Long) Helper.getThreadLocalValue("id");
+				activityLog.setPerformedBy(userId);
+			}
+			activityLog.setTimestamp(System.currentTimeMillis());
+			TaskExecutor.LOG.submitTask(() -> {
+				try {
+					activityLogDAO.create(activityLog);
+				} catch (Exception e) {
+					LOGGER.error("Error occurred while saving activity log", e);
+				}
+			});
+		} catch (Exception e) {
+			LOGGER.error("Error preparing activity log", e);
+		}
+	}
+
+	public static Long extractAccountNumber(String input) {
+		if (input == null || !input.contains("Account number:")) {
+			return null;
+		}
+		try {
+			String[] parts = input.split(",");
+			for (String part : parts) {
+				part = part.trim();
+				if (part.startsWith("Account number:")) {
+					String numberStr = part.substring("Account number:".length()).trim();
+					return Long.parseLong(numberStr);
+				}
+			}
+		} catch (NumberFormatException e) {
+			System.err.println("Invalid account number format");
+		}
+		return null;
+	}
+
 	public static void updateCookie(HttpServletResponse response, String accessToken) {
 		Cookie oldCookie = new Cookie("token", "");
 		oldCookie.setMaxAge(0);
@@ -539,8 +626,6 @@ public class Helper {
 	public static <T> T createPojoFromMap(Map<String, Object> map, Class<T> clazz) throws CustomException {
 		try {
 			T pojo = clazz.getDeclaredConstructor().newInstance();
-			System.out.println(map.keySet());
-			System.out.println(map.values());
 			for (Map.Entry<String, Object> entry : map.entrySet()) {
 
 				String key = entry.getKey();
@@ -683,6 +768,12 @@ public class Helper {
 		} else {
 			throw new IllegalArgumentException("Unsupported value type: " + value.getClass().getName());
 		}
+	}
+
+	public static long getFutureEpochMillisAfterMonths(int months) {
+		LocalDateTime now = LocalDateTime.now();
+		LocalDateTime futureDate = now.plusMonths(months);
+		return futureDate.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli();
 	}
 
 	public static Map<String, Object> getParametersAsMap(HttpServletRequest request) {

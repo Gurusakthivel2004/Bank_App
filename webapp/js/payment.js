@@ -3,6 +3,17 @@ let originalActiveItem = null;
 let validAccounts = [];
 const role = getCookie('role');
 
+function moveToNext(input, event) {
+	let next = input.nextElementSibling;
+	let prev = input.previousElementSibling;
+
+	if (event.inputType === 'deleteContentBackward' && prev) {
+		prev.focus();
+	} else if (next && input.value) {
+		next.focus();
+	}
+}
+
 const handleSubmit = async (event) => {
 	event.preventDefault();
 	const selectElement = document.querySelector('.accountsSelect');
@@ -67,7 +78,7 @@ const handleSubmit = async (event) => {
 	} else {
 		console.log(transactionData);
 
-		const response = await fetch('http://localhost:8080/Bank_Application/api/Transaction', {
+		const response = await fetch('/Bank_Application/api/Transaction', {
 			method: 'POST',
 			headers: {
 				'Content-Type': 'application/json',
@@ -77,18 +88,29 @@ const handleSubmit = async (event) => {
 
 		const result = await response.json();
 		console.log(result);
+		if (result.message != null && (result.message.includes('Session expired') || result.message == 'Invalid Access token')) {
+			document.querySelector('body').style.display = 'none';
+			deleteAllCookies();
+			window.location.href = "error.html";
+		}
 		if (result.message == 'success') {
-			const successPop = document.getElementById('successModal');
-			document.getElementById('successMessage').innerHTML = "Payment successful!";
-			successPop.style.display = 'flex';
+			startOTPTimer();
+			document.getElementById("payment-modal").style.display = "none";
+			document.getElementById("otpModal").style.display = "flex";
 		} else {
 			const errorMessage = document.getElementById('errorMessage');
 			errorMessage.style.display = 'block';
 			errorMessage.innerHTML = result.message;
 		}
-
 	}
 };
+
+const displaySuccess = _ => {
+	const successPop = document.getElementById('successModal');
+	document.getElementById('successMessage').innerHTML = "Payment successful!";
+	successPop.style.display = 'flex';
+}
+
 function paymentcloseModal() {
 	const modal = document.getElementById('successModal');
 	modal.style.animation = 'fadeOut 0.5s ease-out';
@@ -196,7 +218,7 @@ const handleInputDropdown = accountInput => {
 						accountNumber: Number(inputValue)
 					}
 					const response = await fetch(
-						`http://localhost:8080/Bank_Application/api/Account`,
+						`/Bank_Application/api/Account`,
 						{
 							method: 'POST',
 							headers: {
@@ -206,8 +228,9 @@ const handleInputDropdown = accountInput => {
 						}
 					);
 					const result = await response.json();
-					if (result.message == 'Invalid token' || result.message == 'Invalid Access token') {
+					if (result.message != null && (result.message.includes('Session expired') || result.message == 'Invalid Access token')) {
 						document.querySelector('body').style.display = 'none';
+						deleteAllCookies();
 						window.location.href = "error.html";
 					} else if (result.message == 'You dont have a account ') {
 						document.querySelector('body').style.display = 'none';
@@ -292,6 +315,79 @@ const handleInputDropdown = accountInput => {
 	})
 }
 
+let otpTimerInterval = null; 
+
+function startOTPTimer() {
+	const timerElement = document.getElementById('otp-timer');
+	const existingStartTime = sessionStorage.getItem("otpStartTime");
+	const now = Date.now();
+
+	let startTime;
+	if (existingStartTime) {
+		startTime = parseInt(existingStartTime);
+	} else {
+		startTime = now;
+		sessionStorage.setItem("otpStartTime", startTime);
+	}
+
+	if (otpTimerInterval !== null) {
+		clearInterval(otpTimerInterval);
+	}
+
+	otpTimerInterval = setInterval(() => {
+		const elapsed = Math.floor((Date.now() - startTime) / 1000);
+		const remaining = 300 - elapsed;
+
+		if (remaining <= 0) {
+			clearInterval(otpTimerInterval);
+			timerElement.textContent = "OTP expired. Please request a new one.";
+			document.querySelector('button[onclick="verifyOTP()"]').disabled = true;
+			document.querySelectorAll('.otp-input').forEach(input => input.disabled = true);
+		} else {
+			const minutes = Math.floor(remaining / 60);
+			const seconds = remaining % 60;
+			timerElement.textContent = `Time remaining: ${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+		}
+	}, 1000);
+}
+
+async function resendOTP() {
+	sessionStorage.removeItem("otpStartTime");
+	const response = await fetch('/Bank_Application/api/Otp', {
+		method: 'GET',
+		headers: {
+			'Content-Type': 'application/json',
+		},
+	});
+	startOTPTimer();
+}
+
+async function verifyOTP() {
+	const otp = [...document.querySelectorAll(".otp-input")].map(input => input.value).join("");
+	const requestBody = {
+		"otp": otp
+	}
+	const response = await fetch('/Bank_Application/api/Otp', {
+		method: 'POST',
+		headers: {
+			'Content-Type': 'application/json',
+		},
+		body: JSON.stringify(requestBody)
+	});
+
+	const result = await response.json();
+	const otpError = document.getElementById("otp-error");
+	if (result.message == "success") {
+		otpError.style.display = "none";
+		document.getElementById("otpModal").style.display = "none";
+		sessionStorage.removeItem("otpStartTime");
+		displaySuccess();
+	} else {
+		otpError.style.display = "block";
+		otpError.innerHTML = result.message;
+	}
+}
+
 document.addEventListener("DOMContentLoaded", async _ => {
 	if (role === "Customer") {
 		document.getElementById('customerAccount').style.display = 'flex';
@@ -300,8 +396,49 @@ document.addEventListener("DOMContentLoaded", async _ => {
 	} else {
 		document.getElementById('paymentmode').style.display = 'flex';
 	}
+	const otpInputs = document.querySelectorAll(".otp-input");
+
+	otpInputs.forEach((input, index) => {
+		input.addEventListener("input", function(e) {
+			let value = e.target.value;
+
+			if (!/^\d$/.test(value)) {
+				e.target.value = "";
+				return;
+			}
+			if (index < otpInputs.length - 1 && value) {
+				otpInputs[index + 1].focus();
+			}
+		});
+
+		input.addEventListener("keydown", function(e) {
+			if (e.key === "Backspace") {
+				if (!input.value && index > 0) {
+					otpInputs[index - 1].focus();
+					otpInputs[index - 1].value = "";
+				}
+			}
+		});
+
+		input.addEventListener("keyup", function(e) {
+			if (e.key !== "Backspace" && input.value && index < otpInputs.length - 1) {
+				otpInputs[index + 1].focus();
+			}
+		});
+
+		input.addEventListener("paste", function(e) {
+			e.preventDefault();
+			const pasteData = (e.clipboardData || window.clipboardData).getData("text").replace(/\D/g, "");
+			const digits = pasteData.split("").slice(0, otpInputs.length);
+
+			otpInputs.forEach((inp, i) => inp.value = digits[i] || "");
+			if (digits.length === otpInputs.length) {
+				otpInputs[otpInputs.length - 1].focus();
+			}
+		});
+	});
 	try {
-		const response = await fetch(`http://localhost:8080/Bank_Application/api/Account?userId=-1`, {
+		const response = await fetch(`/Bank_Application/api/Account?userId=-1`, {
 			method: 'GET',
 			headers: {
 				'Content-Type': 'application/json',
@@ -309,7 +446,8 @@ document.addEventListener("DOMContentLoaded", async _ => {
 		});
 		const result = await response.json(), accountsDropdown = document.querySelector('.accountsSelect');;
 		console.log(result);
-		if (result.message == 'Invalid token' || result.message == 'Invalid Access token') {
+		if (result.message != null && (result.message.includes('Session expired') || result.message == 'Invalid Access token')) {
+			document.querySelector('body').style.display = 'none';
 			deleteAllCookies();
 			window.location.href = "error.html";
 		} else if (result.message == 'You dont have a account ') {

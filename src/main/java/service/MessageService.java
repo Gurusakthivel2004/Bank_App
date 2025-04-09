@@ -12,8 +12,11 @@ import org.apache.logging.log4j.Logger;
 import dao.DAO;
 import dao.DaoFactory;
 import enums.Constants.HttpStatusCodes;
+import enums.Constants.LoanAction;
 import enums.Constants.MessageStatus;
+import enums.Constants.TaskExecutor;
 import model.ColumnCriteria;
+import model.LoanLog;
 import model.Message;
 import util.CustomException;
 import util.Helper;
@@ -22,10 +25,10 @@ import util.ValidationUtil;
 public class MessageService {
 
 	private static Logger logger = LogManager.getLogger(MessageService.class);
+	private DAO<LoanLog> loanLogDAO = DaoFactory.getDAO(LoanLog.class);
 	private DAO<Message> messagDAO = DaoFactory.getDAO(Message.class);
 
-	private MessageService() {
-	}
+	private MessageService() {}
 
 	private static class SingletonHelper {
 		private static final MessageService INSTANCE = new MessageService();
@@ -59,7 +62,8 @@ public class MessageService {
 		ValidationUtil.userExists(senderId);
 		long messageId = messagDAO.create(message);
 		logger.info("Message successfully created with id: {}", messageId);
-
+		
+		logLoanData(message.getMessageContent(), message.getSenderId());
 	}
 
 	public void updateMessage(Map<String, Object> messageMap) throws Exception {
@@ -89,6 +93,20 @@ public class MessageService {
 
 		messagDAO.update(columnCriteria, messageMap);
 
+	}
+	
+	private void logLoanData(String message, Long userId) throws Exception {
+		Long accountNumber = Helper.extractAccountNumber(message);
+		LoanLog loanLog = new LoanLog().setLoanId(null).setAccountNumber(accountNumber)
+				.setAction(LoanAction.Apply).setCreatedAt(System.currentTimeMillis()).setPerformedBy(userId)
+				.setMessage("Loan applied.");
+		TaskExecutor.LOG.submitTask(() -> {
+			try {
+				loanLogDAO.create(loanLog);
+			} catch (Exception e) {
+				logger.error("Error occurred while saving activity log", e);
+			}
+		});
 	}
 
 }

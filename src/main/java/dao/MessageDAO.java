@@ -1,6 +1,5 @@
 package dao;
 
-import java.math.BigInteger;
 import java.util.List;
 import java.util.Map;
 
@@ -16,8 +15,9 @@ import util.SQLHelper;
 public class MessageDAO implements DAO<Message> {
 
 	private static Logger logger = LogManager.getLogger(MessageDAO.class);
-	
-	private MessageDAO() {}
+
+	private MessageDAO() {
+	}
 
 	private static class SingletonHelper {
 		private static final MessageDAO INSTANCE = new MessageDAO();
@@ -31,11 +31,8 @@ public class MessageDAO implements DAO<Message> {
 		logger.info("Inserting message details...");
 
 		Helper.checkNullValues(message);
-		Long logId;
-		logId = ((BigInteger) SQLHelper.insert(message)).longValue();
-
-		logger.info("message created successfully with ID: " + logId);
-		return logId;
+		Object insertedValue = SQLHelper.insert(message);
+		return Helper.convertToLong(insertedValue);
 	}
 
 	public List<Message> get(Map<String, Object> messageMap) throws Exception {

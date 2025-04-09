@@ -5,6 +5,10 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 import util.CustomException;
 
@@ -21,7 +25,8 @@ public class Constants {
 		GET_USER_WITH_ROLE("^/User\\?userId=\\d+&ROLE=\\w+$", Arrays.asList("Customer")),
 		GET_USERDASHBOARD("^/UserDashboard$"), TRANSACTION_CRUD("^/Transaction$"), LOGOUT("^/Logout$"),
 		LOG("^/Log$", Arrays.asList("Customer", "Employee")), MESSAGE_CRUD("^/Message$"), OAUTH("^/oauth"),
-		OAUTHCALLBACK("^/oauthCallback");
+		OAUTHCALLBACK("^/oauthCallback"), CAPTCHA("^/Captcha"), FIXED_DEPOSIT("^/FixedDeposit");
+		;
 
 		private final String REGEX_PATTERN;
 		private final List<String> restrictedForRole;
@@ -109,12 +114,14 @@ public class Constants {
 		ROLE_CUSTOMER("Customer", new HashMap<String, List<String>>() {
 			{
 				put("Account", new ArrayList<>(Arrays.asList("GET")));
-				put("User", new ArrayList<>(Arrays.asList("POST")));
+				put("User", new ArrayList<>(Arrays.asList("GET", "PUT")));
 				put("Branch", Arrays.asList("GET"));
 				put("Transaction", Arrays.asList("GET", "POST"));
 				put("UserDashboard", new ArrayList<>(Arrays.asList("GET")));
 				put("Logout", new ArrayList<>(Arrays.asList("DELETE")));
 				put("Message", new ArrayList<>(Arrays.asList("GET", "POST")));
+				put("Otp", new ArrayList<>(Arrays.asList("GET", "POST")));
+				put("FixedDeposit", new ArrayList<>(Arrays.asList("POST")));
 			}
 		}, new ArrayList<>(Arrays.asList("userId", "ROLE", "branchId"))),
 		ROLE_EMPLOYEE("Employee", new HashMap<String, List<String>>() {
@@ -126,6 +133,8 @@ public class Constants {
 				put("UserDashboard", new ArrayList<>(Arrays.asList("GET")));
 				put("Logout", new ArrayList<>(Arrays.asList("DELETE")));
 				put("Message", new ArrayList<>(Arrays.asList("GET", "POST", "PUT")));
+				put("Otp", new ArrayList<>(Arrays.asList("GET", "POST")));
+				put("FixedDeposit", new ArrayList<>(Arrays.asList("GET", "POST")));
 			}
 		}, new ArrayList<>()), ROLE_MANAGER("Manager", new HashMap<String, List<String>>() {
 			{
@@ -137,6 +146,8 @@ public class Constants {
 				put("Logout", new ArrayList<>(Arrays.asList("DELETE")));
 				put("Log", new ArrayList<>(Arrays.asList("POST")));
 				put("Message", new ArrayList<>(Arrays.asList("GET", "POST", "PUT")));
+				put("Otp", new ArrayList<>(Arrays.asList("GET", "POST")));
+				put("FixedDeposit", new ArrayList<>(Arrays.asList("GET", "POST")));
 			}
 		}, new ArrayList<>());
 
@@ -290,6 +301,35 @@ public class Constants {
 		}
 	}
 
+	public enum TaskExecutor {
+		MAIL(5), LOG(5);
+
+		private final ExecutorService executor;
+
+		TaskExecutor(int nThreads) {
+			this.executor = Executors.newFixedThreadPool(nThreads);
+		}
+
+		public void submitTask(Runnable task) {
+			executor.submit(task);
+		}
+
+		public <T> Future<T> submitTask(Callable<T> task) {
+			return executor.submit(task);
+		}
+
+		public void shutdown() {
+			executor.shutdown();
+		}
+
+		public static void shutdownAll() {
+			for (TaskExecutor exec : values()) {
+				exec.shutdown();
+			}
+		}
+
+	}
+
 	public enum Status {
 		Suspended, Active, Inactive;
 
@@ -359,7 +399,7 @@ public class Constants {
 	}
 
 	public enum TransactionType {
-		Credit, Debit, Deposit, Withdraw, Default;
+		Credit, Debit, Deposit, Withdraw, Loan, FixedDeposit, Default;
 
 		@Override
 		public String toString() {
@@ -376,7 +416,7 @@ public class Constants {
 	}
 
 	public enum MessageType {
-		AccountRequest, TransactionRequest, UserRequest, Chat;
+		AccountRequest, TransactionRequest, UserRequest, ApplyLoan, Chat;
 
 		@Override
 		public String toString() {
@@ -423,6 +463,23 @@ public class Constants {
 			} catch (IllegalArgumentException e) {
 				throw new CustomException("Invalid transaction status: " + transactionStatus,
 						HttpStatusCodes.BAD_REQUEST);
+			}
+		}
+	}
+
+	public enum LoanAction {
+		Apply, Approve, Reject;
+
+		@Override
+		public String toString() {
+			return name();
+		}
+
+		public static LoanAction fromString(String loanAction) throws CustomException {
+			try {
+				return LoanAction.valueOf(loanAction);
+			} catch (IllegalArgumentException e) {
+				throw new CustomException("Invalid loan action: " + loanAction, HttpStatusCodes.BAD_REQUEST);
 			}
 		}
 	}

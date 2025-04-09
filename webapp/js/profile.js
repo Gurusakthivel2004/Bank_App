@@ -54,6 +54,7 @@ if (document.getElementById("requestType") != null) {
 		if (selectedAction === "createTransaction") {
 			document.getElementById("accountNumberdiv").style.display = "flex";
 			document.getElementById("create-transaction").style.display = "block";
+			document.getElementById("transactionAccount").style.display = "flex";
 			document.getElementById("update-profile").style.display = "none";
 		} else if (selectedAction === "deactivateAccount") {
 			document.getElementById("accountNumberdiv").style.display = "flex";
@@ -63,6 +64,11 @@ if (document.getElementById("requestType") != null) {
 			document.getElementById("accountNumberdiv").style.display = "none";
 			document.getElementById("create-transaction").style.display = "none";
 			document.getElementById("update-profile").style.display = "block";
+		} else if (selectedAction === "applyLoan") {
+			document.getElementById("accountNumberdiv").style.display = "flex";
+			document.getElementById("create-transaction").style.display = "flex";
+			document.getElementById("transactionAccount").style.display = "none";
+			document.getElementById("update-profile").style.display = "none";
 		}
 	});
 }
@@ -79,7 +85,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 async function fetchNotifications(openDropdown = false, loadMore = false) {
 	if (!hasMore) return;
-	const response = await fetch(`http://localhost:8080/Bank_Application/api/Message?branchId=${branchId}&limit=${limit}&offset=${offset}&status=pending`, {
+	const response = await fetch(`/Bank_Application/api/Message?branchId=${branchId}&limit=${limit}&offset=${offset}&status=pending`, {
 		method: 'GET',
 		headers: {
 			'Content-Type': 'application/json',
@@ -89,8 +95,9 @@ async function fetchNotifications(openDropdown = false, loadMore = false) {
 	const result = await response.json();
 	console.log(result);
 	if (result.messages == null || result.messages.length == 0) return;
-	if (result.message == 'Invalid token' || result.message == 'Invalid Access token') {
+	if (result.message != null && (result.message.includes('Session expired') || result.message == 'Invalid Access token')) {
 		document.querySelector('body').style.display = 'none';
+		deleteAllCookies();
 		window.location.href = "error.html";
 	}
 	else if (result.message == 'You dont have a account ') {
@@ -140,7 +147,7 @@ async function fetchNotifications(openDropdown = false, loadMore = false) {
 async function markAsRead(messageId, btn) {
 	const token = getCookie('token');
 
-	const response = await fetch(`http://localhost:8080/Bank_Application/api/Message`, {
+	const response = await fetch(`/Bank_Application/api/Message`, {
 		method: 'PUT',
 		headers: {
 			'Content-Type': 'application/json',
@@ -149,6 +156,11 @@ async function markAsRead(messageId, btn) {
 		body: JSON.stringify({ messageId: messageId, messageStatus: 'Completed' })
 	});
 	if (response.ok) {
+		if (response.message != null && response.message.includes('Session expired') || response.message == 'Invalid Access token') {
+			document.querySelector('body').style.display = 'none';
+			deleteAllCookies();
+			window.location.href = "error.html";
+		}
 		if (response.message == 'You dont have a account ') {
 			document.querySelector('body').style.display = 'none';
 			window.location.href = "error.html";
@@ -165,7 +177,7 @@ async function markAsRead(messageId, btn) {
 async function cancelRequest(messageId, btn) {
 	const token = getCookie('token');
 
-	const response = await fetch(`http://localhost:8080/Bank_Application/api/Message`, {
+	const response = await fetch(`/Bank_Application/api/Message`, {
 		method: 'PUT',
 		headers: {
 			'Content-Type': 'application/json',
@@ -173,6 +185,11 @@ async function cancelRequest(messageId, btn) {
 		},
 		body: JSON.stringify({ messageId: messageId, messageStatus: 'Cancelled' })
 	});
+	if (response.message != null && (response.message.includes('Session expired') || response.message == 'Invalid Access token')) {
+		document.querySelector('body').style.display = 'none';
+		deleteAllCookies();
+		window.location.href = "error.html";
+	}
 	if (response.ok) {
 		const successPop = document.getElementById('successModal');
 		document.getElementById('successMessage').innerHTML = "Cancelled successully";
@@ -300,6 +317,17 @@ function sendRequest() {
 			messageType: "UserRequest",
 			messageContent: profileData
 		};
+	} else if (selectedAction === "applyLoan") {
+		if (!accountNumber || !amount) {
+			requestMessage.style.display = "block";
+			requestMessage.textContent = "Please fill in all fields for appl.";
+			return;
+		}
+		requestData = {
+			senderId: getCookie("id"),
+			messageType: "ApplyLoan",
+			messageContent: "Account number: " + accountNumber + ", Amount: " + amount
+		};
 	} else {
 		requestMessage.style.display = "block";
 		requestMessage.textContent = "Invalid action selected.";
@@ -311,16 +339,20 @@ function sendRequest() {
 }
 
 const sendRequestToServer = async data => {
-	const token = getCookie('token');
-	const response = await fetch('http://localhost:8080/Bank_Application/api/Message', {
+	
+	const response = await fetch('/Bank_Application/api/Message', {
 		method: 'POST',
 		headers: {
-			'Content-Type': 'application/json',
-			'Authorization': `Bearer ${token}`
+			'Content-Type': 'application/json'
 		},
 		body: JSON.stringify(data)
 	});
 	const result = await response.json();
+	if (result.message.includes('Session expired') || result.message == 'Invalid Access token') {
+		document.querySelector('body').style.display = 'none';
+		deleteAllCookies();
+		window.location.href = "error.html";
+	}
 	if (result.message == 'success') {
 		toggleModal('newRequestModal');
 		document.getElementById('successMessage').innerHTML = "Request sent!";
@@ -339,11 +371,10 @@ function deleteAllCookies() {
 	});
 }
 
-
 const logout = async _ => {
 	try {
 		const token = getCookie('token');
-		const response = await fetch('http://localhost:8080/Bank_Application/api/Logout', {
+		const response = await fetch('/Bank_Application/api/Logout', {
 			method: 'DELETE',
 			headers: {
 				'Content-Type': 'application/json',
@@ -490,7 +521,7 @@ const submitPasswordChange = async _ => {
 	console.log(passwordData)
 	try {
 		const token = getCookie('token')
-		const response = await fetch('http://localhost:8080/Bank_Application/api/User', {
+		const response = await fetch('/Bank_Application/api/User', {
 			method: 'PUT',
 			headers: {
 				'Content-Type': 'application/json',
@@ -501,6 +532,11 @@ const submitPasswordChange = async _ => {
 		const result = await response.json();
 		console.log(result)
 		const passwordMessage = document.getElementById('passwordmessage');
+		if (result.message != null && (result.message.includes('Session expired') || result.message == 'Invalid Access token')) {
+			document.querySelector('body').style.display = 'none';
+			deleteAllCookies();
+			window.location.href = "error.html";
+		}
 		if (result.message == "success") {
 			sessionStorage.setItem('passwordChangeSuccess', 'true');
 			deleteAllCookies();

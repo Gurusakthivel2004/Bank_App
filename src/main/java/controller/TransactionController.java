@@ -4,6 +4,7 @@ import java.util.Map;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -17,8 +18,9 @@ public class TransactionController {
 
 	private TransactionService transactionService = TransactionService.getInstance();
 	private static Logger logger = LogManager.getLogger(TransactionController.class);
-	
-	private TransactionController() {}
+
+	private TransactionController() {
+	}
 
 	private static class SingletonHelper {
 		private static final TransactionController INSTANCE = new TransactionController();
@@ -55,7 +57,13 @@ public class TransactionController {
 			return;
 		}
 
-		transactionService.prepareTransaction(transactionMap);
+		HttpSession session = request.getSession();
+
+		long txId = transactionService.prepareTransaction(transactionMap, session);
+
+		session.setAttribute("txId", txId);
+		session.setAttribute("otpVerified", false);
+
 		logger.info("Transaction successfully processed.");
 		Helper.sendSuccessResponse(response, "success");
 	}

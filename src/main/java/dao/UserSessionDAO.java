@@ -1,6 +1,5 @@
 package dao;
 
-import java.math.BigInteger;
 import java.util.List;
 import java.util.Map;
 
@@ -30,14 +29,12 @@ public class UserSessionDAO implements DAO<UserSession> {
 
 	public long create(UserSession userSession) throws Exception {
 		logger.info("Inserting session info...");
-
 		Helper.checkNullValues(userSession);
-		Long userSessionId;
-		System.out.println(userSession);
-		userSessionId = ((BigInteger) SQLHelper.insert(userSession)).longValue();
 
-		logger.info("session info created successfully with ID: " + userSessionId);
-		return userSessionId;
+		Object insertedValue = SQLHelper.insert(userSession);
+
+		logger.info("Session info created successfully with ID: " + insertedValue);
+		return Helper.convertToLong(insertedValue);
 	}
 
 	public List<UserSession> get(Map<String, Object> sessionMap) throws Exception {

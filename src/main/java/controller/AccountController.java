@@ -78,7 +78,7 @@ public class AccountController {
 
 		if (!accountMap.containsKey("accountNumber")) {
 			logger.warn("PUT request missing required 'accountNumber'.");
-			Helper.sendErrorResponse(response, "Enter accountNumber to update account.");
+			Helper.sendErrorResponse(response, "Enter accountNumber to update account.", 400);
 			return;
 		}
 

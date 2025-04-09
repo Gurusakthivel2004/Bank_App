@@ -21,11 +21,15 @@ public class PasswordUpdateScheduler {
 	private static final long DEFAULT_VERSION = 0;
 
 	private final UserService userService = UserService.getInstance();
-	private final NotificationService notificationService = new NotificationService();
+	private final NotificationService notificationService = NotificationService.getInstance();
 
 	@SuppressWarnings("unchecked")
 	public void startScheduler() {
+		ClassLoader contextClassLoader = Thread.currentThread().getContextClassLoader();
+
 		Runnable task = () -> {
+			Thread.currentThread().setContextClassLoader(contextClassLoader);
+
 			logger.info("Password update check started...");
 
 			try {

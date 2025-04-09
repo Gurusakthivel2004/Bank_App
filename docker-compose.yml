@@ -1,0 +1,28 @@
+services:
+  my-mysql:
+    image: mysql:8
+    container_name: my-mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: bank
+    ports:
+      - "3306:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 5s
+      retries: 10
+
+  bank_application:
+    image: leomessi30/bankapp
+    container_name: bank_application
+    depends_on:
+      my-mysql:
+        condition: service_healthy
+    environment:
+      DB_URL: jdbc:mysql://my-mysql:3306/bank
+      DB_USER: root
+      DB_PASSWORD: root
+      APP_ROOT: /usr/local/tomcat/webapps/Bank_Application/WEB-INF
+    ports:
+      - "8080:8080"

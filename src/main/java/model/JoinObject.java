@@ -7,11 +7,6 @@ public class JoinObject<T> {
 	private T instance;
 	private Map<String, Object> joinedFields;
 
-	@Override
-	public String toString() {
-		return "JoinObject [instance=" + instance + ", joinedFields=" + joinedFields + "]";
-	}
-
 	public JoinObject(T instance) {
 		this.instance = instance;
 		this.joinedFields = new HashMap<>();
@@ -28,4 +23,10 @@ public class JoinObject<T> {
 	public void addjoinedField(String key, Object value) {
 		joinedFields.put(key, value);
 	}
+
+	@Override
+	public String toString() {
+		return "JoinObject [instance=" + instance + ", joinedFields=" + joinedFields + "]";
+	}
+
 }

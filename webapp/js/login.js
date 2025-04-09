@@ -54,7 +54,7 @@ async function login(event) {
 	console.log(loginData);
 
 	try {
-		const response = await fetch('http://localhost:8080/Bank_Application/api/Login', {
+		const response = await fetch('/Bank_Application/api/Login', {
 			method: 'POST',
 			headers: {
 				'Content-Type': 'application/json'
@@ -64,15 +64,18 @@ async function login(event) {
 
 		const result = await response.json();
 		console.log(result);
+		console.log(response.status);
+
+		if (response.status === 403) {
+			window.location.href = "captcha.html";
+		}
 
 		if (result.message === "success") {
-			await new Promise(resolve => setTimeout(resolve, 50));
-
+			const role = getCookie('role');
+			console.log('role: ', role);
 			if (password === 'default') {
 				toggleModal('passwordChangeModal');
 			} else {
-				const role = getCookie('role');
-				console.log('role: ', role);
 				if (role === 'Customer') {
 					window.location.href = 'dashboard.html';
 				} else {
@@ -80,7 +83,7 @@ async function login(event) {
 				}
 			}
 		} else if (result.message == 'You dont have a account ') {
-			deleteAllCookies();	
+			deleteAllCookies();
 			sessionStorage.setItem('error', "No Account exists for the user.");
 			window.location.href = "index.html";
 		} else {
@@ -98,7 +101,7 @@ const toggleModal = modalId => {
 }
 
 const oauthsignin = () => {
-	window.location.href = 'http://localhost:8080/Bank_Application/api/oauth?provider=google';
+	window.location.href = '/Bank_Application/api/oauth?provider=google';
 };
 
 
@@ -138,7 +141,7 @@ const submitPasswordChange = async _ => {
 		newPassword: newPassword
 	};
 	try {
-		const response = await fetch('http://localhost:8080/Bank_Application/api/User', {
+		const response = await fetch('/Bank_Application/api/User', {
 			method: 'PUT',
 			headers: {
 				'Content-Type': 'application/json',
@@ -149,8 +152,12 @@ const submitPasswordChange = async _ => {
 		console.log(result);
 		if (result.message == 'success') {
 			sessionStorage.setItem('passwordChangeSuccess', 'true');
-			deleteAllCookies();
-			window.location.href = 'index.html';
+			const role = getCookie('role');
+			if (role === 'Customer') {
+				window.location.href = 'dashboard.html';
+			} else {
+				window.location.href = 'emp-dashboard.html';
+			}
 		} else if (result.message == 'You dont have a account') {
 			deleteAllCookies();
 			sessionStorage.setItem('error', "No Account exists for the user.");
@@ -158,9 +165,9 @@ const submitPasswordChange = async _ => {
 		}
 		else {
 			const passwordMessage = document.getElementById('passwordmessage');
-			passwordMessage.textContent = result.error;
-			passwordMessage.style.backgroundColor = 'red';
-			passwordMessage.style.color = 'white';
+			passwordMessage.textContent = result.message;
+			passwordMessage.style.backgroundColor = 'white';
+			passwordMessage.style.color = 'red';
 		}
 	} catch (error) {
 		console.log(error);

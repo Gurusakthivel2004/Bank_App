@@ -69,9 +69,9 @@ public class MainServlet extends HttpServlet {
 				logger.error("Error processing " + handlerName + " request", e);
 				Throwable cause = e.getCause();
 				if (cause instanceof CustomException) {
-					Helper.sendErrorResponse(response, cause.getMessage());
+					Helper.sendErrorResponse(response, cause.getMessage(), ((CustomException) cause).getStatusCode());
 				} else {
-					Helper.sendErrorResponse(response, "Error processing " + handlerName + " request.");
+					Helper.sendErrorResponse(response, "Error processing " + handlerName + " request.", 400);
 				}
 			}
 		} else {

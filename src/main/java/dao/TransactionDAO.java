@@ -1,19 +1,24 @@
 package dao;
 
-import java.math.BigInteger;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import model.ColumnCriteria;
 import model.Criteria;
 import model.Transaction;
+import util.Helper;
 import util.SQLHelper;
 
 public class TransactionDAO implements DAO<Transaction> {
-	
-	private TransactionDAO() {}
+
+	private static Logger logger = LogManager.getLogger(TransactionDAO.class);
+
+	private TransactionDAO() {
+	}
 
 	private static class SingletonHelper {
 		private static final TransactionDAO INSTANCE = new TransactionDAO();
@@ -24,9 +29,8 @@ public class TransactionDAO implements DAO<Transaction> {
 	}
 
 	public long create(Transaction transaction) throws Exception {
-		long txId;
-		txId = ((BigInteger) SQLHelper.insert(transaction)).longValue();
-		return txId;
+		Object insertedValue = SQLHelper.insert(transaction);
+		return Helper.convertToLong(insertedValue);
 	}
 
 	public List<Transaction> get(Map<String, Object> txMap) throws Exception {
@@ -53,13 +57,9 @@ public class TransactionDAO implements DAO<Transaction> {
 	}
 
 	public void update(ColumnCriteria columnCriteria, Map<String, Object> txMap) throws Exception {
-
+		logger.info("Updating transaction details {}", txMap);
 		Criteria criteria = new Criteria().setClazz(Transaction.class);
-		criteria.setSelectColumn(Arrays.asList("status"))
-				.setValue(new ArrayList<>(Arrays.asList(txMap.get("status").toString())));
-		DAOHelper.addCondition(criteria, txMap.containsKey("id"), "id", "EQUAL_TO", txMap.get("id"));
-
+		DAOHelper.addConditionIfPresent(criteria, txMap, "id", "id", "EQUAL_TO", 0l);
 		SQLHelper.update(columnCriteria, criteria);
-
 	}
 }

@@ -16,8 +16,10 @@ import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.postgresql.util.PSQLException;
 
 import dao.DAOHelper;
+import dao.DaoFactory;
 import enums.Constants.AggregateFunction;
 import enums.Constants.HttpStatusCodes;
 import enums.Constants.Operators;
@@ -32,7 +34,7 @@ public class SQLHelper {
 	private static Logger logger = LogManager.getLogger(SQLHelper.class);
 
 	@SuppressWarnings({ "unchecked", "rawtypes" })
-	private static <T> T mapResultSetToObject(ResultSet resultSet, Class<? extends T> clazz, T instance,
+	public static <T> T mapResultSetToObject(ResultSet resultSet, Class<? extends T> clazz, T instance,
 			String tableName, List<String> modifiedFields) throws CustomException {
 		try {
 			if (instance == null) {
@@ -63,8 +65,13 @@ public class SQLHelper {
 						}
 					} catch (SQLSyntaxErrorException e) {
 						logger.warn("Column '{}' not found in the result set, skipping.", columnName);
+					} catch (PSQLException e) {
+						if (e.getMessage().contains("column does not exist")) {
+							logger.warn("PostgreSQL: Column '{}' not found in the result set, skipping.", columnName);
+						} else {
+							logger.error("PostgreSQL Error accessing column '{}': {}", columnName, e.getMessage());
+						}
 					}
-
 					if (field.getType().isEnum() && columnValue instanceof String) {
 						String enumValue = (String) columnValue;
 						Object enumConstant = Enum.valueOf((Class<Enum>) field.getType(), enumValue);
@@ -116,7 +123,6 @@ public class SQLHelper {
 		}
 		logger.debug("PreparedStatement: " + preparedStatement.toString());
 		return preparedStatement;
-
 	}
 
 	// Execute the preparedStatement for the insert queries
@@ -157,6 +163,8 @@ public class SQLHelper {
 			return executeNonSelect(connection, query, values);
 		} catch (SQLException e) {
 			Helper.handleSQLException(e);
+		} catch (InterruptedException e) {
+			throw new CustomException("Unexpected error occurred.", HttpStatusCodes.INTERNAL_SERVER_ERROR);
 		}
 		return null;
 	}
@@ -203,7 +211,7 @@ public class SQLHelper {
 			String column = columns.get(i);
 			String operator = operators.get(i);
 			Object value = null;
-			if(!columnvalues.isEmpty()) {
+			if (!columnvalues.isEmpty()) {
 				value = columnvalues.get(i);
 			}
 			sql.append(column).append(" ");
@@ -219,8 +227,18 @@ public class SQLHelper {
 					DAOHelper.appendBetweenClause(sql, condition, conditionValues);
 					break;
 				case LIKE:
-					sql.append("LIKE ?");
-					conditionValues.add(value);
+					switch (DaoFactory.CURRENT_DB) {
+					case MYSQL:
+						sql.append("LIKE ?");
+						conditionValues.add(value);
+						break;
+					case POSTGRESQL:
+						int start = sql.length() - column.length() - 1, end = sql.length();
+						sql.delete(start, end);
+						sql.append("CAST(").append(column).append(" AS TEXT) LIKE ?");
+						conditionValues.add(value);
+						break;
+					}
 					break;
 				case NOT:
 					sql.append("NOT ");
@@ -244,12 +262,13 @@ public class SQLHelper {
 				sql.append(" ").append(condition.getLogicalOperator()).append(" ");
 			}
 		}
-
-		if (condition.getOrderBy() != null) {
-			sql.append(" ORDER BY ").append(condition.getOrderByField()).append(" ").append(condition.getOrderBy());
-		}
-		if (condition.getLimitValue() != null) {
-			sql.append(" LIMIT ").append(condition.getLimitValue());
+		if (!"COUNT".equalsIgnoreCase(condition.getAggregateFunction())) {
+			if (condition.getOrderBy() != null) {
+				sql.append(" ORDER BY ").append(condition.getOrderByField()).append(" ").append(condition.getOrderBy());
+			}
+			if (condition.getLimitValue() != null) {
+				sql.append(" LIMIT ").append(condition.getLimitValue());
+			}
 		}
 		if (condition.getOffsetValue() != null && condition.getOffsetValue() >= 0) {
 			sql.append(" OFFSET ?");
@@ -284,11 +303,15 @@ public class SQLHelper {
 		Helper.validateQueryConditions(setColumns, "No columns to update.");
 
 		int length = updateSql.length();
+
+		logger.info("size: " + setColumns.size());
 		for (int i = 0; i < setColumns.size(); i++) {
 			String setColumn = setColumns.get(i);
 			Object setValue = setValues.get(i);
 			FieldMapping fieldMapping = classMapping.getFields().get(setColumn);
 
+			logger.info("setColumn: " + setColumn);
+			logger.info("fieldMapping: " + fieldMapping);
 			if (fieldMapping != null) {
 				if (length < updateSql.length()) {
 					updateSql.append(", ");
@@ -299,11 +322,13 @@ public class SQLHelper {
 			}
 		}
 
+		logger.info("values: " + values);
 		if (!values.isEmpty()) {
 			if (classMapping.getReferedField() != null) {
 				criterias.setColumn(Arrays.asList(classMapping.getReferedField()));
 			}
 			QueryBuilder(updateSql, criterias, values);
+			logger.info(updateSql);
 			executeNonSelect(updateSql.toString(), values.toArray());
 		}
 
@@ -312,7 +337,6 @@ public class SQLHelper {
 			criterias.setClazz(superclass);
 			update(columnCriteriaList, criterias);
 		}
-
 	}
 
 	// @Delete method
@@ -337,14 +361,17 @@ public class SQLHelper {
 	// clazz : class of the pojo to be returned.
 	// condition : It contains the criteria that has to be included in that query
 
-	public static <T> List<T> get(Criteria condition, Class<T> clazz) throws CustomException, SQLException {
+	public static <T> List<T> get(Criteria condition, Class<T> clazz)
+			throws CustomException, SQLException, InterruptedException {
 		List<Object> conditionValues = new ArrayList<>();
 		StringBuilder selectSql = buildSelectQuery(condition, clazz, conditionValues);
 		DBConnection dbConnection = DBConnection.getInstance();
+
 		try (Connection connection = dbConnection.getConnection();
 				PreparedStatement preparedStatement = getPreparedStatement(connection, selectSql.toString(),
 						conditionValues.toArray());
 				ResultSet resultSet = preparedStatement.executeQuery()) {
+
 			List<T> resultList = new ArrayList<>();
 			while (resultSet.next()) {
 				T instance = mapResultSetToObject(resultSet, clazz, null, getTableName(clazz), new ArrayList<>());
@@ -355,7 +382,7 @@ public class SQLHelper {
 	}
 
 	public static <T> List<JoinObject<T>> getJoinedObjects(Criteria condition, Class<T> clazz)
-			throws CustomException, SQLException {
+			throws CustomException, SQLException, InterruptedException {
 		List<Object> conditionValues = new ArrayList<>();
 		StringBuilder selectSql = buildSelectQuery(condition, clazz, conditionValues);
 		DBConnection dbConnection = DBConnection.getInstance();
@@ -376,7 +403,8 @@ public class SQLHelper {
 		}
 	}
 
-	public static <T> Long getCount(Criteria condition, Class<T> clazz) throws CustomException, SQLException {
+	public static <T> Long getCount(Criteria condition, Class<T> clazz)
+			throws CustomException, SQLException, InterruptedException {
 		List<Object> conditionValues = new ArrayList<>();
 		StringBuilder selectSql = buildSelectQuery(condition, clazz, conditionValues);
 		DBConnection dbConnection = DBConnection.getInstance();
@@ -384,9 +412,8 @@ public class SQLHelper {
 				PreparedStatement preparedStatement = getPreparedStatement(connection, selectSql.toString(),
 						conditionValues.toArray());
 				ResultSet resultSet = preparedStatement.executeQuery()) {
-			while (resultSet.next()) {
-				Object count = resultSet.getObject("COUNT(*)");
-				return (Long) count;
+			if (resultSet.next()) {
+				return resultSet.getLong(1);
 			}
 			return 0l;
 		}
@@ -487,8 +514,8 @@ public class SQLHelper {
 					generatedValue = incrementValue;
 				}
 			}
-
 			connection.commit();
+			connection.setAutoCommit(true);
 			return generatedValue;
 		}
 	}
@@ -507,13 +534,14 @@ public class SQLHelper {
 		StringBuilder insertSql = new StringBuilder("INSERT INTO ").append(tableName).append(" (");
 		int ctr = 0;
 		for (Field field : fields) {
-			if (isAutoIncrementField(classMapping, field))
+			if (isAutoIncrementField(classMapping, field)) {
 				continue;
+			}
 			field.setAccessible(true);
 			FieldMapping fieldMapping = fieldMap.get(field.getName());
-			if (fieldMapping == null)
+			if (fieldMapping == null) {
 				continue;
-
+			}
 			insertSql.append(fieldMapping.getColumnName()).append(", ");
 			ctr++;
 		}

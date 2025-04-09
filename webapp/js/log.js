@@ -28,7 +28,7 @@ async function fetchLogs() {
 
 			console.log(logsData);
 			const token = getCookie('token')
-			const response = await fetch('http://localhost:8080/Bank_Application/api/Log', {
+			const response = await fetch('/Bank_Application/api/Log', {
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json',
@@ -37,7 +37,7 @@ async function fetchLogs() {
 				body: JSON.stringify(logsData)
 			});
 			const logsResult = await response.json();
-			if (logsResult.message == 'Invalid token' || logsResult.message == 'Invalid Access token') {
+			if (logsResult.message != null && (logsResult.message.includes('Session expired') || logsResult.message == 'Invalid Access token')) {
 				document.querySelector('body').style.display = 'none';
 				deleteAllCookies();
 				window.location.href = "error.html";

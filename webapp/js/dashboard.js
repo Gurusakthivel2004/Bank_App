@@ -7,12 +7,12 @@ document.addEventListener("DOMContentLoaded", async _ => {
 		document.querySelector('body').style.display = 'none';
 		window.location.href = "error.html";
 	}
-	
+
 	if (role != null && role !== 'Customer') {
 		window.location.href = "emp-dashboard.html";
 	}
 	try {
-		const response = await fetch('http://localhost:8080/Bank_Application/api/UserDashboard', {
+		const response = await fetch('/Bank_Application/api/UserDashboard', {
 			method: 'GET',
 			headers: {
 				'Content-Type': 'application/json',
@@ -22,11 +22,10 @@ document.addEventListener("DOMContentLoaded", async _ => {
 		console.log(result);
 		console.log(result.message);
 		console.log(result.message == 'Invalid token');
-		if (result.message == 'Invalid token' || result.message == 'Invalid Access token') {
+		if (result.message != null && (result.message.includes('Session expired') || result.message == 'Invalid Access token') ){
 			document.querySelector('body').style.display = 'none';
-			console.log(document.querySelector('body'));
-			window.location.href = "error.html";
 			deleteAllCookies();
+			window.location.href = "error.html";
 		} else if (result.message == 'You dont have a account ') {
 			document.querySelector('body').style.display = 'none';
 			deleteAllCookies();
@@ -51,6 +50,7 @@ document.addEventListener("DOMContentLoaded", async _ => {
 			document.getElementById('lastUpdated').innerHTML = "Last Updated: " + getDate(modifiedAt, false);
 			// setting accounts dropdown
 			const accountsDropdown = document.querySelector('.accountsSelect');
+			const accountsDropdown2 = document.querySelector('#fdAccount');
 			let overAllBalance = 0, currentAccountIndex = 0, account = result.account[currentAccountIndex];
 
 			setValues(result.account[currentAccountIndex]);
@@ -59,7 +59,13 @@ document.addEventListener("DOMContentLoaded", async _ => {
 				const option = document.createElement('option');
 				option.value = index;
 				option.textContent = 'Account : ' + account.accountNumber;
+
+				const option2 = document.createElement('option');
+				option2.value = account.accountNumber;
+				option2.textContent = account.accountNumber;
+				
 				accountsDropdown.appendChild(option);
+				accountsDropdown2.appendChild(option2);
 			});
 			// setting overall Balance.
 			document.getElementById('overAllBalance').innerHTML = `₹ ${overAllBalance.toLocaleString()}`;

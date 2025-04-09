@@ -15,7 +15,7 @@ document.addEventListener("DOMContentLoaded", async _ => {
 		} if (role == 'Customer') {
 			document.querySelector('body').style.display = 'none';
 		}
-		const response = await fetch('http://localhost:8080/Bank_Application/api/UserDashboard', {
+		const response = await fetch('/Bank_Application/api/UserDashboard', {
 			method: 'GET',
 			headers: {
 				'Content-Type': 'application/json',
@@ -23,10 +23,10 @@ document.addEventListener("DOMContentLoaded", async _ => {
 		});
 		const result = await response.json();
 		console.log(result);
-		if (result.message == 'Invalid token.' || result.message == 'Invalid Access token') {
+		if (result.message != null && (result.message.includes('Session expired') || result.message == 'Invalid Access token')) {
 			document.querySelector('body').style.display = 'none';
 			deleteAllCookies();
-			window.location.href = "index.html";
+			window.location.href = "error.html";
 		} else if (result.message == 'You dont have a account ') {
 			document.querySelector('body').style.display = 'none';
 			deleteAllCookies();
@@ -290,7 +290,7 @@ function saveBranch() {
 }
 
 const sendToServer = async branchData => {
-	const response = await fetch('http://localhost:8080/Bank_Application/api/Branch', {
+	const response = await fetch('/Bank_Application/api/Branch', {
 		method: 'POST',
 		headers: {
 			'Content-Type': 'application/json',
@@ -299,6 +299,11 @@ const sendToServer = async branchData => {
 	});
 	const result = await response.json();
 	console.log(result);
+	if (result.message != null && (result.message.includes('Session expired') || result.message == 'Invalid Access token')) {
+		document.querySelector('body').style.display = 'none';
+		deleteAllCookies();
+		window.location.href = "error.html";
+	}
 	if (result.message == 'success') {
 		toggleModal('branchDetailsModal');
 		const successPop = document.getElementById('successModal');

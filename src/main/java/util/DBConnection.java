@@ -2,17 +2,18 @@ package util;
 
 import java.sql.Connection;
 import java.sql.SQLException;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import com.zaxxer.hikari.HikariDataSource;
 
 import initializer.Initializer;
+import pool.DBConnectionPool;
 
 public class DBConnection {
 
 	private static final Logger logger = LogManager.getLogger(DBConnection.class);
 	private static DBConnection instance;
-	private static HikariDataSource dataSource;
+	private static DBConnectionPool dataSource;
 
 	private DBConnection() {
 		dataSource = Initializer.getDataSource();
@@ -29,7 +30,7 @@ public class DBConnection {
 		return instance;
 	}
 
-	public Connection getConnection() throws SQLException {
+	public Connection getConnection() throws InterruptedException, SQLException {
 		try {
 			return dataSource.getConnection();
 		} catch (Exception e) {

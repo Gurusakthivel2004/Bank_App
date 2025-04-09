@@ -1,6 +1,5 @@
 package dao;
 
-import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -37,8 +36,8 @@ public class BranchDAO implements DAO<Branch> {
 		branch.setCreatedAt(System.currentTimeMillis()).setPerformedBy((Long) Helper.getThreadLocalValue("id"))
 				.setIfscCode("temp");
 
-		Long branchId;
-		branchId = ((BigInteger) SQLHelper.insert(branch)).longValue();
+		Object insertedValue = SQLHelper.insert(branch);
+		long branchId = Helper.convertToLong(insertedValue);
 
 		logger.info("Branch created successfully with ID: " + branchId);
 

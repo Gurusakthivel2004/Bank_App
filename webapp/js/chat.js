@@ -2,9 +2,12 @@ var ws;
 
 function startChat() {
 	document.getElementById('messageInput').disabled = false;
-	document.getElementById('sendButton').disabled = false;
+	const collection = document.getElementsByClassName("sendButton");
+	for (let i = 0; i < collection.length; i++) {
+		collection[i].disabled = false;
+	}
 
-	ws = new WebSocket('ws://localhost:8080/Bank_Application/chat');
+	ws = new WebSocket(`ws://${window.location.host}/Bank_Application/chat`);
 
 	ws.onopen = function(event) {
 		console.log('Chat started with employee.');
@@ -17,7 +20,10 @@ function startChat() {
 
 		appendMessage(event.data);
 		if (event.data == 'Employee disconnected. Please start a new chat!') {
-			document.getElementById('sendButton').disabled = true;
+			const collection = document.getElementsByClassName("sendButton");
+			for (let i = 0; i < collection.length; i++) {
+				collection[i].disabled = true;
+			}
 			document.getElementById('messageInput').disabled = true
 		}
 	};
@@ -43,11 +49,15 @@ const appendMessage = message => {
 	messageBubble.textContent = message;
 	messageDiv.appendChild(messageBubble);
 
-	document.getElementById('chatMessages').appendChild(messageDiv);
+	const collection = document.getElementsByClassName("chatMessages");
+	for (let i = 0; i < collection.length; i++) {
+		collection[i].appendChild(messageDiv);
+	}
 }
 
 function sendMessage() {
 	var message = document.getElementById('messageInput').value;
+	console.log(message);
 	if (message.trim() !== "" && ws.readyState === WebSocket.OPEN) {
 		ws.send(message);
 
@@ -68,7 +78,12 @@ function sendMessage() {
 		messageBubble.textContent = message;
 		messageDiv.appendChild(messageBubble);
 
-		document.getElementById('chatMessages').appendChild(messageDiv);
+		const collection = document.getElementsByClassName("chatMessages");
+		console.log(collection);
+		for (let i = 0; i < collection.length; i++) {
+			console.log(collection[i]);
+			collection[i].appendChild(messageDiv);
+		}
 		document.getElementById('messageInput').value = "";
 	} else {
 		console.log("WebSocket not open or message is empty.");
@@ -76,7 +91,11 @@ function sendMessage() {
 }
 
 function startEmployeeChat() {
-	ws = new WebSocket('ws://localhost:8080/Bank_Application/chat');
+	ws = new WebSocket(`ws://${window.location.host}/Bank_Application/chat`);
+	const collection = document.getElementsByClassName("sendButton");
+	for (let i = 0; i < collection.length; i++) {
+		collection[i].disabled = false;
+	}
 
 	ws.onopen = function() {
 		console.log('Employee connected.');
@@ -135,14 +154,20 @@ function sendEmployeeMessage() {
 		messageBubble.textContent = message;
 		messageDiv.appendChild(messageBubble);
 
-		document.getElementById('chatMessages').appendChild(messageDiv);
+		const collection = document.getElementsByClassName("chatMessages");
+		for (let i = 0; i < collection.length; i++) {
+			collection[i].appendChild(messageDiv);
+		}
 		document.getElementById('employeeMessageInput').value = "";
 	}
 }
 
 function userClose() {
 	toggleModal('chatBoxModel');
-	document.getElementById('sendButton').disabled = true;
+	const collection = document.getElementsByClassName("sendButton");
+	for (let i = 0; i < collection.length; i++) {
+		collection[i].disabled = true;
+	}
 	document.getElementById('messageInput').disabled = true;
 
 	if (ws && ws.readyState === WebSocket.OPEN) {
@@ -156,7 +181,10 @@ function userClose() {
 
 
 function closeChat() {
-	document.getElementById('chatMessages').innerHTML = "";
+	const collection = document.getElementsByClassName("chatMessages");
+	for (let i = 0; i < collection.length; i++) {
+		collection[i].innerHTML = "";
+	}
 	document.getElementById('chatUserName').textContent = "Connecting available user..";
 	toggleModal('employeeChatBox');
 	console.log('entered close method');

@@ -3,23 +3,23 @@ package dao;
 public class DaoFactory {
 
 	public enum DatabaseType {
-		MYSQL
+		MYSQL, POSTGRESQL
 	}
 
-	private static final DatabaseType CURRENT_DB = DatabaseType.MYSQL;
+	public static final DatabaseType CURRENT_DB = DatabaseType.MYSQL;
 
 	public static <T> DAO<T> getDAO(Class<T> clazz) {
 		switch (CURRENT_DB) {
 		case MYSQL:
-			return getMysqlDAO(clazz);
+		case POSTGRESQL:
+			return getGenericDAO(clazz);
 		default:
 			throw new UnsupportedOperationException("Database type not supported!");
 		}
 	}
 
 	@SuppressWarnings("unchecked")
-
-	private static <T> DAO<T> getMysqlDAO(Class<T> clazz) {
+	private static <T> DAO<T> getGenericDAO(Class<T> clazz) {
 		switch (clazz.getSimpleName()) {
 		case "Account":
 			return (DAO<T>) AccountDAO.getInstance();
@@ -39,6 +39,14 @@ public class DaoFactory {
 			return (DAO<T>) OauthProviderDAO.getInstance();
 		case "UserSession":
 			return (DAO<T>) UserSessionDAO.getInstance();
+		case "OtpVerifications":
+			return (DAO<T>) OtpVerificationsDAO.getInstance();
+		case "Loan":
+			return (DAO<T>) LoanDAO.getInstance();
+		case "LoanLog":
+			return (DAO<T>) LoanLogDAO.getInstance();
+		case "FixedDeposit":
+			return (DAO<T>) FixedDepositDAO.getInstance();
 		default:
 			throw new UnsupportedOperationException("No DAO found for the provided class: " + clazz.getName());
 		}

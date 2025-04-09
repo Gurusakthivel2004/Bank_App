@@ -69,14 +69,18 @@ public class AuthFilter extends HttpFilter implements Filter {
 		Map<String, Object> claimsMap = null;
 		try {
 			UserSession userSession = isValidSession(sessionId, request, response);
-			
+
 			claimsMap = Helper.getClaimsFromId(userSession.getUserId());
 			if (claimsMap == null) {
 				throw new IllegalArgumentException("Invalid session");
 			}
 
+		} catch (CustomException customException) {
+			logger.error(customException.getMessage());
+			Helper.sendErrorResponse(response, customException);
+			return;
 		} catch (Exception e) {
-			logger.error(e);
+			logger.error(e.getMessage());
 			Helper.sendJsonResponse(response, HttpStatusCodes.BAD_REQUEST, "Invalid session", null);
 			return;
 		}
@@ -105,7 +109,7 @@ public class AuthFilter extends HttpFilter implements Filter {
 	}
 
 	private boolean isPublicEndpoint(String path) {
-		if (path.equals("/Login") || path.contains("oauth")) {
+		if (path.equals("/Login") || path.equals("/Captcha") || path.contains("oauth")) {
 			logger.info("Skipping authentication for login endpoint.");
 			return true;
 		}
@@ -114,45 +118,34 @@ public class AuthFilter extends HttpFilter implements Filter {
 
 	private UserSession isValidSession(String sessionId, HttpServletRequest request, HttpServletResponse response)
 			throws Exception {
-		try {
-			logger.info("validating session id...");
+		logger.info("validating session id...");
 
-			UserSessionService userSessionService = UserSessionService.getInstance();
-			Map<String, Object> sessionMap = new HashMap<>();
-			sessionMap.put("sessionId", sessionId);
+		UserSessionService userSessionService = UserSessionService.getInstance();
+		Map<String, Object> sessionMap = new HashMap<>();
+		sessionMap.put("sessionId", sessionId);
 
-			List<UserSession> userSessions = userSessionService.getSessionDetails(sessionMap);
-		
-			if (userSessions == null || userSessions.isEmpty()) {
-				throw new CustomException("Invalid session id, Please signin again", HttpStatusCodes.BAD_REQUEST);
-			}
+		List<UserSession> userSessions = userSessionService.getSessionDetails(sessionMap);
+		logger.info("obtained user session data: " + userSessions);
 
-			UserSession userSession = userSessions.get(0);
-
-			if (userSession.getProviderId() != null) {
-				Map<String, Object> oauthProviderMap = new HashMap<>();
-				oauthProviderMap.put("id", userSession.getProviderId());
-				List<OauthProvider> oauthProviders = oauthProviderDAO.get(oauthProviderMap);
-
-				if (oauthProviders.isEmpty()) {
-					throw new CustomException("Invalid access token", HttpStatusCodes.BAD_REQUEST);
-				}
-				validateOAuthToken(oauthProviders.get(0).getAccessToken(), request, response);
-			} else if (userSession.getExpiresAt() < System.currentTimeMillis()) {
-				throw new CustomException("session expired", HttpStatusCodes.FORBIDDEN);
-			}
-
-			return userSessions.get(0);
-		} catch (Exception e) {
-			logger.error(e);
-			Throwable cause = e.getCause();
-			if (cause instanceof CustomException) {
-				throw e;
-			} else {
-				throw new CustomException("Invalid session Id", HttpStatusCodes.BAD_REQUEST);
-			}
-
+		if (userSessions == null || userSessions.isEmpty()) {
+			throw new CustomException("Session expired, Please signin again", HttpStatusCodes.BAD_REQUEST);
 		}
+
+		UserSession userSession = userSessions.get(0);
+
+		if (userSession.getProviderId() != null) {
+			Map<String, Object> oauthProviderMap = new HashMap<>();
+			oauthProviderMap.put("id", userSession.getProviderId());
+			List<OauthProvider> oauthProviders = oauthProviderDAO.get(oauthProviderMap);
+
+			if (oauthProviders.isEmpty()) {
+				throw new CustomException("Invalid access token", HttpStatusCodes.BAD_REQUEST);
+			}
+			validateOAuthToken(oauthProviders.get(0).getAccessToken(), request, response);
+		} else if (userSession.getExpiresAt() < System.currentTimeMillis()) {
+			throw new CustomException("Session expired, Please signin again", HttpStatusCodes.BAD_REQUEST);
+		}
+		return userSessions.get(0);
 	}
 
 	private Map<String, Object> validateOAuthToken(String token, HttpServletRequest request,

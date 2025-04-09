@@ -184,15 +184,6 @@ public class Criteria {
 		return this;
 	}
 
-	@Override
-	public String toString() {
-		return "Criteria [clazz=" + clazz + ", tableName=" + tableName + ", selectColumn=" + selectColumn + ", column="
-				+ column + ", value=" + value + ", operator=" + operator + ", logicalOperator=" + logicalOperator
-				+ ", values=" + values + ", joinColumn=" + joinColumn + ", joinOperator=" + joinOperator
-				+ ", joinValue=" + joinValue + ", joinTable=" + joinTable + ", orderBy=" + orderBy + ", orderByField="
-				+ orderByField + ", limitValue=" + limitValue + ", offsetValue=" + offsetValue + "]";
-	}
-
 	public List<String> getAlias() {
 		return Alias;
 	}
@@ -229,4 +220,12 @@ public class Criteria {
 		return this;
 	}
 
+	@Override
+	public String toString() {
+		return "Criteria [clazz=" + clazz + ", tableName=" + tableName + ", selectColumn=" + selectColumn + ", column="
+				+ column + ", value=" + value + ", operator=" + operator + ", logicalOperator=" + logicalOperator
+				+ ", values=" + values + ", joinColumn=" + joinColumn + ", joinOperator=" + joinOperator
+				+ ", joinValue=" + joinValue + ", joinTable=" + joinTable + ", orderBy=" + orderBy + ", orderByField="
+				+ orderByField + ", limitValue=" + limitValue + ", offsetValue=" + offsetValue + "]";
+	}
 }

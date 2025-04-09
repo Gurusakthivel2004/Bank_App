@@ -1,6 +1,6 @@
 package util;
 
-import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.HashMap;
@@ -10,17 +10,21 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.yaml.snakeyaml.Yaml;
 
 public class ColumnYamlUtil {
-	private static final String FILE_PATH = "/home/guru-pt7672/git/BankApplication/Bank_Application/src/main/ColumnMappings.yaml";
+	private static final String FILE_NAME = "ColumnMappings.yaml";
 
 	private static class Holder {
 		private static final Map<String, ClassMapping> INSTANCE = loadMappings();
 	}
 
-	private ColumnYamlUtil() {}
+	private ColumnYamlUtil() {
+	}
 
 	@SuppressWarnings("unchecked")
 	private static Map<String, ClassMapping> loadMappings() {
-		try (InputStream inputStream = new FileInputStream(FILE_PATH)) {
+		try (InputStream inputStream = ColumnYamlUtil.class.getClassLoader().getResourceAsStream(FILE_NAME)) {
+			if (inputStream == null) {
+				throw new FileNotFoundException("YAML file not found in resources: " + FILE_NAME);
+			}
 			Yaml yaml = new Yaml();
 			Map<String, Map<String, Object>> yamlData = yaml.load(inputStream);
 			Map<String, Object> tableData = (Map<String, Object>) yamlData.get("classes");
@@ -78,7 +82,7 @@ public class ColumnYamlUtil {
 		private Map<String, FieldMapping> fields;
 
 		public String getTableName() {
-			return tableName;
+			return TableNameUtil.getSafeTableName(tableName);
 		}
 
 		public void setTableName(String tableName) {
@@ -138,4 +142,5 @@ public class ColumnYamlUtil {
 			this.type = type;
 		}
 	}
+
 }
