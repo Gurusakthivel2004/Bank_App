@@ -55,9 +55,9 @@ public class OauthCallbackController {
 			Helper.sendJsonResponse(response, HttpStatusCodes.BAD_REQUEST, "Invalid Oauth callback.", null);
 			return;
 		}
-		
+
 		OauthClientConfig clientConfig = Helper.getClientConfig(provider);
-		
+
 		String tokenUrl = OAuthConfig.get(provider + ".token_url");
 		String clientId = clientConfig.getClientId();
 		String clientSecret = clientConfig.getClientSecret();
@@ -70,12 +70,12 @@ public class OauthCallbackController {
 		// Get Access Token
 		String tokenResponse = Helper.sendPostRequest(tokenUrl, params);
 		JsonObject tokenJson = JsonParser.parseString(tokenResponse).getAsJsonObject();
-	
+
 		if (!tokenJson.has("access_token")) {
 			Helper.sendJsonResponse(response, HttpStatusCodes.BAD_REQUEST, "Access token missing from provider.", null);
 			return;
 		}
-		
+
 		String accessToken = tokenJson.get("access_token").getAsString();
 		String refreshToken = tokenJson.has("refresh_token") ? tokenJson.get("refresh_token").getAsString() : null;
 		int expiresIn = tokenJson.has("expires_in") ? tokenJson.get("expires_in").getAsInt() : 0;
@@ -138,7 +138,7 @@ public class OauthCallbackController {
 		String tokenUrl = OAuthConfig.get(provider + ".token_url");
 
 		OauthClientConfig clientConfig = Helper.getClientConfig(provider);
-	
+
 		String clientId = clientConfig.getClientId();
 		String clientSecret = clientConfig.getClientSecret();
 		String params = "client_id=" + clientId + "&client_secret=" + clientSecret + "&refresh_token=" + refreshToken
@@ -151,7 +151,7 @@ public class OauthCallbackController {
 			throw new CustomException("Session expired. Please sign in again.", HttpStatusCodes.UNAUTHORIZED);
 		}
 		JsonObject tokenJson = JsonParser.parseString(response).getAsJsonObject();
-		
+
 		String accessToken = tokenJson.get("access_token").getAsString();
 		return accessToken;
 	}

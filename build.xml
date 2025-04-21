@@ -52,19 +52,19 @@
 		</war>
 	</target>
 
-	<!-- New Target: Deploy WAR to Tomcat -->
 	<target name="deploy" depends="package">
 		<echo message="Deploying WAR to Tomcat webapps folder..." />
 		<delete dir="${tomcat.webapps}/Bank_Application" />
 		<copy file="${war.file}" todir="${tomcat.webapps}" />
 	</target>
 
-	<!-- Start Tomcat -->
 	<target name="start-tomcat">
-		<exec executable="/home/guru-pt7672/Downloads/software/tomcat/bin/startup.sh" />
+		<exec executable="/home/guru-pt7672/Downloads/software/tomcat/bin/startup.sh">
+			<env key="JAVA_OPTS" value="-Dhttp.proxyHost=127.0.0.1 -Dhttp.proxyPort=3128" />
+		</exec>
 	</target>
 
-	<!-- Stop Tomcat -->
+
 	<target name="stop-tomcat">
 		<echo message="Killing any running Tomcat instances..." />
 		<exec executable="pkill">
@@ -74,12 +74,10 @@
 	</target>
 
 
-	<!-- Redeploy: Stop, Deploy, and Restart Tomcat -->
 	<target name="redeploy" depends="stop-tomcat, deploy, start-tomcat">
 		<echo message="Tomcat restarted with new WAR file." />
 	</target>
 
-	<!-- Auto-deploy: Watch for changes and redeploy -->
 	<target name="autodeploy">
 		<echo message="Watching for file changes... Press Ctrl+C to stop." />
 		<exec executable="bash">

@@ -25,18 +25,18 @@ public class Runner {
 //		NotificationService.getInstance().sendEmail("subi", "asd", "asd");
 		try {
 //			TransactionService.getInstance().updateTransactionStatus(5519l, TransactionStatus.Completed);
-			generateTokens();
-//			CustomerDetail customerDetail = new CustomerDetail();
+//			generateTokens();
+			CustomerDetail customerDetail = new CustomerDetail();
+
+			customerDetail.setCustomerId(12345L).setDob("1990-01-01").setFatherName("John Doe")
+					.setMotherName("Jane Doe").setAddress("123 Main St, Springfield").setMaritalStatus("Single")
+					.setUserId(1L).setPanNumber("ABCDE1234F").setAadharNumber(123456789012L).setFullname("Alex Smith")
+					.setEmail("alex.smith@example.com").setPhone(9876543210L).setUsername("alexsmith")
+					.setPassword("securepassword").setRoleEnum(Role.Customer).setStatusEnum(Status.Active)
+					.setCreatedAt(System.currentTimeMillis()).setModifiedAt(System.currentTimeMillis())
+					.setPerformedBy(1L).setPasswordVersion(1);
 //
-//			customerDetail.setCustomerId(12345L).setDob("1990-01-01").setFatherName("John Doe")
-//					.setMotherName("Jane Doe").setAddress("123 Main St, Springfield").setMaritalStatus("Single")
-//					.setUserId(1L).setPanNumber("ABCDE1234F").setAadharNumber(123456789012L).setFullname("Alex Smith")
-//					.setEmail("alex.smith@example.com").setPhone(9876543210L).setUsername("alexsmith")
-//					.setPassword("securepassword").setRoleEnum(Role.Customer).setStatusEnum(Status.Active)
-//					.setCreatedAt(System.currentTimeMillis()).setModifiedAt(System.currentTimeMillis())
-//					.setPerformedBy(1L).setPasswordVersion(1);
-//
-//			pushAccountRecords(customerDetail);
+			pushAccountRecords(customerDetail);
 //			CRMService.getInstance().pushAccountRecords(customerDetail);
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
@@ -73,16 +73,8 @@ public class Runner {
 		String url = "https://crm.localzoho.com/crm/v6/Accounts", response = null;
 
 		int retries = 0;
-		while (retries < 2) {
-			response = Helper.sendPostRequestWithJsonProxy(url, jsonBody,
-					"1000.2a7c6cad16019541d0e50c12a2d6b93e.a6aba1852e8d1565263d7270e4a7fb34", null, null);
-			if (Helper.checkResponse(response)) {
-				break;
-			} else if (Helper.isInvalidOauthToken(response)) {
-//				CRMService.getInstance().refreshAccessToken(1111L);
-				retries++;
-			}
-		}
+		response = Helper.sendPostRequestWithJsonProxy(url, jsonBody,
+				"1000.cd61213305ec73f226009d68e7c7b4fa.7de4a36ec8983982dbd2b968582a06b2", null, null);
 		System.out.println(response);
 		if (retries == 2) {
 			System.out.println("Accounts push to CRM failed, response: {}" + response);

@@ -18,6 +18,7 @@ import dao.DaoFactory;
 import enums.Constants.AccountsFields;
 import enums.Constants.ContactsFields;
 import enums.Constants.HttpStatusCodes;
+import enums.Constants.SymbolProvider;
 import io.github.cdimascio.dotenv.Dotenv;
 import model.ColumnCriteria;
 import model.CustomerDetail;
@@ -39,7 +40,8 @@ public class CRMService {
 	private static final String SCOPE = OAuthConfig.get("crm.scope");
 	private static final String SOID = "ZohoCrm." + OAuthConfig.get("crm.orgId");
 
-	private CRMService() {}
+	private CRMService() {
+	}
 
 	private static class SingletonHelper {
 		private static final CRMService INSTANCE = new CRMService();
@@ -76,7 +78,6 @@ public class CRMService {
 		data.put(AccountsFields.ACCOUNT_TYPE, user.getRole());
 		data.put(AccountsFields.RATING, user.getStatus());
 		data.put(AccountsFields.PHONE, user.getPhone().toString());
-
 		pushToCrm(OAuthConfig.get("crm.account.endpoint"), data, config);
 		pushContactRecords(user, config);
 	}
@@ -86,6 +87,7 @@ public class CRMService {
 		data.put(ContactsFields.USER_ID, OAuthConfig.get("crm.userId"));
 		data.put(ContactsFields.EMAIL, user.getEmail());
 		data.put(ContactsFields.FIRST_NAME, user.getFullname());
+		data.put(ContactsFields.LAST_NAME, user.getUsername());
 		data.put(ContactsFields.DOB, user.getDob());
 		data.put(ContactsFields.PHONE, user.getPhone().toString());
 
@@ -93,12 +95,14 @@ public class CRMService {
 	}
 
 	public void pushToCrm(String endpointKey, Map<Object, Object> data, OauthClientConfig config) throws Exception {
+
 		Map<String, Object> oauthMap = new HashMap<>();
 		oauthMap.put("clientConfigId", config.getId());
 		OauthProvider provider = oauthProviderDao.get(oauthMap).get(0);
 
 		String json = buildModuleJsonFromMap(data);
-		String url = API_DOMAIN + OAuthConfig.get(endpointKey);
+		logger.info(json);
+		String url = API_DOMAIN + endpointKey;
 
 		sendWithRetry(url, json, config, provider);
 	}
@@ -158,7 +162,16 @@ public class CRMService {
 			Object key = entry.getKey();
 			Object value = entry.getValue();
 
-			String extractedKey = ((Enum<?>) key).name();
+			String extractedKey;
+
+			if (key instanceof SymbolProvider) {
+				extractedKey = ((SymbolProvider) key).getSymbol();
+			} else if (key instanceof Enum) {
+				extractedKey = ((Enum<?>) key).name();
+			} else {
+				extractedKey = key.toString();
+			}
+
 			if (!entry.getKey().equals("User_Id")) {
 				if (value instanceof Number) {
 					accountObj.addProperty(extractedKey, (Number) value);

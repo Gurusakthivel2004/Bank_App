@@ -330,8 +330,13 @@ public class Constants {
 
 	}
 	
-	public static enum ContactsFields {
-		USER_ID("id"), EMAIL("Email"), FIRST_NAME("First_Name"), PHONE("Phone"), DOB("Date_Of_Birth");
+	public interface SymbolProvider {
+	    String getSymbol();
+	}
+
+	
+	public static enum ContactsFields implements SymbolProvider {
+		USER_ID("id"), EMAIL("Email"), FIRST_NAME("First_Name"), LAST_NAME("Last_Name"), PHONE("Phone"), DOB("Date_Of_Birth");
 
 		private final String ApiName;
 
@@ -343,7 +348,7 @@ public class Constants {
 			return ApiName;
 		}
 
-		public static String get(String operator) {
+		public static String name(String operator) {
 			try {
 				return ContactsFields.valueOf(operator).getSymbol();
 			} catch (IllegalArgumentException e) {
@@ -352,7 +357,7 @@ public class Constants {
 		}
 	}
 	
-	public static enum AccountsFields {
+	public static enum AccountsFields implements SymbolProvider {
 		USER_ID("id"), PHONE("Phone"), ACCOUNT_NAME("Account_Name"), ACCOUNT_TYPE("Account_Type"), RATING("Rating");
 
 		private final String ApiName;
@@ -365,7 +370,7 @@ public class Constants {
 			return ApiName;
 		}
 
-		public static String get(String operator) {
+		public static String name(String operator) {
 			try {
 				return AccountsFields.valueOf(operator).getSymbol();
 			} catch (IllegalArgumentException e) {

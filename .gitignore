@@ -9,3 +9,4 @@ app.log
 *.jar
 webapp/WEB-INF/lib/*
 dist/*
+.env

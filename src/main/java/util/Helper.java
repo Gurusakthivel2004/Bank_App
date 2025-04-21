@@ -427,16 +427,23 @@ public class Helper {
 	public static String sendPostRequestWithJsonProxy(String url, String jsonBody, String bearerToken,
 			String basicUsername, String basicPassword) throws Exception {
 
-		String proxyHost = "127.0.0.1";
-		int proxyPort = 3128;
+		String proxyHost = OAuthConfig.get("proxy.host");
+		Integer proxyPort = Integer.parseInt(OAuthConfig.get("proxy.port"));
+
+		LOGGER.info("Proxy Host: " + proxyHost);
+		LOGGER.info("Proxy Port: " + proxyPort);
+		
 		Proxy proxy = new Proxy(Proxy.Type.HTTP, new InetSocketAddress(proxyHost, proxyPort));
 
 		URL obj = new URL(url);
 		HttpURLConnection conn = (HttpURLConnection) obj.openConnection(proxy);
 
+
 		conn.setRequestMethod("POST");
 		conn.setDoOutput(true);
 		conn.setRequestProperty("Content-Type", "application/json");
+		conn.setConnectTimeout(5000); 
+		conn.setReadTimeout(5000); 
 
 		if (bearerToken != null && !bearerToken.isEmpty()) {
 			conn.setRequestProperty("Authorization", "Bearer " + bearerToken);
@@ -470,18 +477,16 @@ public class Helper {
 			byte[] input = jsonBody.getBytes("utf-8");
 			os.write(input, 0, input.length);
 		}
-		
-	    int responseCode = conn.getResponseCode();
 
-	    if (responseCode >= 200 && responseCode < 300) {
-	        return readStream(conn.getInputStream());
-	    } else {
-	        InputStream errorStream = conn.getErrorStream();
-	        String errorMessage = errorStream != null
-	                ? readStream(errorStream)
-	                : "Error: No response body";
-	        throw new IOException("HTTP error code: " + responseCode + " - " + errorMessage);
-	    }
+		int responseCode = conn.getResponseCode();
+
+		if (responseCode >= 200 && responseCode < 300) {
+			return readStream(conn.getInputStream());
+		} else {
+			InputStream errorStream = conn.getErrorStream();
+			String errorMessage = errorStream != null ? readStream(errorStream) : "Error: No response body";
+			throw new IOException("HTTP error code: " + responseCode + " - " + errorMessage);
+		}
 
 	}
 
@@ -495,18 +500,17 @@ public class Helper {
 		}
 		return readStream(conn.getInputStream());
 	}
-	
-	public static String readStream(InputStream stream) throws Exception {
-	    BufferedReader in = new BufferedReader(new InputStreamReader(stream));
-	    StringBuilder response = new StringBuilder();
-	    String inputLine;
-	    while ((inputLine = in.readLine()) != null) {
-	        response.append(inputLine);
-	    }
-	    in.close();
-	    return response.toString();
-	}
 
+	public static String readStream(InputStream stream) throws Exception {
+		BufferedReader in = new BufferedReader(new InputStreamReader(stream));
+		StringBuilder response = new StringBuilder();
+		String inputLine;
+		while ((inputLine = in.readLine()) != null) {
+			response.append(inputLine);
+		}
+		in.close();
+		return response.toString();
+	}
 
 	public static boolean checkResponse(String response) throws Exception {
 		JsonObject json = JsonParser.parseString(response).getAsJsonObject();
