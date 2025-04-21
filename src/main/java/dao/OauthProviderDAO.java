@@ -35,10 +35,11 @@ public class OauthProviderDAO implements DAO<OauthProvider> {
 
 		return Helper.convertToLong(insertedValue);
 	}
-
+	
 	public List<OauthProvider> get(Map<String, Object> oauthMap) throws Exception {
 		Criteria criteria = DAOHelper.initializeCriteria(OauthProvider.class);
 		DAOHelper.addConditionIfPresent(criteria, oauthMap, "provider", "provider", "EQUAL_TO", "");
+		DAOHelper.addConditionIfPresent(criteria, oauthMap, "clientConfigId", "client_config_id", "EQUAL_TO", "");
 		DAOHelper.addConditionIfPresent(criteria, oauthMap, "accessToken", "access_token", "EQUAL_TO", "");
 		DAOHelper.addConditionIfPresent(criteria, oauthMap, "userId", "user_id", "EQUAL_TO", 0l);
 		DAOHelper.addConditionIfPresent(criteria, oauthMap, "id", "id", "EQUAL_TO", 0l);
@@ -49,9 +50,10 @@ public class OauthProviderDAO implements DAO<OauthProvider> {
 		logger.info("Updating oauth provider info{}", oauthMap);
 		Criteria criteria = new Criteria().setClazz(OauthProvider.class);
 		DAOHelper.addConditionIfPresent(criteria, oauthMap, "provider", "provider", "EQUAL_TO", "");
-		DAOHelper.addConditionIfPresent(criteria, oauthMap, "userId", "user_id", "EQUAL_TO", 0l);
+		DAOHelper.addConditionIfPresent(criteria, oauthMap, "clientConfigId", "client_config_id", "EQUAL_TO", "");
 		DAOHelper.addConditionIfPresent(criteria, oauthMap, "accessToken", "access_token", "EQUAL_TO", "");
-		DAOHelper.addConditionIfPresent(criteria, oauthMap, "refreshToken", "refresh_token", "EQUAL_TO", "");
+		DAOHelper.addConditionIfPresent(criteria, oauthMap, "userId", "user_id", "EQUAL_TO", 0l);
+		DAOHelper.addConditionIfPresent(criteria, oauthMap, "id", "id", "EQUAL_TO", 0l);
 
 		SQLHelper.update(columnCriteria, criteria);
 	}

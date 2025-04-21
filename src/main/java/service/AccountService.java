@@ -181,7 +181,7 @@ public class AccountService {
 			CacheUtil.save(key + accountMap.get("accountNumber"), accounts);
 		}
 	}
-
+	
 	public void createAccount(Map<String, Object> accountMap) throws Exception {
 		logger.info("Creating account...");
 
@@ -194,7 +194,7 @@ public class AccountService {
 
 		Account account = Helper.createPojoFromMap(accountMap, Account.class);
 		Long accountId = accountDAO.create(account);
-
+		account.setAccountId(accountId);
 		logger.info("Account successfully created with accountId: {}", accountId);
 
 		logActivity(accountId, userId);

@@ -11,15 +11,14 @@ import org.apache.logging.log4j.Logger;
 import dao.DAO;
 import dao.DaoFactory;
 import dao.OtpVerificationsDAO;
-import enums.Constants.LoanAction;
+import enums.Constants.LogType;
+import model.ActivityLog;
 import model.Loan;
-import model.LoanLog;
 import util.Helper;
 
 public class LoanService {
 
 	private DAO<Loan> loanDAO = DaoFactory.getDAO(Loan.class);
-	private DAO<LoanLog> loanLogDAO = DaoFactory.getDAO(LoanLog.class);
 	private static Logger logger = LogManager.getLogger(OtpVerificationsDAO.class);
 
 	private LoanService() {}
@@ -40,7 +39,7 @@ public class LoanService {
 		loan.setCreatedAt(System.currentTimeMillis());
 
 		Long loanId = loanDAO.create(loan);
-		logLoanData(loan, loanId);
+		logActivity(accountNumber, null, loanId);
 	}
 
 	public List<Loan> getLoanDetails(Long accountNumber) throws Exception {
@@ -50,19 +49,16 @@ public class LoanService {
 
 		return loanDAO.get(loanCriteriaMap);
 	}
+	
+	private void logActivity(Long accountNumber, Long userId, Long rowId) throws Exception {
+		logger.debug("Logging loan activity for account: {}", accountNumber);
 
-	private void logLoanData(Loan loan, Long loanId) throws Exception {
-		Long userId = (Long) Helper.getThreadLocalValue("id");
-		LoanLog loanLog = new LoanLog().setLoanId(loanId).setAccountNumber(loan.getAccountNumber())
-				.setAction(LoanAction.Approve).setCreatedAt(System.currentTimeMillis()).setPerformedBy(userId)
-				.setMessage("Loan approved.");
-		BackgroundService.getInstance().submitTask("log", () -> {
-			try {
-				loanLogDAO.create(loanLog);
-			} catch (Exception e) {
-				logger.error("Error occurred while saving activity log", e);
-			}
-		});
+		ActivityLog activityLog = new ActivityLog().setLogMessage("Loan approved").setLogType(LogType.Insert)
+				.setRowId(rowId).setTableName("Loan").setUserId(userId).setUserAccountNumber(accountNumber)
+				.setPerformedBy(userId).setTimestamp(System.currentTimeMillis());
+
+		Helper.logActivity(activityLog);
+		logger.debug("Activity log created.");
 	}
 
 }

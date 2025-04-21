@@ -3,6 +3,7 @@ package util;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.PrintWriter;
@@ -10,6 +11,8 @@ import java.lang.reflect.Field;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.net.HttpURLConnection;
+import java.net.InetSocketAddress;
+import java.net.Proxy;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -51,7 +54,6 @@ import com.google.gson.JsonParser;
 import com.google.gson.JsonPrimitive;
 import com.password4j.Password;
 
-import dao.ActivityLogDAO;
 import dao.DAO;
 import dao.DaoFactory;
 import enums.Constants.HttpStatusCodes;
@@ -60,8 +62,9 @@ import enums.Constants.TaskExecutor;
 import enums.Constants.ValidQueryParams;
 import io.github.cdimascio.dotenv.Dotenv;
 import model.ActivityLog;
+import model.ModuleLog;
+import model.OauthClientConfig;
 import model.User;
-import service.BackgroundService;
 import service.UserService;
 import util.ColumnYamlUtil.ClassMapping;
 
@@ -394,7 +397,19 @@ public class Helper {
 		}
 	}
 
-	public static String sendPostRequest(String url, String params) throws IOException {
+	public static OauthClientConfig getClientConfig(String provider) throws Exception {
+		Map<String, Object> configMap = new HashMap<>();
+		configMap.put("provider", provider);
+
+		DAO<OauthClientConfig> oauthClientConfigDAO = DaoFactory.getDAO(OauthClientConfig.class);
+		List<OauthClientConfig> oauthClientConfigs = oauthClientConfigDAO.get(configMap);
+		if (oauthClientConfigs == null || oauthClientConfigs.isEmpty()) {
+			throw new CustomException("client conifg does not exists for the provider", HttpStatusCodes.BAD_REQUEST);
+		}
+		return oauthClientConfigs.get(0);
+	}
+
+	public static String sendPostRequest(String url, String params) throws Exception {
 		URL obj = new URL(url);
 		HttpURLConnection conn = (HttpURLConnection) obj.openConnection();
 		conn.setRequestMethod("POST");
@@ -406,25 +421,107 @@ public class Helper {
 		os.flush();
 		os.close();
 
-		return readResponse(conn);
+		return readStream(conn.getInputStream());
 	}
 
-	public static String sendGetRequest(String url) throws IOException {
+	public static String sendPostRequestWithJsonProxy(String url, String jsonBody, String bearerToken,
+			String basicUsername, String basicPassword) throws Exception {
+
+		String proxyHost = "127.0.0.1";
+		int proxyPort = 3128;
+		Proxy proxy = new Proxy(Proxy.Type.HTTP, new InetSocketAddress(proxyHost, proxyPort));
+
+		URL obj = new URL(url);
+		HttpURLConnection conn = (HttpURLConnection) obj.openConnection(proxy);
+
+		conn.setRequestMethod("POST");
+		conn.setDoOutput(true);
+		conn.setRequestProperty("Content-Type", "application/json");
+
+		if (bearerToken != null && !bearerToken.isEmpty()) {
+			conn.setRequestProperty("Authorization", "Bearer " + bearerToken);
+		} else if (basicUsername != null && basicPassword != null) {
+			String basicToken = Base64.getEncoder()
+					.encodeToString((basicUsername + ":" + basicPassword).getBytes("UTF-8"));
+			conn.setRequestProperty("Authorization", "Basic " + basicToken);
+		}
+
+		try (OutputStream os = conn.getOutputStream()) {
+			byte[] input = jsonBody.getBytes("UTF-8");
+			os.write(input, 0, input.length);
+		}
+
+		return readStream(conn.getInputStream());
+	}
+
+	public static String sendPostRequestWithJson(String url, String jsonBody, String bearerToken) throws Exception {
+		URL obj = new URL(url);
+		HttpURLConnection conn = (HttpURLConnection) obj.openConnection();
+
+		conn.setRequestMethod("POST");
+		conn.setDoOutput(true);
+		conn.setRequestProperty("Content-Type", "application/json");
+
+		if (bearerToken != null) {
+			conn.setRequestProperty("Authorization", "Bearer " + bearerToken);
+		}
+
+		try (OutputStream os = conn.getOutputStream()) {
+			byte[] input = jsonBody.getBytes("utf-8");
+			os.write(input, 0, input.length);
+		}
+		
+	    int responseCode = conn.getResponseCode();
+
+	    if (responseCode >= 200 && responseCode < 300) {
+	        return readStream(conn.getInputStream());
+	    } else {
+	        InputStream errorStream = conn.getErrorStream();
+	        String errorMessage = errorStream != null
+	                ? readStream(errorStream)
+	                : "Error: No response body";
+	        throw new IOException("HTTP error code: " + responseCode + " - " + errorMessage);
+	    }
+
+	}
+
+	public static String sendGetRequest(String url, String bearerToken) throws Exception {
 		URL obj = new URL(url);
 		HttpURLConnection conn = (HttpURLConnection) obj.openConnection();
 		conn.setRequestMethod("GET");
-		return readResponse(conn);
+
+		if (bearerToken != null) {
+			conn.setRequestProperty("Authorization", "Bearer " + bearerToken);
+		}
+		return readStream(conn.getInputStream());
+	}
+	
+	public static String readStream(InputStream stream) throws Exception {
+	    BufferedReader in = new BufferedReader(new InputStreamReader(stream));
+	    StringBuilder response = new StringBuilder();
+	    String inputLine;
+	    while ((inputLine = in.readLine()) != null) {
+	        response.append(inputLine);
+	    }
+	    in.close();
+	    return response.toString();
 	}
 
-	public static String readResponse(HttpURLConnection conn) throws IOException {
-		BufferedReader in = new BufferedReader(new InputStreamReader(conn.getInputStream()));
-		String inputLine;
-		StringBuilder response = new StringBuilder();
-		while ((inputLine = in.readLine()) != null) {
-			response.append(inputLine);
-		}
-		in.close();
-		return response.toString();
+
+	public static boolean checkResponse(String response) throws Exception {
+		JsonObject json = JsonParser.parseString(response).getAsJsonObject();
+		return json.has("status") && "error".equals(json.get("status").getAsString());
+	}
+
+	public static boolean isInvalidOauthToken(String response) throws Exception {
+		JsonObject json = JsonParser.parseString(response).getAsJsonObject();
+		LOGGER.info(json);
+		return json.has("code") && "INVALID_TOKEN".equals(json.get("code").getAsString());
+	}
+
+	public static String toJson(Map<String, Object> map) throws IOException {
+		ObjectMapper objectMapper = new ObjectMapper();
+		return objectMapper.writeValueAsString(map);
 	}
 
 	public static void sendSuccessResponse(HttpServletResponse response, Object responseData) throws IOException {
@@ -577,6 +674,17 @@ public class Helper {
 		} catch (Exception e) {
 			LOGGER.error("Error preparing activity log", e);
 		}
+	}
+
+	public static void logModule(ModuleLog moduleLog) throws Exception {
+		DAO<ModuleLog> moduleLogDAO = DaoFactory.getDAO(ModuleLog.class);
+		TaskExecutor.LOG.submitTask(() -> {
+			try {
+				moduleLogDAO.create(moduleLog);
+			} catch (Exception e) {
+				LOGGER.error("Error occurred while saving activity log", e);
+			}
+		});
 	}
 
 	public static Long extractAccountNumber(String input) {

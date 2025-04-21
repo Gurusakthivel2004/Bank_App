@@ -8,25 +8,25 @@ import org.apache.logging.log4j.Logger;
 
 import model.ColumnCriteria;
 import model.Criteria;
-import model.LoanLog;
+import model.ModuleLog;
 import util.Helper;
 import util.SQLHelper;
 
-public class LoanLogDAO implements DAO<LoanLog> {
+public class ModuleLogDAO implements DAO<ModuleLog> {
 
-	private static Logger logger = LogManager.getLogger(LoanLogDAO.class);
+	private static Logger logger = LogManager.getLogger(ModuleLogDAO.class);
 
-	private LoanLogDAO() {}
+	private ModuleLogDAO() {}
 
 	private static class SingletonHelper {
-		private static final LoanLogDAO INSTANCE = new LoanLogDAO();
+		private static final ModuleLogDAO INSTANCE = new ModuleLogDAO();
 	}
 
-	public static LoanLogDAO getInstance() {
+	public static ModuleLogDAO getInstance() {
 		return SingletonHelper.INSTANCE;
 	}
 
-	public long create(LoanLog loanLog) throws Exception {
+	public long create(ModuleLog loanLog) throws Exception {
 		logger.info("Inserting loan log info...");
 
 		Helper.checkNullValues(loanLog);
@@ -35,10 +35,10 @@ public class LoanLogDAO implements DAO<LoanLog> {
 		return Helper.convertToLong(insertedValue);
 	}
 
-	public List<LoanLog> get(Map<String, Object> loanMap) throws Exception {
-		Criteria criteria = DAOHelper.initializeCriteria(LoanLog.class);
+	public List<ModuleLog> get(Map<String, Object> loanMap) throws Exception {
+		Criteria criteria = DAOHelper.initializeCriteria(ModuleLog.class);
 		DAOHelper.applyLoanLogFilters(criteria, loanMap);
-		return SQLHelper.get(criteria, LoanLog.class);
+		return SQLHelper.get(criteria, ModuleLog.class);
 	}
 
 	public void update(ColumnCriteria columnCriteria, Map<String, Object> otpMap) throws Exception {

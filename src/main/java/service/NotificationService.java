@@ -99,7 +99,7 @@ public class NotificationService {
 		String otp = Helper.generateOTP();
 		sendEmail(user.getEmail(), "One-time Password", otp + " is your otp to process the payment.");
 
-		deleteOtp(userId);
+		deleteOtp(accountNumber);
 
 		OtpVerifications otpVerifications = new OtpVerifications();
 		otpVerifications.setUserId(userId);

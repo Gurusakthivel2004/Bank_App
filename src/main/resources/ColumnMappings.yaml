@@ -196,10 +196,10 @@ classes:
          columnName: "id"
        userId:
          columnName: "user_id"
-       provider:
-         columnName: "provider"
        providerUserId:
          columnName: "provider_user_id"
+       clientConfigId:
+         columnName: "client_config_id"
        accessToken:
          columnName: "access_token"
        refreshToken:
@@ -208,6 +208,21 @@ classes:
          columnName: "expires_in"
        createdAt:
          columnName: "created_at"
+
+  model.OauthClientConfig:
+    tableName: "oauth_client_config"
+    autoIncrementField: "id"
+    fields:
+      id:
+        columnName: "id"
+      provider:
+        columnName: "provider"
+      clientId:
+        columnName: "client_id"
+      clientSecret:
+        columnName: "client_secret"
+      domain:
+        columnName: "domain"
 
   model.UserSession:
      tableName: "user_session"
@@ -260,16 +275,16 @@ classes:
       createdAt:
          columnName: "created_at"
 
-  model.LoanLog:
-     tableName: "loan_log"
+  model.ModuleLog:
+     tableName: "module_log"
      autoIncrementField: "id"
      fields:
        id:
          columnName: "id"
-       action:
-         columnName: "action"
-       loanId:
-         columnName: "loan_id"
+       module:
+         columnName: "module"
+       moduleId:
+         columnName: "module_id"
        accountNumber:
          columnName: "account_number"
        message:

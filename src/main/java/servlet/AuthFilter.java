@@ -21,7 +21,7 @@ import cache.CacheUtil;
 import controller.OauthCallbackController;
 import controller.OauthController;
 import dao.DAO;
-import dao.OauthProviderDAO;
+import dao.DaoFactory;
 import enums.Constants.HttpStatusCodes;
 import enums.Constants.RolePermission;
 import enums.Constants.Status;
@@ -39,7 +39,7 @@ import util.Helper;
 public class AuthFilter extends HttpFilter implements Filter {
 
 	private static Logger logger = LogManager.getLogger(AuthFilter.class);
-	private DAO<OauthProvider> oauthProviderDAO = OauthProviderDAO.getInstance();
+	private DAO<OauthProvider> oauthProviderDAO = DaoFactory.getDAO(OauthProvider.class);
 
 	@Override
 	public void doFilter(HttpServletRequest request, HttpServletResponse response, FilterChain chain)

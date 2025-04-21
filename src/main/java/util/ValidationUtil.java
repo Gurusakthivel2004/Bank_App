@@ -267,6 +267,7 @@ public class ValidationUtil {
 
 			BigDecimal accountBalance = account.getBalance();
 			if (accountBalance.compareTo(transactionAmount) < 0) {
+				logger.debug("accountBalance: {}, transactionAmount: {}", accountBalance, transactionAmount);
 				throw new CustomException("Insufficient balance.", HttpStatusCodes.BAD_REQUEST);
 			}
 		} catch (NumberFormatException e) {

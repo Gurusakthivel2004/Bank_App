@@ -12,12 +12,14 @@ import org.apache.logging.log4j.Logger;
 import dao.DAO;
 import dao.DaoFactory;
 import enums.Constants.HttpStatusCodes;
-import enums.Constants.LoanAction;
+import enums.Constants.LogType;
 import enums.Constants.MessageStatus;
-import enums.Constants.TaskExecutor;
+import enums.Constants.MessageType;
+import enums.Constants.Module;
+import model.ActivityLog;
 import model.ColumnCriteria;
-import model.LoanLog;
 import model.Message;
+import model.ModuleLog;
 import util.CustomException;
 import util.Helper;
 import util.ValidationUtil;
@@ -25,7 +27,6 @@ import util.ValidationUtil;
 public class MessageService {
 
 	private static Logger logger = LogManager.getLogger(MessageService.class);
-	private DAO<LoanLog> loanLogDAO = DaoFactory.getDAO(LoanLog.class);
 	private DAO<Message> messagDAO = DaoFactory.getDAO(Message.class);
 
 	private MessageService() {}
@@ -62,8 +63,14 @@ public class MessageService {
 		ValidationUtil.userExists(senderId);
 		long messageId = messagDAO.create(message);
 		logger.info("Message successfully created with id: {}", messageId);
-		
-		logLoanData(message.getMessageContent(), message.getSenderId());
+		logger.info("message type is :", message.getMessageType() + " does it equals ? : ",
+				message.getMessageType().equals(MessageType.ApplyLoan));
+
+		logActivity(message.getMessageContent(), message.getSenderId(), messageId);
+
+		if (message.getMessageType().equals(MessageType.ApplyLoan)) {
+			logModule(message.getMessageContent(), message.getSenderId());
+		}
 	}
 
 	public void updateMessage(Map<String, Object> messageMap) throws Exception {
@@ -94,19 +101,24 @@ public class MessageService {
 		messagDAO.update(columnCriteria, messageMap);
 
 	}
-	
-	private void logLoanData(String message, Long userId) throws Exception {
+
+	private void logActivity(String message, Long userId, Long rowId) throws Exception {
 		Long accountNumber = Helper.extractAccountNumber(message);
-		LoanLog loanLog = new LoanLog().setLoanId(null).setAccountNumber(accountNumber)
-				.setAction(LoanAction.Apply).setCreatedAt(System.currentTimeMillis()).setPerformedBy(userId)
-				.setMessage("Loan applied.");
-		TaskExecutor.LOG.submitTask(() -> {
-			try {
-				loanLogDAO.create(loanLog);
-			} catch (Exception e) {
-				logger.error("Error occurred while saving activity log", e);
-			}
-		});
+		logger.debug("Logging message activity for account: {}", accountNumber);
+
+		ActivityLog activityLog = new ActivityLog().setLogMessage("Request created.").setLogType(LogType.Insert)
+				.setRowId(rowId).setTableName("Message").setUserId(userId).setUserAccountNumber(accountNumber)
+				.setPerformedBy(userId).setTimestamp(System.currentTimeMillis());
+
+		Helper.logActivity(activityLog);
+		logger.debug("Activity log created.");
+	}
+
+	private void logModule(String message, Long userId) throws Exception {
+		Long accountNumber = Helper.extractAccountNumber(message);
+		ModuleLog moduleLog = new ModuleLog().setModuleId(null).setAccountNumber(accountNumber).setModule(Module.Loan)
+				.setCreatedAt(System.currentTimeMillis()).setPerformedBy(userId).setMessage("Loan applied.");
+		Helper.logModule(moduleLog);
 	}
 
 }

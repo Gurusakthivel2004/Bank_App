@@ -1,21 +1,21 @@
 package initializer;
 
 import java.sql.Connection;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.SQLIntegrityConstraintViolationException;
 import java.sql.Statement;
-import java.sql.ResultSet;
 import java.util.HashMap;
 import java.util.Map;
-import org.postgresql.util.PSQLException;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.postgresql.util.PSQLException;
 
+import dao.DaoFactory;
 import enums.Constants.HttpStatusCodes;
 import util.CustomException;
 import util.Helper;
-import dao.DaoFactory;
 
 public class AdminCreator {
 

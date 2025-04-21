@@ -10,8 +10,9 @@ import javax.servlet.http.HttpServletResponse;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import enums.Constants.HttpStatusCodes;
 import enums.Constants.Role;
-import io.github.cdimascio.dotenv.Dotenv;
+import model.OauthClientConfig;
 import model.OauthProvider;
 import util.CustomException;
 import util.Helper;
@@ -67,10 +68,10 @@ public class OauthController {
 
 				if (userRole == Role.Customer) {
 					logger.info("Redirecting to customer dashboard.");
-					response.sendRedirect("http://localhost:8080/Bank_Application/dashboard.html");
+					response.sendRedirect("/Bank_Application/dashboard.html");
 				} else {
 					logger.info("Redirecting to employee dashboard.");
-					response.sendRedirect("http://localhost:8080/Bank_Application/emp-dashboard.html");
+					response.sendRedirect("/Bank_Application/emp-dashboard.html");
 				}
 				return;
 			} catch (IOException e) {
@@ -80,39 +81,42 @@ public class OauthController {
 				logger.warn("CustomException caught - User needs to sign in again.", e);
 			}
 		}
+		
+		String authorizationUrl = generateGrantToken(provider);
+		logger.info("Redirecting to OAuth authorization URL: {}", authorizationUrl);
+		response.sendRedirect(authorizationUrl);
 
+	}
+	
+	public String generateGrantToken(String provider) throws Exception {
 		logger.info("No token found, initiating OAuth authorization process.");
 
-		Dotenv dotenv = Helper.loadDotEnv();
-		String providerCap = provider.toUpperCase();
+		OauthClientConfig clientConfig = Helper.getClientConfig(provider);
 
 		String authUrl = OAuthConfig.get(provider + ".auth_url");
-		String clientId = dotenv.get(providerCap + "_CLIENT_ID");
 		String redirectUri = OAuthConfig.get(provider + ".redirect_uri");
 		String scope = OAuthConfig.get(provider + ".scope");
 
-		if (authUrl == null || clientId == null || redirectUri == null) {
+		if (authUrl == null || redirectUri == null) {
 			logger.error("Invalid provider configuration: missing essential details");
-			response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Invalid provider configuration");
-			return;
+			throw new CustomException("Invalid provider configuration", HttpStatusCodes.BAD_REQUEST);
 		}
 
 		logger.info("Authorization URL: {}", authUrl);
-		logger.info("OAuth client ID for provider {}: {}", provider, clientId);
+		logger.info("OAuth client ID for provider {}: {}", provider, clientConfig.getClientId());
 		logger.info("Redirect URI: {}", redirectUri);
 
 		try {
 			String state = URLEncoder.encode(provider, "UTF-8");
-			String authorizationUrl = authUrl + "?client_id=" + URLEncoder.encode(clientId, "UTF-8") + "&redirect_uri="
+			return authUrl + "?client_id=" + URLEncoder.encode(clientConfig.getClientId(), "UTF-8") + "&redirect_uri="
 					+ URLEncoder.encode(redirectUri, "UTF-8") + "&response_type=code" + "&scope="
 					+ URLEncoder.encode(scope, "UTF-8") + "&access_type=offline" + "&prompt=consent" + "&state="
 					+ state;
-
-			logger.info("Redirecting to OAuth authorization URL: {}", authorizationUrl);
-			response.sendRedirect(authorizationUrl);
+			
 		} catch (Exception e) {
 			logger.error("Error encoding or sending OAuth authorization request", e);
 		}
-
+		return null;
 	}
+	
 }

@@ -9,15 +9,15 @@
 
 		<!-- File Appender with date-based filename -->
 		<RollingFile name="RollingFile"
-			fileName="/logs/app.log"
-			filePattern="/logs/$${date:yyyy-MM-dd}/app-%d{yyyy-MM-dd}.log">
+			fileName="/home/guru-pt7672/Downloads/software/tomcat/webapps/Bank_Application/logs/app.log"
+			filePattern="/home/guru-pt7672/Downloads/software/tomcat/webapps/Bank_Application/logs/$${date:yyyy-MM-dd}/app-%d{yyyy-MM-dd}.log">
 
 		    <PatternLayout
 		        pattern="%d{yyyy-MM-dd HH:mm:ss} [%t] %-5level %logger{36} - %msg%n" />
 		    <Policies>
 		        <TimeBasedTriggeringPolicy interval="1" modulate="true" />
 		    </Policies>
-		    <DefaultRolloverStrategy max="10" createOnDemand="true" />
+		    <DefaultRolloverStrategy max="10" />
 		</RollingFile>
 
 	</Appenders>

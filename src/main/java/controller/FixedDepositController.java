@@ -19,8 +19,7 @@ public class FixedDepositController {
 	private static Logger logger = LogManager.getLogger(FixedDepositController.class);
 	private FixedDepositService fdService = FixedDepositService.getInstance();
 
-	private FixedDepositController() {
-	}
+	private FixedDepositController() {}
 
 	private static class SingletonHelper {
 		private static final FixedDepositController INSTANCE = new FixedDepositController();

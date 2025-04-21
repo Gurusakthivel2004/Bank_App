@@ -1,12 +1,11 @@
 package cache;
 
-import redis.clients.jedis.Jedis;
-import redis.clients.jedis.JedisPool;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import initializer.Initializer;
+import redis.clients.jedis.Jedis;
+import redis.clients.jedis.JedisPool;
 
 public class RedisCache {
 

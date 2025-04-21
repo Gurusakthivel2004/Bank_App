@@ -21,6 +21,7 @@ import dao.DaoFactory;
 import enums.Constants.HttpStatusCodes;
 import enums.Constants.LogType;
 import enums.Constants.Role;
+import enums.Constants.TaskExecutor;
 import model.ActivityLog;
 import model.ColumnCriteria;
 import model.CustomerDetail;
@@ -34,7 +35,7 @@ import util.ValidationUtil;
 @SuppressWarnings("unchecked")
 public class UserService {
 
-	private static Logger logger = LogManager.getLogger(UserService.class);
+	private Logger logger = LogManager.getLogger(UserService.class);
 	private DAO<User> userDao = DaoFactory.getDAO(User.class);
 	private DAO<CustomerDetail> customerDao = DaoFactory.getDAO(CustomerDetail.class);
 	private DAO<Staff> staffDao = DaoFactory.getDAO(Staff.class);
@@ -329,6 +330,15 @@ public class UserService {
 				CustomerDetail customerDetail = Helper.createPojoFromMap(userMap, CustomerDetail.class);
 				ValidationUtil.validateCustomerModel(customerDetail);
 				userId = userDao.create(customerDetail);
+				
+				TaskExecutor.CRM.submitTask(() -> {
+					try {
+						CRMService.getInstance().pushAccountRecords(customerDetail);
+					} catch (Exception e) {
+						logger.error("Error occurred while pushing to CRM", e);
+					}
+				});
+			
 			} else {
 				Staff staff = Helper.createPojoFromMap(userMap, Staff.class);
 				ValidationUtil.validateStaffModel(staff);

@@ -1,6 +1,9 @@
 package initializer;
 
+import java.sql.Connection;
+import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.sql.Statement;
 
 import javax.servlet.ServletContextEvent;
 import javax.servlet.ServletContextListener;
@@ -12,15 +15,19 @@ import org.apache.logging.log4j.Logger;
 
 import dao.DaoFactory;
 import enums.Constants.HttpStatusCodes;
+import enums.Constants.Role;
+import enums.Constants.Status;
 import io.github.cdimascio.dotenv.Dotenv;
 import pool.DBConnectionPool;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 import schedular.ExpiredSessionSchedular;
 import schedular.PasswordUpdateScheduler;
-import service.NotificationService;
+import service.CRMService;
 import util.CustomException;
 import util.Helper;
+
+import model.CustomerDetail;
 
 @WebListener
 public class Initializer implements ServletContextListener {
@@ -76,6 +83,18 @@ public class Initializer implements ServletContextListener {
 			expiredSessionSchedular.startScheduler();
 			passwordUpdateScheduler.startScheduler();
 
+			// test
+//			CustomerDetail customerDetail = new CustomerDetail();
+//
+//			customerDetail.setCustomerId(12345L).setDob("1990-01-01").setFatherName("John Doe")
+//					.setMotherName("Jane Doe").setAddress("123 Main St, Springfield").setMaritalStatus("Single")
+//					.setUserId(1L).setPanNumber("ABCDE1234F").setAadharNumber(123456789012L).setFullname("Alex Smith")
+//					.setEmail("alex.smith@example.com").setPhone(9876543210L).setUsername("alexsmith")
+//					.setPassword("securepassword").setRoleEnum(Role.Customer).setStatusEnum(Status.Active)
+//					.setCreatedAt(System.currentTimeMillis()).setModifiedAt(System.currentTimeMillis())
+//					.setPerformedBy(1L).setPasswordVersion(1);
+//			CRMService.getInstance().pushAccountRecords(customerDetail);
+//			CRMService.getInstance().refreshAccessToken(Helper.getClientConfig("Zoho"));
 		} catch (Exception e) {
 			logger.error("Error initializing resources: {}", e);
 			throw new RuntimeException("Error initializing resources: ", e);
@@ -171,11 +190,11 @@ public class Initializer implements ServletContextListener {
 		Class.forName("org.postgresql.Driver");
 		logger.info("Loaded PostgreSQL JDBC Driver.");
 
-//		try (Connection conn = DriverManager.getConnection("jdbc:postgresql://localhost:5432/postgres", "root", "root");
-//				Statement stmt = conn.createStatement()) {
-//			stmt.execute("DO $$ BEGIN IF NOT EXISTS (SELECT FROM pg_database WHERE datname = 'bank') "
-//					+ "THEN CREATE DATABASE bank; END IF; END $$;");
-//		}
+		try (Connection conn = DriverManager.getConnection("jdbc:postgresql://localhost:5432/postgres", "root", "root");
+				Statement stmt = conn.createStatement()) {
+			stmt.execute("DO $$ BEGIN IF NOT EXISTS (SELECT FROM pg_database WHERE datname = 'bank') "
+					+ "THEN CREATE DATABASE bank; END IF; END $$;");
+		}
 	}
 
 }

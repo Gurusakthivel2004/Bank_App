@@ -1,6 +1,5 @@
 package controller;
 
-import java.io.IOException;
 import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -20,11 +19,11 @@ import com.google.gson.JsonParser;
 
 import cache.CacheUtil;
 import dao.DAO;
-import dao.OauthProviderDAO;
+import dao.DaoFactory;
 import enums.Constants.HttpStatusCodes;
 import enums.Constants.Role;
-import io.github.cdimascio.dotenv.Dotenv;
 import model.ColumnCriteria;
+import model.OauthClientConfig;
 import model.OauthProvider;
 import model.User;
 import service.UserService;
@@ -35,11 +34,10 @@ import util.OAuthConfig;
 public class OauthCallbackController {
 
 	private UserService userService = UserService.getInstance();
-	private DAO<OauthProvider> oauthProviderDAO = OauthProviderDAO.getInstance();
+	private DAO<OauthProvider> oauthProviderDAO = DaoFactory.getDAO(OauthProvider.class);
 	private static Logger logger = LogManager.getLogger(OauthCallbackController.class);
 
-	private OauthCallbackController() {
-	}
+	private OauthCallbackController() {}
 
 	private static class SingletonHelper {
 		private static final OauthCallbackController INSTANCE = new OauthCallbackController();
@@ -57,13 +55,12 @@ public class OauthCallbackController {
 			Helper.sendJsonResponse(response, HttpStatusCodes.BAD_REQUEST, "Invalid Oauth callback.", null);
 			return;
 		}
-
-		Dotenv dotenv = Helper.loadDotEnv();
-		String providerCap = provider.toUpperCase();
-
+		
+		OauthClientConfig clientConfig = Helper.getClientConfig(provider);
+		
 		String tokenUrl = OAuthConfig.get(provider + ".token_url");
-		String clientId = dotenv.get(providerCap + "_CLIENT_ID");
-		String clientSecret = dotenv.get(providerCap + "_CLIENT_SECRET");
+		String clientId = clientConfig.getClientId();
+		String clientSecret = clientConfig.getClientSecret();
 		String redirectUri = OAuthConfig.get(provider + ".redirect_uri");
 
 		String params = "code=" + URLEncoder.encode(code, "UTF-8") + "&client_id="
@@ -73,19 +70,19 @@ public class OauthCallbackController {
 		// Get Access Token
 		String tokenResponse = Helper.sendPostRequest(tokenUrl, params);
 		JsonObject tokenJson = JsonParser.parseString(tokenResponse).getAsJsonObject();
-		String accessToken = tokenJson.get("access_token").getAsString();
-
+	
 		if (!tokenJson.has("access_token")) {
 			Helper.sendJsonResponse(response, HttpStatusCodes.BAD_REQUEST, "Access token missing from provider.", null);
 			return;
 		}
-
+		
+		String accessToken = tokenJson.get("access_token").getAsString();
 		String refreshToken = tokenJson.has("refresh_token") ? tokenJson.get("refresh_token").getAsString() : null;
 		int expiresIn = tokenJson.has("expires_in") ? tokenJson.get("expires_in").getAsInt() : 0;
 
 		// Get User Info
 		String userInfoUrl = OAuthConfig.get(provider + ".user_info_url");
-		String userInfoResponse = Helper.sendGetRequest(userInfoUrl + "?access_token=" + accessToken);
+		String userInfoResponse = Helper.sendGetRequest(userInfoUrl + "?access_token=" + accessToken, null);
 		JsonObject userInfoJson = JsonParser.parseString(userInfoResponse).getAsJsonObject();
 
 		// Extract User Info
@@ -96,8 +93,8 @@ public class OauthCallbackController {
 		// Store OAuth details
 		OauthProvider oauthProvider = new OauthProvider();
 		oauthProvider.setAccessToken(accessToken);
-		oauthProvider.setProvider(provider);
 		oauthProvider.setProviderUserId(providerUserId);
+		oauthProvider.setOauthClientId(clientConfig.getId());
 		oauthProvider.setExpiresIn(expiresIn);
 		if (refreshToken != null) {
 			oauthProvider.setRefreshToken(refreshToken);
@@ -111,7 +108,7 @@ public class OauthCallbackController {
 
 		String userInfoEndpoint = "https://www.googleapis.com/oauth2/v1/tokeninfo?access_token=" + accessToken;
 		try {
-			String getresponse = Helper.sendGetRequest(userInfoEndpoint);
+			String getresponse = Helper.sendGetRequest(userInfoEndpoint, null);
 			return getresponse.contains("email") ? accessToken : null;
 		} catch (Exception e) {
 			OauthProvider oauthProvider = getOuathProvider(accessToken);
@@ -137,14 +134,13 @@ public class OauthCallbackController {
 		return oauthProviders.get(0);
 	}
 
-	public String refreshAccessToken(String refreshToken, String provider) throws CustomException, IOException {
+	public String refreshAccessToken(String refreshToken, String provider) throws Exception {
 		String tokenUrl = OAuthConfig.get(provider + ".token_url");
 
-		Dotenv dotenv = Helper.loadDotEnv();
-		String providerCap = provider.toUpperCase();
-		String clientId = dotenv.get(providerCap + "_CLIENT_ID");
-		String clientSecret = dotenv.get(providerCap + "_CLIENT_SECRET");
-
+		OauthClientConfig clientConfig = Helper.getClientConfig(provider);
+	
+		String clientId = clientConfig.getClientId();
+		String clientSecret = clientConfig.getClientSecret();
 		String params = "client_id=" + clientId + "&client_secret=" + clientSecret + "&refresh_token=" + refreshToken
 				+ "&grant_type=refresh_token";
 
@@ -192,7 +188,6 @@ public class OauthCallbackController {
 	private void createOrUpdate(OauthProvider oauthProvider, String sessionId) throws Exception {
 		Map<String, Object> oauthProviderMap = new HashMap<>();
 		oauthProviderMap.put("userId", oauthProvider.getUserId());
-		oauthProviderMap.put("provider", oauthProvider.getProvider());
 		List<OauthProvider> oauthProviders = oauthProviderDAO.get(oauthProviderMap);
 		CacheUtil.saveWithTTL(oauthProvider.getUserId().toString(), oauthProvider.getAccessToken(), 3600);
 

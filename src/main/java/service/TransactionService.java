@@ -202,6 +202,7 @@ public class TransactionService {
 		logger.info("Starting transaction processing...");
 		Role role = Role.fromString((String) Helper.getThreadLocalValue("role"));
 		checkRoleAuthorization(role, transaction, account, transaction.getCustomerId(), branchId);
+		ValidationUtil.validateTransactionAmount(transaction.getAmount(), account);
 		long txId = createTransaction(transaction, account);
 
 		if (thisBank) {
@@ -219,7 +220,6 @@ public class TransactionService {
 		try {
 			long accountNumber = transaction.getAccountNumber();
 			account = getAccount(accountNumber);
-			ValidationUtil.validateTransactionAmount(transaction.getAmount(), account);
 
 			BigDecimal closingBalance = computeClosingBalance(transaction.getTransactionTypeEnum(),
 					transaction.getAmount(), account);

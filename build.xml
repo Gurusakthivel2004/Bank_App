@@ -32,7 +32,6 @@
 				<include name="**/*.yaml" />
 				<include name="**/*.properties" />
 				<include name="**/*.sql" />
-				<include name="db.changelog.xml" />
 				<include name="log4j2.xml" />
 			</fileset>
 		</copy>

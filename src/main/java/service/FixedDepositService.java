@@ -11,14 +11,17 @@ import javax.servlet.http.HttpSession;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+
+import cache.CacheUtil;
 import dao.DAO;
 import dao.DaoFactory;
 import enums.Constants.AccountType;
 import enums.Constants.HttpStatusCodes;
-import enums.Constants.LogType;
+import enums.Constants.Module;
 import model.Account;
-import model.ActivityLog;
 import model.FixedDeposit;
+import model.ModuleLog;
 import util.CustomException;
 import util.Helper;
 
@@ -27,10 +30,8 @@ public class FixedDepositService {
 	private static final Logger logger = LogManager.getLogger(FixedDepositService.class);
 	private static DAO<Account> accountDAO = DaoFactory.getDAO(Account.class);
 	private static DAO<FixedDeposit> fixedDepositDAO = DaoFactory.getDAO(FixedDeposit.class);
-	private static final BigDecimal ANNUAL_RATE = new BigDecimal("6.5"); // 6.5%
 
-	private FixedDepositService() {
-	}
+	private FixedDepositService() {}
 
 	private static class SingletonHelper {
 		private static final FixedDepositService INSTANCE = new FixedDepositService();
@@ -52,7 +53,7 @@ public class FixedDepositService {
 		Account account = validateAndGetAccount(accountNumber, userId, amount);
 
 		long maturityEpochMillis = Helper.getFutureEpochMillisAfterMonths(duration);
-		BigDecimal interest = calculateInterest(duration, amount, ANNUAL_RATE);
+		BigDecimal interest = calculateInterest(duration, amount, getRateForDuration(duration));
 
 		logger.info("Creating FD for Account: {}, Duration: {} months, Interest: {}", accountNumber, duration,
 				interest);
@@ -78,6 +79,19 @@ public class FixedDepositService {
 				.orElseThrow(() -> new CustomException("Invalid account number.", HttpStatusCodes.BAD_REQUEST));
 
 		createTransaction(accountNumber, operationalAccount.getAccountNumber(), amount, account.getBranchId(), session);
+	}
+
+	public List<FixedDeposit> getFixedDeposits(Map<String, Object> fixedDepositMap) throws Exception {
+		String key = "fixedDepositInfo";
+		List<FixedDeposit> cachedResult = CacheUtil.getCachedList(key, new TypeReference<List<FixedDeposit>>() {
+		}, fixedDepositMap, "accountNumber");
+
+		if (cachedResult != null) {
+			return cachedResult;
+		}
+
+		logger.debug("Fetching fixed deposit: {}", fixedDepositMap);
+		return fixedDepositDAO.get(fixedDepositMap);
 	}
 
 	private Account validateAndGetAccount(Long accountNumber, Long userId, BigDecimal amount) throws Exception {
@@ -110,21 +124,33 @@ public class FixedDepositService {
 		BigDecimal twelve = new BigDecimal("12");
 
 		BigDecimal time = monthsBD.divide(twelve, 4, RoundingMode.HALF_UP);
+
 		BigDecimal interest = amount.multiply(annualRate).multiply(time).divide(new BigDecimal("100"), 2,
 				RoundingMode.HALF_UP);
-
+		
 		logger.debug("Calculated Interest: {}, for months: {}, amount: {}", interest, months, amount);
 		return interest;
+	}
+
+	private static BigDecimal getRateForDuration(int months) {
+		if (months <= 6)
+			return new BigDecimal("5.5");
+		else if (months <= 12)
+			return new BigDecimal("6.5");
+		else if (months <= 24)
+			return new BigDecimal("7.5");
+		else
+			return new BigDecimal("8.0");
 	}
 
 	private void logActivity(Long accountNumber, Long userId, Long rowId) throws Exception {
 		logger.debug("Logging FD creation activity for account: {}", accountNumber);
 
-		ActivityLog activityLog = new ActivityLog().setLogMessage("Fixed Deposit created").setLogType(LogType.Insert)
-				.setRowId(rowId).setTableName("FixedDeposit").setUserId(userId).setUserAccountNumber(accountNumber)
-				.setPerformedBy(userId).setTimestamp(System.currentTimeMillis());
+		ModuleLog moduleLog = new ModuleLog().setMessage("Fixed Deposit created").setModule(Module.FixedDeposit)
+				.setModuleId(rowId).setAccountNumber(accountNumber)
+				.setPerformedBy(userId).setCreatedAt(System.currentTimeMillis());
 
-		Helper.logActivity(activityLog);
+		Helper.logModule(moduleLog);
 		logger.debug("Activity log created.");
 	}
 

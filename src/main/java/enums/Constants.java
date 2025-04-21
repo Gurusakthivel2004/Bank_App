@@ -302,7 +302,7 @@ public class Constants {
 	}
 
 	public enum TaskExecutor {
-		MAIL(5), LOG(5);
+		MAIL(5), LOG(5), CRM(5);
 
 		private final ExecutorService executor;
 
@@ -328,6 +328,50 @@ public class Constants {
 			}
 		}
 
+	}
+	
+	public static enum ContactsFields {
+		USER_ID("id"), EMAIL("Email"), FIRST_NAME("First_Name"), PHONE("Phone"), DOB("Date_Of_Birth");
+
+		private final String ApiName;
+
+		ContactsFields(String ApiName) {
+			this.ApiName = ApiName;
+		}
+
+		public String getSymbol() {
+			return ApiName;
+		}
+
+		public static String get(String operator) {
+			try {
+				return ContactsFields.valueOf(operator).getSymbol();
+			} catch (IllegalArgumentException e) {
+				return operator;
+			}
+		}
+	}
+	
+	public static enum AccountsFields {
+		USER_ID("id"), PHONE("Phone"), ACCOUNT_NAME("Account_Name"), ACCOUNT_TYPE("Account_Type"), RATING("Rating");
+
+		private final String ApiName;
+
+		AccountsFields(String ApiName) {
+			this.ApiName = ApiName;
+		}
+
+		public String getSymbol() {
+			return ApiName;
+		}
+
+		public static String get(String operator) {
+			try {
+				return AccountsFields.valueOf(operator).getSymbol();
+			} catch (IllegalArgumentException e) {
+				return operator;
+			}
+		}
 	}
 
 	public enum Status {
@@ -463,6 +507,23 @@ public class Constants {
 			} catch (IllegalArgumentException e) {
 				throw new CustomException("Invalid transaction status: " + transactionStatus,
 						HttpStatusCodes.BAD_REQUEST);
+			}
+		}
+	}
+	
+	public enum Module {
+		Loan, FixedDeposit;
+
+		@Override
+		public String toString() {
+			return name();
+		}
+
+		public static Module fromString(String module) throws CustomException {
+			try {
+				return Module.valueOf(module);
+			} catch (IllegalArgumentException e) {
+				throw new CustomException("Invalid module: " + module, HttpStatusCodes.BAD_REQUEST);
 			}
 		}
 	}

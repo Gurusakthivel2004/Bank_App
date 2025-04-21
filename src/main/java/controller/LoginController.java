@@ -19,7 +19,6 @@ import enums.Constants.LogType;
 import enums.Constants.Role;
 import model.ActivityLog;
 import model.UserSession;
-import service.TaskExecutorService;
 import service.UserService;
 import service.UserSessionService;
 import util.AuthUtils;
@@ -95,7 +94,7 @@ public class LoginController {
 		ActivityLog activityLog = new ActivityLog().setLogMessage("Logout").setLogType(LogType.Logout)
 				.setUserAccountNumber(null).setRowId(userId).setTableName("User").setUserId(userId);
 
-		TaskExecutorService.getInstance().submit(activityLog);
+		Helper.logActivity(activityLog);
 		Helper.sendSuccessResponse(response, "Logout successful");
 	}
 

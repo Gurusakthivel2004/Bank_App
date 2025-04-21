@@ -20,8 +20,7 @@ public class AccountDAO implements DAO<Account>, DAOJoin<Account> {
 
 	private static Logger logger = LogManager.getLogger(AccountDAO.class);
 
-	private AccountDAO() {
-	}
+	private AccountDAO() {}
 
 	private static class SingletonHelper {
 		private static final AccountDAO INSTANCE = new AccountDAO();

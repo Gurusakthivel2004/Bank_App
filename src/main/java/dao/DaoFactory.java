@@ -43,10 +43,12 @@ public class DaoFactory {
 			return (DAO<T>) OtpVerificationsDAO.getInstance();
 		case "Loan":
 			return (DAO<T>) LoanDAO.getInstance();
-		case "LoanLog":
-			return (DAO<T>) LoanLogDAO.getInstance();
+		case "ModuleLog":
+			return (DAO<T>) ModuleLogDAO.getInstance();
 		case "FixedDeposit":
 			return (DAO<T>) FixedDepositDAO.getInstance();
+		case "OauthClientConfig":
+			return (DAO<T>) OauthClientConfigDAO.getInstance();
 		default:
 			throw new UnsupportedOperationException("No DAO found for the provided class: " + clazz.getName());
 		}
