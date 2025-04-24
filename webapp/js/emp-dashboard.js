@@ -3,6 +3,24 @@ let branchDetails, account;
 const role = getCookie('role');
 console.log(role);
 document.addEventListener("DOMContentLoaded", async _ => {
+	const parentOrgInput = document.getElementById('orgParentName');
+	const industrySelect = document.getElementById('orgType');
+	const employeesInput = document.getElementById('orgEmployees');
+	const phoneInput = document.getElementById('orgPhone');
+
+	parentOrgInput.addEventListener('input', function() {
+		const isSubOrg = parentOrgInput.value.trim().length > 0;
+
+		industrySelect.disabled = isSubOrg;
+		employeesInput.disabled = isSubOrg;
+		phoneInput.disabled = isSubOrg;
+
+		if (isSubOrg) {
+			industrySelect.value = "Service Provider"; // default option
+			employeesInput.value = "";
+			phoneInput.value = "";
+		}
+	});
 	if (role == null) {
 		document.querySelector('body').style.display = 'none';
 		window.location.href = "error.html";
@@ -318,4 +336,3 @@ const sendToServer = async branchData => {
 		errorMessage.innerHTML = result.message;
 	}
 }
-

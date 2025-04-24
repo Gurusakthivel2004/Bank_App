@@ -48,3 +48,8 @@
 49. default redirect to login from error page
 50. masking of aadhar and pan number.
 
+ORG model use cases:
+	1. An organization can make bulk payment(salary credit to all the users under the org).
+	2. A Payroll report can be generated for a particular org / sub org each month for tax related audit.
+	3. Admin can view the users, accounts and transactions on their org.  
+

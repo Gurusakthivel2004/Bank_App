@@ -34,7 +34,7 @@ public class FixedDepositController {
 	}
 
 	public void handlePost(HttpServletRequest request, HttpServletResponse response) throws Exception {
-		logger.info("Received POST request to create or fetch account details.");
+		logger.info("Received POST request to create FD details.");
 
 		JsonObject jsonObject = Helper.parseRequestBody(request);
 		logger.debug("Parsed request body: {}", jsonObject);

@@ -16,20 +16,23 @@ import org.apache.logging.log4j.Logger;
 import dao.DaoFactory;
 import enums.Constants.HttpStatusCodes;
 import io.github.cdimascio.dotenv.Dotenv;
+import model.OauthClientConfig;
 import pool.DBConnectionPool;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 import schedular.ExpiredSessionSchedular;
 import schedular.PasswordUpdateScheduler;
+import service.CRMService;
 import util.CustomException;
 import util.Helper;
+import util.OAuthConfig;
 
 @WebListener
 public class Initializer implements ServletContextListener {
 
 	private static final Logger logger = LogManager.getLogger(Initializer.class);
 
-	private static DBConnectionPool dbConnectionPool;
+	public static DBConnectionPool dbConnectionPool;
 	private static JedisPool jedisPool;
 	private static Dotenv dotenv = Helper.loadDotEnv();
 
@@ -50,6 +53,11 @@ public class Initializer implements ServletContextListener {
 	private static final PasswordUpdateScheduler passwordUpdateScheduler = new PasswordUpdateScheduler();
 	private static final ExpiredSessionSchedular expiredSessionSchedular = new ExpiredSessionSchedular();
 	private static final DatabaseInitializer databaseInitializer = new DatabaseInitializer();
+
+	public static void setDataSource() throws SQLException, ClassNotFoundException {
+		loadMySQLDriver();
+		dbConnectionPool = new DBConnectionPool(URL, USER, PASSWORD);
+	}
 
 	@Override
 	public void contextInitialized(ServletContextEvent sce) {
@@ -77,6 +85,12 @@ public class Initializer implements ServletContextListener {
 			// Start Schedulers
 			expiredSessionSchedular.startScheduler();
 			passwordUpdateScheduler.startScheduler();
+
+// fetch test
+			OauthClientConfig config = Helper.getClientConfig("Zoho");
+
+			CRMService.getInstance().fetchRecords(OAuthConfig.get("crm.account.endpoint"), "Account_Name", "Infosys",
+					config);
 
 		} catch (Exception e) {
 			logger.error("Error initializing resources: {}", e);
@@ -158,7 +172,7 @@ public class Initializer implements ServletContextListener {
 		}
 	}
 
-	private void loadMySQLDriver() throws ClassNotFoundException {
+	private static void loadMySQLDriver() throws ClassNotFoundException {
 		URL = dotenv.get("MYSQL_URL");
 		USER = dotenv.get("MYSQL_USER");
 		PASSWORD = dotenv.get("MYSQL_PASSWORD");

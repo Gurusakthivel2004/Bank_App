@@ -314,3 +314,55 @@ classes:
           columnName: "is_active"
         isClosed:
           columnName: "is_closed" 
+
+  model.Org:
+      tableName: "org"
+      autoIncrementField: "id"
+      fields:
+        id:
+          columnName: "id"
+        name:
+          columnName: "name"
+        orgType:
+          columnName: "org_type"
+        phone:
+          columnName: "phone"
+        employees:
+          columnName: "employees"
+        createdAt:
+          columnName: "created_at"
+
+  model.SubOrg:
+        tableName: "sub_org"
+        autoIncrementField: "id"
+        fields:
+          id:
+            columnName: "id"
+          name:
+            columnName: "name"
+          orgId:
+            columnName: "org_id"
+          salaryBand:
+            columnName: "salary_band"
+          createdAt:
+            columnName: "created_at"
+
+  model.OrgMember:
+      tableName: "org_member"
+      fields:
+        userId:
+          columnName: "user_id"
+        orgId:
+          columnName: "org_id"
+        userType:
+          columnName: "user_type"
+
+  model.SubOrgMember:
+        tableName: "sub_org_member"
+        fields:
+          userId:
+            columnName: "user_id"
+          subOrgId:
+            columnName: "sub_org_id"
+          userType:
+            columnName: "user_type"

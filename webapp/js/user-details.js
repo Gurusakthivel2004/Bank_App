@@ -204,6 +204,7 @@ const userClick = async user => {
 	if (!userResult) return;
 	userFields['userId'] = userResult.id + '';
 	userFields['role'] = userResult.role;
+	userResult['orgName'] = 'None';
 	Object.keys(userResult).forEach(key => {
 		const inputField = document.getElementById(key);
 		if (inputField) {
@@ -213,9 +214,22 @@ const userClick = async user => {
 			inputField.disabled = true;
 		}
 	});
+	const subOrgDropdown = document.getElementById('subOrgName');
+	subOrgDropdown.innerHTML = '<option value="">None</option>';
+	subOrgDropdown.disabled = true;
+	subOrgDropdown.style.border = "0px";
+	subOrgDropdown.style.backgroundColor = 'transparent';
+	subOrgDropdown.classList.add('hide-arrow');
 }
 
 const createButton = () => {
+	const subOrgDropdown = document.getElementById('subOrgName');
+	subOrgDropdown.innerHTML = '<option value="">Enter Org Name</option>';
+	subOrgDropdown.disabled = true;
+	subOrgDropdown.style.border = "1px solid #c9c6c6";
+	subOrgDropdown.style.backgroundColor = 'transparent';
+	subOrgDropdown.classList.add('hide-arrow');
+
 	const buttonContainer = document.getElementById("dynamicButtons");
 
 	buttonContainer.innerHTML = "";
@@ -304,10 +318,10 @@ function handleCreateSelection(selectedValue) {
 	document.getElementById('newUserButton').style.display = 'flex';
 
 	document.getElementById('address').value = '';
-	document.getElementById('address').style.border = "1px solid black";
+	document.getElementById('address').style.border = "1px solid #c9c6c6";
 	document.querySelectorAll("input").forEach(input => {
 		input.disabled = false;
-		input.style.border = "1px solid black";
+		input.style.border = "1px solid #c9c6c6";
 		input.value = "";
 	})
 }
@@ -320,6 +334,7 @@ const newUser = _ => {
 		inputElements = document.querySelectorAll("#userDetails input");
 	}
 	console.log("valid: ", validBranchIds);
+
 	inputElements.forEach(input => {
 		const key = input.id;
 		if ((key == "role" || key == "branchId") && userRole == "Customer") return;
@@ -346,6 +361,9 @@ const newUser = _ => {
 		}
 		inputData[key] = value;
 	});
+	const select = document.getElementById("subOrgName");
+	const selectedValue = select.value;
+	inputData['subOrgName'] = selectedValue;
 
 	if (errorCount == 0) {
 		console.log("Collected Input Data:", inputData);

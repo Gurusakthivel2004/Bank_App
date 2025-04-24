@@ -25,8 +25,8 @@ public class Constants {
 		GET_USER_WITH_ROLE("^/User\\?userId=\\d+&ROLE=\\w+$", Arrays.asList("Customer")),
 		GET_USERDASHBOARD("^/UserDashboard$"), TRANSACTION_CRUD("^/Transaction$"), LOGOUT("^/Logout$"),
 		LOG("^/Log$", Arrays.asList("Customer", "Employee")), MESSAGE_CRUD("^/Message$"), OAUTH("^/oauth"),
-		OAUTHCALLBACK("^/oauthCallback"), CAPTCHA("^/Captcha"), FIXED_DEPOSIT("^/FixedDeposit");
-		;
+		OAUTHCALLBACK("^/oauthCallback"), CAPTCHA("^/Captcha"), FIXED_DEPOSIT("^/FixedDeposit"), ORG("^/Org"),
+		SUB_ORG("^/SubOrg");
 
 		private final String REGEX_PATTERN;
 		private final List<String> restrictedForRole;
@@ -71,7 +71,7 @@ public class Constants {
 	public enum ValidQueryParams {
 		USERID_FILTER("userId", ""), NOT_EXACT_VALUES("notExact", "true"), BRANCH_ID_FETCH("branchId", ""),
 		ACCOUNT_FILTER("accountNumber", ""), USER_ROLE_FILTER("role", ""), LIMIT("limit", ""), STATUS("status", ""),
-		OFFSET("offset", "");
+		OFFSET("offset", ""), NAME("name", ""), Org_Id("orgId", "");
 
 		private final String PARAM;
 		private final String FIELD;
@@ -135,6 +135,8 @@ public class Constants {
 				put("Message", new ArrayList<>(Arrays.asList("GET", "POST", "PUT")));
 				put("Otp", new ArrayList<>(Arrays.asList("GET", "POST")));
 				put("FixedDeposit", new ArrayList<>(Arrays.asList("GET", "POST")));
+				put("Org", new ArrayList<>(Arrays.asList("POST", "GET")));
+				put("SubOrg", new ArrayList<>(Arrays.asList("POST", "GET")));
 			}
 		}, new ArrayList<>()), ROLE_MANAGER("Manager", new HashMap<String, List<String>>() {
 			{
@@ -148,6 +150,8 @@ public class Constants {
 				put("Message", new ArrayList<>(Arrays.asList("GET", "POST", "PUT")));
 				put("Otp", new ArrayList<>(Arrays.asList("GET", "POST")));
 				put("FixedDeposit", new ArrayList<>(Arrays.asList("GET", "POST")));
+				put("Org", new ArrayList<>(Arrays.asList("POST", "GET")));
+				put("SubOrg", new ArrayList<>(Arrays.asList("POST", "GET")));
 			}
 		}, new ArrayList<>());
 
@@ -329,14 +333,18 @@ public class Constants {
 		}
 
 	}
-	
+
 	public interface SymbolProvider {
-	    String getSymbol();
+		String getSymbol();
 	}
 
-	
+	public enum HttpMethod {
+		GET, POST
+	}
+
 	public static enum ContactsFields implements SymbolProvider {
-		USER_ID("id"), EMAIL("Email"), FIRST_NAME("First_Name"), LAST_NAME("Last_Name"), PHONE("Phone"), DOB("Date_Of_Birth");
+		FK_USER_ID("FK_User_Id"), EMAIL("Email"), FIRST_NAME("First_Name"), LAST_NAME("Last_Name"), PHONE("Phone"),
+		DOB("Date_Of_Birth"), FK_ACCOUNT_NAME("FK_Account_Name");
 
 		private final String ApiName;
 
@@ -356,9 +364,10 @@ public class Constants {
 			}
 		}
 	}
-	
+
 	public static enum AccountsFields implements SymbolProvider {
-		USER_ID("id"), PHONE("Phone"), ACCOUNT_NAME("Account_Name"), ACCOUNT_TYPE("Account_Type"), RATING("Rating");
+		FK_USER_ID("FK_User_Id"), PHONE("Phone"), ACCOUNT_NAME("Account_Name"), INDUSTRY("Industry"),
+		EMPLOYEES("Employees");
 
 		private final String ApiName;
 
@@ -373,6 +382,30 @@ public class Constants {
 		public static String name(String operator) {
 			try {
 				return AccountsFields.valueOf(operator).getSymbol();
+			} catch (IllegalArgumentException e) {
+				return operator;
+			}
+		}
+	}
+
+	public static enum DealsFields implements SymbolProvider {
+		USER_ID("id"), AMOUNT("Amount"), STAGE("Stage"), DEAL_NAME("Deal_Name"), TYPE("Type"),
+		FK_ACCOUNT_NAME("FK_Account_Name"), FK_Contact_NAME("FK_Contact_Name");
+		;
+
+		private final String ApiName;
+
+		DealsFields(String ApiName) {
+			this.ApiName = ApiName;
+		}
+
+		public String getSymbol() {
+			return ApiName;
+		}
+
+		public static String name(String operator) {
+			try {
+				return DealsFields.valueOf(operator).getSymbol();
 			} catch (IllegalArgumentException e) {
 				return operator;
 			}
@@ -431,7 +464,7 @@ public class Constants {
 	}
 
 	public enum Role {
-		Customer, Employee, Manager;
+		Customer, Employee, Manager, Admin, User;
 
 		@Override
 		public String toString() {
@@ -515,7 +548,7 @@ public class Constants {
 			}
 		}
 	}
-	
+
 	public enum Module {
 		Loan, FixedDeposit;
 

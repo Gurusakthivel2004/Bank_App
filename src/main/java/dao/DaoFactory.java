@@ -49,6 +49,14 @@ public class DaoFactory {
 			return (DAO<T>) FixedDepositDAO.getInstance();
 		case "OauthClientConfig":
 			return (DAO<T>) OauthClientConfigDAO.getInstance();
+		case "Org":
+			return (DAO<T>) OrgDAO.getInstance();
+		case "SubOrg":
+			return (DAO<T>) SubOrgDAO.getInstance();
+		case "OrgMember":
+			return (DAO<T>) OrgMemberDAO.getInstance();
+		case "SubOrgMember":
+			return (DAO<T>) SubOrgMemberDAO.getInstance();
 		default:
 			throw new UnsupportedOperationException("No DAO found for the provided class: " + clazz.getName());
 		}

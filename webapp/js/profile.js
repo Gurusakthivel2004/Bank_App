@@ -339,7 +339,7 @@ function sendRequest() {
 }
 
 const sendRequestToServer = async data => {
-	
+
 	const response = await fetch('/Bank_Application/api/Message', {
 		method: 'POST',
 		headers: {
@@ -466,9 +466,11 @@ const toggleModal = modalId => {
 		document.getElementById('newUserButton').style.display = 'none';
 		document.getElementById('dropdown').style.display = 'none';
 		document.getElementById('errorMessage').style.display = "none";
-		document.querySelectorAll("input").forEach(input => {
-			input.disabled = false;
-			input.style.border = "0px solid ";
+		document.querySelectorAll("#newUserModal input").forEach(input => {
+			console.log(input.id == "subOrgName");
+			if (!input.id == "subOrgName") {
+				input.disabled = false;
+			}
 		})
 	}
 	if (modalId == "branchDetailsModal") {
@@ -486,6 +488,215 @@ const toggleModal = modalId => {
 	}
 
 }
+
+const createOrg = _ => {
+	const name = document.getElementById("orgName").value.trim();
+	const orgType = document.getElementById("orgType").value.trim();
+	const employees = document.getElementById("orgEmployees").value.trim();
+	const phone = document.getElementById("orgPhone").value.trim();
+	const salaryBand = document.getElementById("orgSalaryBand").value.trim();
+	const parentOrg = document.getElementById("orgParentName").value.trim();
+
+	const errorMessageEl = document.getElementById("orgErrorMessage");
+	errorMessageEl.style.display = "none";
+	errorMessageEl.innerText = "";
+
+	if (parentOrg.length > 0 && validOrgNames.includes(parentOrg)) {
+		if (!name || name.length < 4) {
+			showError("Please enter a valid name.");
+			return;
+		}
+		if (!salaryBand || isNaN(salaryBand) || parseInt(salaryBand) <= 0) {
+			showError("Please enter a valid number of salary.");
+			return;
+		}
+
+		const orgData = {
+			name: name,
+			salaryBand: salaryBand,
+			parentOrgName: parentOrg
+		};
+		console.log("Sub Org Data:", orgData);
+		submitOrgData(orgData, "SubOrg");
+		return;
+	}
+
+	if (!name || name.length < 4) {
+		showError("Please enter a valid name.");
+		return;
+	}
+	if (!orgType || orgType === "- None -") {
+		showError("Please select an org type.");
+		return;
+	}
+	if (!employees || isNaN(employees) || parseInt(employees) <= 0) {
+		showError("Please enter a valid number of employees.");
+		return;
+	}
+	if (!phone || !/^\d{6,15}$/.test(phone)) {
+		showError("Please enter a valid phone number (6 to 15 digits).");
+		return;
+	}
+
+	const orgData = {
+		name: name,
+		orgType: orgType,
+		employees: parseInt(employees),
+		phone: phone,
+	};
+	console.log("Main Org Data :", orgData);
+	submitOrgData(orgData, "Org");
+
+	function showError(msg) {
+		errorMessageEl.innerText = msg;
+		errorMessageEl.style.display = "block";
+	}
+}
+
+const submitOrgData = async (orgData, controller) => {
+	console.log("Sending data to server:", orgData);
+	const userDetailsResponse = await fetch('/Bank_Application/api/' + controller, {
+		method: 'POST',
+		headers: {
+			'Content-Type': 'application/json',
+		},
+		body: JSON.stringify(orgData)
+	});
+	const result = await userDetailsResponse.json();
+	console.log(result);
+	if (result.message != null && (result.message.includes('Session expired') || result.message == 'Invalid Access token')) {
+		document.querySelector('body').style.display = 'none';
+		deleteAllCookies();
+		window.location.href = "error.html";
+	}
+	else if (result.message == 'success') {
+		successDisplayWithMessage("Org created successfully.");
+	} else {
+		const errorMessageElement = document.getElementById('orgErrorMessage');
+		errorMessageElement.style.display = "block";
+		errorMessageElement.innerHTML = result.message;
+	}
+}
+
+const successDisplayWithMessage = (msg) => {
+	toggleModal('orgModal')
+	const successPop = document.getElementById('successModal');
+	document.getElementById('successMessage').innerHTML = msg;
+	successPop.style.display = 'flex';
+}
+
+let validOrgNames = [], validSubOrgNames = [];
+
+const fetchOrgNameDropdownOptions = (query, id, flag) => {
+	const dropdown = document.getElementById('orgDropdown');
+	dropdown.innerHTML = '';
+
+	if (!query.trim()) {
+		dropdown.style.display = 'none';
+		return;
+	}
+
+	fetch(`/Bank_Application/api/Org?name=${query}&notExact=true`, {
+		method: 'GET',
+		headers: {
+			'Content-Type': 'application/json',
+		},
+	})
+		.then(response => response.json())
+		.then(data => {
+			console.log(data);
+			if (data.message != null && (data.message.includes('Session expired') || data.message == 'Invalid Access token')) {
+				document.querySelector('body').style.display = 'none';
+				deleteAllCookies();
+				window.location.href = "error.html";
+			}
+
+			if (!data || data.length === 0) {
+				dropdown.innerHTML = '<div class="dropdown-option" style="padding: 10px; color: grey;">Org not found</div>';
+				dropdown.style.display = 'block';
+				return;
+			}
+
+			validOrgNames = [];
+			data.forEach(org => {
+				const option = document.createElement('div');
+				option.className = 'dropdown-option';
+				option.style = `
+	                    padding: 10px;
+	                    cursor: pointer;
+	                    border-bottom: 1px solid #ddd;
+	                `;
+				option.innerHTML = `
+	                    <div style="font-weight: bold; color: #2c3e50;">
+	                        ID: ${org.id}
+	                    </div>
+	                    <div style="font-size: 12px; color: grey;">
+	                        Name: ${org.name}
+	                    </div>
+	                `;
+				validOrgNames.push(org.name);
+
+				option.onclick = () => {
+					const input = document.getElementById(id);
+					input.value = org.name;
+					dropdown.style.display = 'none';
+					if (flag) {
+						fetchSubOrdData(org.id);
+					}
+				};
+				dropdown.appendChild(option);
+			});
+
+			dropdown.style.display = 'block';
+		})
+		.catch(err => {
+			console.error('Error fetching dropdown options:', err);
+			dropdown.innerHTML = '<div class="dropdown-option" style="padding: 10px; color: red;">No Org found.</div>';
+			dropdown.style.display = 'block';
+		});
+}
+
+const fetchSubOrdData = orgId => {
+	const select = document.getElementById("subOrgName");
+
+	select.innerHTML = '<option value="">Select Org Name</option>';
+
+	fetch(`/Bank_Application/api/SubOrg?orgId=${orgId}`, {
+		method: 'GET',
+		headers: {
+			'Content-Type': 'application/json',
+		},
+	})
+		.then(response => response.json())
+		.then(data => {
+			console.log(data);
+			if (data.message != null && (data.message.includes('Session expired') || data.message == 'Invalid Access token')) {
+				document.querySelector('body').style.display = 'none';
+				deleteAllCookies();
+				window.location.href = "error.html";
+			}
+
+			if (!data || data.length === 0) {
+				const option = document.createElement("option");
+				option.value = "";
+				option.textContent = "Org not found";
+				option.disabled = true;
+				select.appendChild(option);
+				return;
+			}
+
+			data.forEach(org => {
+				const option = document.createElement("option");
+				option.value = org.name;
+				option.textContent = `${org.name}`;
+				select.appendChild(option);
+				validOrgNames.push(org.name);
+			});
+
+			select.disabled = false;
+		});
+};
+
 
 const togglePasswordVisibility = (inputId, button) => {
 	const passwordInput = document.getElementById(inputId);
