@@ -79,6 +79,8 @@ public class FixedDepositService {
 				.orElseThrow(() -> new CustomException("Invalid account number.", HttpStatusCodes.BAD_REQUEST));
 
 		createTransaction(accountNumber, operationalAccount.getAccountNumber(), amount, account.getBranchId(), session);
+
+		Helper.pushDealRecord("Fixed Deposit", fixedDeposit.getAmount().toString());
 	}
 
 	public List<FixedDeposit> getFixedDeposits(Map<String, Object> fixedDepositMap) throws Exception {
@@ -127,7 +129,7 @@ public class FixedDepositService {
 
 		BigDecimal interest = amount.multiply(annualRate).multiply(time).divide(new BigDecimal("100"), 2,
 				RoundingMode.HALF_UP);
-		
+
 		logger.debug("Calculated Interest: {}, for months: {}, amount: {}", interest, months, amount);
 		return interest;
 	}
@@ -147,8 +149,8 @@ public class FixedDepositService {
 		logger.debug("Logging FD creation activity for account: {}", accountNumber);
 
 		ModuleLog moduleLog = new ModuleLog().setMessage("Fixed Deposit created").setModule(Module.FixedDeposit)
-				.setModuleId(rowId).setAccountNumber(accountNumber)
-				.setPerformedBy(userId).setCreatedAt(System.currentTimeMillis());
+				.setModuleId(rowId).setAccountNumber(accountNumber).setPerformedBy(userId)
+				.setCreatedAt(System.currentTimeMillis());
 
 		Helper.logModule(moduleLog);
 		logger.debug("Activity log created.");

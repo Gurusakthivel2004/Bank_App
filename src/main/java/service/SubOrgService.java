@@ -50,7 +50,7 @@ public class SubOrgService {
 		Long userId = (Long) Helper.getThreadLocalValue("id");
 		validateOrgAccess(userId);
 
-		Org parentOrg = getParentOrgByName(parentOrgName);
+		Org parentOrg = getParentOrgByKey("name", parentOrgName);
 		BigDecimal salaryBand = new BigDecimal(salaryBandString);
 
 	
@@ -58,12 +58,13 @@ public class SubOrgService {
 		logActivity(subOrg.getId());
 
 		createMembers(parentOrg.getId(), subOrg.getId(), userId, Role.Admin);
-
+		
+		String email = parentOrgName + "@gmail.com";
 		TaskExecutor.CRM.submitTask(() -> {
 			try {
-				CRMService.getInstance().pushDealsRecords(subOrg, parentOrg.getName());
+				CRMService.getInstance().pushLeadsRecords(subOrg, parentOrgName, email);
 			} catch (Exception e) {
-				logger.error("CRM push failed: {}", e.getMessage(), e);
+				logger.error("CRM Deals push failed: {}", e.getMessage(), e);
 			}
 		});
 	}
@@ -98,13 +99,13 @@ public class SubOrgService {
 		}
 	}
 
-	public Org getParentOrgByName(String parentOrgName) throws Exception {
+	public Org getParentOrgByKey(String key, Object value) throws Exception {
 		Map<String, Object> criteria = new HashMap<>();
-		criteria.put("name", parentOrgName);
+		criteria.put(key, value);
 
 		List<Org> orgList = orgDAO.get(criteria);
 		if (orgList == null || orgList.isEmpty()) {
-			throw new CustomException("Enter a valid parent org name", HttpStatusCodes.BAD_REQUEST);
+			throw new CustomException("Enter a valid criteria for fetching org.", HttpStatusCodes.BAD_REQUEST);
 		}
 		return orgList.get(0);
 	}

@@ -31,6 +31,7 @@ public class Runner {
 //			generateTokens();
 		
 			Initializer.setDataSource();
+			CRMService.getInstance().refreshAccessToken();
 //			Map<String, Object> userMap = new HashMap<String, Object>();
 //			
 //			userMap.put("userId", 152l);
@@ -50,9 +51,9 @@ public class Runner {
 //					.setCreatedAt(System.currentTimeMillis()).setModifiedAt(System.currentTimeMillis())
 //					.setPerformedBy(1L).setPasswordVersion(1);
 			
-			OauthClientConfig config = Helper.getClientConfig("Zoho");
-			String jsonResponse = CRMService.getInstance().fetchRecords(OAuthConfig.get("crm.account.endpoint"), "Account_Name", "Zoho", config);
-			System.out.println("json response: " + jsonResponse);
+//			OauthClientConfig config = Helper.getClientConfig("Zoho");
+//			String jsonResponse = CRMService.getInstance().fetchRecords(OAuthConfig.get("crm.account.endpoint"), "Account_Name", "Zoho", config);
+//			System.out.println("json response: " + jsonResponse);
 //
 //			pushAccountRecords(customerDetail);
 //			CRMService.getInstance().pushAccountRecords(customerDetail);

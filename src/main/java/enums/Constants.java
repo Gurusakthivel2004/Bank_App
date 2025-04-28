@@ -411,6 +411,28 @@ public class Constants {
 			}
 		}
 	}
+	
+	public static enum LeadsFields implements SymbolProvider {
+		COMPANY("Company"), FIRST_NAME("First_Name"), LAST_NAME("Last_Name"), EMAIL("Email");
+
+		private final String ApiName;
+
+		LeadsFields(String ApiName) {
+			this.ApiName = ApiName;
+		}
+
+		public String getSymbol() {
+			return ApiName;
+		}
+
+		public static String name(String operator) {
+			try {
+				return LeadsFields.valueOf(operator).getSymbol();
+			} catch (IllegalArgumentException e) {
+				return operator;
+			}
+		}
+	}
 
 	public enum Status {
 		Suspended, Active, Inactive;

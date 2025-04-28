@@ -76,9 +76,8 @@ public class OrgService {
 	private void pushToCRM(Org org, User user) {
 	    TaskExecutor.CRM.submitTask(() -> {
 	        try {
-	        	CRMService.getInstance().pushAccountRecords(org);
-	        	Thread.sleep(100000); // wait for Accounts record to be pushed to crm.
-	        	CRMService.getInstance().pushContactRecords(user, org.getName());
+	        	String accountId = CRMService.getInstance().pushAccountRecords(org);
+	        	CRMService.getInstance().pushContactRecords(user, accountId);
 	        } catch (Exception e) {
 	            logger.error("CRM push failed: {}", e.getMessage(), e);
 	        }

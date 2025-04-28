@@ -18,6 +18,7 @@ import enums.Constants.ContactsFields;
 import enums.Constants.DealsFields;
 import enums.Constants.HttpMethod;
 import enums.Constants.HttpStatusCodes;
+import enums.Constants.LeadsFields;
 import io.github.cdimascio.dotenv.Dotenv;
 import model.ColumnCriteria;
 import model.OauthClientConfig;
@@ -36,7 +37,7 @@ public class CRMService {
 	private DAO<OauthProvider> oauthProviderDao = DaoFactory.getDAO(OauthProvider.class);
 
 	private static Dotenv dotenv = Helper.loadDotEnv();
-	private static final Integer RETRIES = 3;
+	private static final Integer RETRIES = 5;
 	private static final String PROVIDER = "Zoho";
 	private static final String API_DOMAIN = dotenv.get("ZOHO_API_DOMAIN");
 	private static final String ACCOUNT_URL = dotenv.get("ZOHO_ACCOUNTS_URL");
@@ -53,23 +54,21 @@ public class CRMService {
 		return SingletonHelper.INSTANCE;
 	}
 
-	public void pushAccountRecords(Org org) throws Exception {
+	public String pushAccountRecords(Org org) throws Exception {
 
 		Map<Object, Object> data = new HashMap<>();
 		data.put(AccountsFields.ACCOUNT_NAME, org.getName());
 		data.put(AccountsFields.INDUSTRY, org.getOrgType());
 		data.put(AccountsFields.EMPLOYEES, org.getEmployees());
 		data.put(AccountsFields.PHONE, org.getPhone().toString());
-		pushToCrm(OAuthConfig.get("crm.account.endpoint"), data);
+		String response = pushToCrm(OAuthConfig.get("crm.account.endpoint"), data);
+		
+		return JsonUtils.getValueByPath(response, "data[0].details", "id");
 	}
 
-	public void pushContactRecords(User user, String accountName) throws Exception {
-
-		OauthClientConfig config = Helper.getClientConfig(PROVIDER);
-		String jsonResponse = fetchRecords(OAuthConfig.get("crm.account.endpoint"), "Account_Name", accountName,
-				config);
-
-		String accountId = JsonUtils.getValueByPath(jsonResponse, "data[0]", "id");
+	public void pushContactRecords(User user, String accountId) throws Exception {
+		
+		logger.info("Account ID :" + accountId);
 
 		Map<Object, Object> data = new HashMap<>();
 		data.put(ContactsFields.FK_ACCOUNT_NAME, accountId);
@@ -81,26 +80,35 @@ public class CRMService {
 		pushToCrm(OAuthConfig.get("crm.contact.endpoint"), data);
 	}
 
-	public void pushDealsRecords(SubOrg subOrg, String accountName) throws Exception {
+	public void pushDealsRecords(String dealName, String amount, String accountName) throws Exception {
 
 		OauthClientConfig config = Helper.getClientConfig(PROVIDER);
 		String jsonResponse = fetchRecords(OAuthConfig.get("crm.contact.endpoint"), "Account_Name", accountName,
 				config);
-		logger.info(jsonResponse);
+		
 		String accountId = JsonUtils.getValueByPath(jsonResponse, "data[0].Account_Name", "id");
 		String contactId = JsonUtils.getValueByPath(jsonResponse, "data[0]", "id");
-
-		logger.info("Account Id: " + accountId);
 
 		Map<Object, Object> data = new HashMap<>();
 		data.put(DealsFields.FK_ACCOUNT_NAME, accountId);
 		data.put(DealsFields.FK_Contact_NAME, contactId);
-		data.put(DealsFields.AMOUNT, subOrg.getSalaryBand().toString());
+		data.put(DealsFields.AMOUNT, amount);
 		data.put(DealsFields.STAGE, "Needs Analysis");
 		data.put(DealsFields.TYPE, "New Business");
-		data.put(DealsFields.DEAL_NAME, subOrg.getName());
+		data.put(DealsFields.DEAL_NAME, dealName);
 
 		pushToCrm(OAuthConfig.get("crm.deal.endpoint"), data);
+	}
+	
+	public String pushLeadsRecords(SubOrg subOrg, String company, String email) throws Exception {
+
+		Map<Object, Object> data = new HashMap<>();
+		data.put(LeadsFields.FIRST_NAME, subOrg.getName());
+		data.put(LeadsFields.COMPANY, company);
+		data.put(LeadsFields.EMAIL, email);
+		String response = pushToCrm(OAuthConfig.get("crm.lead.endpoint"), data);
+		
+		return JsonUtils.getValueByPath(response, "data[0].details", "id");
 	}
 
 	private OauthProvider fetchOauthProvider() throws Exception {
@@ -112,14 +120,14 @@ public class CRMService {
 		return oauthProviderDao.get(oauthMap).get(0);
 	}
 
-	public void pushToCrm(String endpointKey, Map<Object, Object> data) throws Exception {
+	public String pushToCrm(String endpointKey, Map<Object, Object> data) throws Exception {
 
 		OauthProvider provider = fetchOauthProvider();
 
 		String json = JsonUtils.buildModuleJsonFromMap(data);
 		
 		String url = API_DOMAIN + endpointKey;
-		sendWithRetry(HttpMethod.POST, url, json, provider);
+		return sendWithRetry(HttpMethod.POST, url, json, provider);
 	}
 
 	public String fetchRecords(String endpointKey, String criteriaKey, String criteriaValue, OauthClientConfig config)

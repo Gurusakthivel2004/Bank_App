@@ -64,7 +64,11 @@ import io.github.cdimascio.dotenv.Dotenv;
 import model.ActivityLog;
 import model.ModuleLog;
 import model.OauthClientConfig;
+import model.Org;
+import model.OrgMember;
 import model.User;
+import service.CRMService;
+import service.SubOrgService;
 import service.UserService;
 import util.ColumnYamlUtil.ClassMapping;
 
@@ -540,6 +544,31 @@ public class Helper {
 		}
 		response.flushBuffer();
 	}
+	
+	public static void pushDealRecord(String moduleName, String amount) throws Exception {
+		Long userId = (Long) getThreadLocalValue("id");
+		
+		Map<String, Object> orgMemberMap = new HashMap<>();
+		orgMemberMap.put("userId", userId);
+		
+		DAO<OrgMember> orgMemberDAO = DaoFactory.getDAO(OrgMember.class);
+		List<OrgMember> orgMembers = orgMemberDAO.get(orgMemberMap);
+		
+		if(orgMembers.isEmpty()) {
+			throw new CustomException("User doesnot belong to an org.", HttpStatusCodes.BAD_REQUEST);
+		}
+		
+		Org org = SubOrgService.getInstance().getParentOrgByKey("id", orgMembers.get(0).getOrgId());
+		
+		TaskExecutor.CRM.submitTask(() -> {
+			try {
+				CRMService.getInstance().pushDealsRecords(moduleName, amount, org.getName());
+			} catch (Exception e) {
+				LOGGER.error("CRM Deals push failed: {}", e.getMessage(), e);
+			}
+		});
+	}
+	
 
 	public static void sendErrorResponse(HttpServletResponse response, CustomException exception) throws IOException {
 		response.setContentType("application/json");

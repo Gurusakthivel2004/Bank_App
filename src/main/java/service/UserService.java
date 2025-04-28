@@ -33,7 +33,6 @@ import util.CustomException;
 import util.Helper;
 import util.ValidationUtil;
 
-@SuppressWarnings("unchecked")
 public class UserService {
 
 	private Logger logger = LogManager.getLogger(UserService.class);
@@ -41,8 +40,7 @@ public class UserService {
 	private DAO<CustomerDetail> customerDao = DaoFactory.getDAO(CustomerDetail.class);
 	private DAO<Staff> staffDao = DaoFactory.getDAO(Staff.class);
 
-	private UserService() {
-	}
+	private UserService() {}
 
 	private static class SingletonHelper {
 		private static final UserService INSTANCE = new UserService();
@@ -58,6 +56,7 @@ public class UserService {
 		}
 	}
 
+	@SuppressWarnings("unchecked")
 	private Map<String, Object> extractUpdatedValues(Map<String, Object> userMap) {
 		Map<String, Object> updatedValues = (Map<String, Object>) userMap.get("updatedValues");
 		Helper.convertMapValuesToLong(updatedValues);
@@ -71,6 +70,7 @@ public class UserService {
 		return role;
 	}
 
+	@SuppressWarnings("unchecked")
 	private List<User> fetchExistingUsers(Map<String, Object> userMap) throws Exception {
 		return (List<User>) getUserDetails(userMap).get("users");
 	}
@@ -192,6 +192,7 @@ public class UserService {
 		return userDao;
 	}
 
+	@SuppressWarnings("unchecked")
 	private <T extends User> Class<T> determineUserClass(Map<String, Object> userMap) throws CustomException {
 		if (userMap.containsKey("userId") && userMap.containsKey("role")) {
 			Role role = (Role) userMap.get("role");
@@ -228,7 +229,7 @@ public class UserService {
 		Map<String, Object> userMap = new HashMap<>();
 		userMap.put("name", subOrgName);
 
-		Org org = SubOrgService.getInstance().getParentOrgByName(orgName);
+		Org org = SubOrgService.getInstance().getParentOrgByKey("name", orgName);
 		List<SubOrg> subOrgData = SubOrgService.getInstance().getSubOrgDetails(userMap);
 
 		Long subOrgId = subOrgData.isEmpty() ? null : subOrgData.get(0).getId();

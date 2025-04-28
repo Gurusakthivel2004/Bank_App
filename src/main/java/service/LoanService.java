@@ -40,6 +40,8 @@ public class LoanService {
 
 		Long loanId = loanDAO.create(loan);
 		logActivity(accountNumber, null, loanId);
+		
+		Helper.pushDealRecord("Loan", amount.toString());
 	}
 
 	public List<Loan> getLoanDetails(Long accountNumber) throws Exception {

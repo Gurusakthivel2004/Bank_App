@@ -243,6 +243,15 @@ public class DAOHelper {
 		return criteria;
 	}
 
+	public static void applyOauthProviderFilters(Criteria criteria, Map<String, Object> oauthMap) {
+		DAOHelper.addConditionIfPresent(criteria, oauthMap, "provider", "provider", "EQUAL_TO", "");
+		DAOHelper.addConditionIfPresent(criteria, oauthMap, "clientConfigId", "client_config_id", "EQUAL_TO", "");
+		DAOHelper.addConditionIfPresent(criteria, oauthMap, "accessToken", "access_token", "EQUAL_TO", "");
+		DAOHelper.addConditionIfPresent(criteria, oauthMap, "refreshToken", "refresh_token", "EQUAL_TO", 0l);
+		DAOHelper.addConditionIfPresent(criteria, oauthMap, "userId", "user_id", "EQUAL_TO", 0l);
+		DAOHelper.addConditionIfPresent(criteria, oauthMap, "id", "id", "EQUAL_TO", 0l);
+	}
+	
 	public static void applyTransactionFilters(Criteria criteria, Map<String, Object> txMap) {
 		DAOHelper.addConditionIfPresent(criteria, txMap, "customerId", "customer_id", "EQUAL_TO", 0L);
 		DAOHelper.addConditionIfPresent(criteria, txMap, "id", "id", "EQUAL_TO", 0L);
