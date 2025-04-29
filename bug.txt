@@ -59,11 +59,8 @@ MOM:
 	3. Handle the concurrency issue with a check in the insert queue.
 	4. Updates such as Email or phone number must reflect on the records on the CRM.
 	5. Change in the Owner of Accounts module (Org) must be handled.
-	
-MOM:
-	1. Instead of sub-orgs, push the modules (Fixed Deposit, Loan) into the Deals module, and store sub-org-related data within the Leads module.
-	2. Replace single-record requests with a bulk write approach. Queue the data operations in a dedicated processing queue handled by a scheduler to optimize execution.
-	3. Add a concurrency control check in the insert queue to prevent conflicting updates.
-	4. Ensure updates like Email or Phone Number are reflected consistently across all corresponding CRM records.
-	5. Handle changes in ownership within the Accounts (Org) module by propagating the updated owner wherever relevant.
 
+
+TODO:
+	1. Redis sortedset, (Redis JSON refer atlast)
+	2. Maintain a queue for insert and update and process with each call but for update make it as single call either at time period or the coutn of 100 filled..

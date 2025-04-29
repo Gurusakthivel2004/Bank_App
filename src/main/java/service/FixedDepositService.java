@@ -80,7 +80,7 @@ public class FixedDepositService {
 
 		createTransaction(accountNumber, operationalAccount.getAccountNumber(), amount, account.getBranchId(), session);
 
-		Helper.pushDealRecord("Fixed Deposit", fixedDeposit.getAmount().toString());
+		Helper.pushDealRecord("Fixed Deposit", fixedDeposit.getAmount().toString(), fdId.toString());
 	}
 
 	public List<FixedDeposit> getFixedDeposits(Map<String, Object> fixedDepositMap) throws Exception {

@@ -26,12 +26,21 @@ public class RedisCache {
 
 	public Jedis getConnection() {
 		try {
+			if (jedisPool == null) {
+				logger.warn("JedisPool is null, trying to get from Initializer...");
+				jedisPool = Initializer.getJedisPool();
+				if (jedisPool == null) {
+					logger.error("Still null after retrying from Initializer.");
+					return null;
+				}
+			}
 			return jedisPool.getResource();
 		} catch (Exception e) {
 			logger.error("Failed to get Redis connection: {}", e.getMessage());
 			return null;
 		}
 	}
+
 
 	public void closeConnection(Jedis jedis) {
 		if (jedis != null) {

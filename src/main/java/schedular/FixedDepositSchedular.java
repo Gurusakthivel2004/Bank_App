@@ -16,139 +16,154 @@ import org.apache.logging.log4j.Logger;
 import dao.DAO;
 import dao.DaoFactory;
 import enums.Constants.AccountType;
+import enums.Constants.DealsFields;
 import enums.Constants.HttpStatusCodes;
+import enums.Constants.TaskExecutor;
 import model.Account;
 import model.Criteria;
 import model.FixedDeposit;
+import model.User;
+import service.AccountService;
+import service.CRMService;
 import service.FixedDepositService;
 import service.TransactionService;
+import service.UserService;
 import util.CustomException;
+import util.OAuthConfig;
 import util.SQLHelper;
 
 public class FixedDepositSchedular {
 
-    private static final Logger logger = LogManager.getLogger(FixedDepositSchedular.class);
-    private static final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
+	private static final Logger logger = LogManager.getLogger(FixedDepositSchedular.class);
+	private static final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
 
-    private final FixedDepositService fixedDepositService = FixedDepositService.getInstance();
-    private final DAO<Account> accountDAO = DaoFactory.getDAO(Account.class);
+	private final FixedDepositService fixedDepositService = FixedDepositService.getInstance();
+	private final DAO<Account> accountDAO = DaoFactory.getDAO(Account.class);
 
-    public void startScheduler() throws Exception {
-        scheduler.scheduleAtFixedRate(this::processFixedDeposits, 0, 1, TimeUnit.DAYS);
-        logger.info("Fixed Deposit scheduler initialized: runs every 24 hours.");
-    }
+	public void startScheduler() throws Exception {
+		scheduler.scheduleAtFixedRate(this::processFixedDeposits, 0, 1, TimeUnit.DAYS);
+		logger.info("Fixed Deposit scheduler initialized: runs every 24 hours.");
+	}
 
-    public void stopScheduler() {
-        logger.info("Shutting down Fixed Deposit scheduler...");
-        scheduler.shutdown();
-        try {
-            if (!scheduler.awaitTermination(10, TimeUnit.SECONDS)) {
-                scheduler.shutdownNow();
-                logger.warn("Scheduler forced shutdown due to timeout.");
-            } else {
-                logger.info("Scheduler shut down successfully.");
-            }
-        } catch (InterruptedException e) {
-            scheduler.shutdownNow();
-            Thread.currentThread().interrupt();
-            logger.error("Scheduler interrupted during shutdown: {}", e.getMessage(), e);
-        }
-    }
+	public void stopScheduler() {
+		logger.info("Shutting down Fixed Deposit scheduler...");
+		scheduler.shutdown();
+		try {
+			if (!scheduler.awaitTermination(10, TimeUnit.SECONDS)) {
+				scheduler.shutdownNow();
+				logger.warn("Scheduler forced shutdown due to timeout.");
+			} else {
+				logger.info("Scheduler shut down successfully.");
+			}
+		} catch (InterruptedException e) {
+			scheduler.shutdownNow();
+			Thread.currentThread().interrupt();
+			logger.error("Scheduler interrupted during shutdown: {}", e.getMessage(), e);
+		}
+	}
 
-    private void processFixedDeposits() {
-        logger.info("Fixed Deposit scheduler started...");
-        try {
-            List<FixedDeposit> fixedDeposits = fixedDepositService.getFixedDeposits(new HashMap<>());
-            if (fixedDeposits.isEmpty()) {
-                logger.info("No fixed deposits found.");
-                return;
-            }
+	private void processFixedDeposits() {
+		logger.info("Fixed Deposit scheduler started...");
+		try {
+			List<FixedDeposit> fixedDeposits = fixedDepositService.getFixedDeposits(new HashMap<>());
+			if (fixedDeposits.isEmpty()) {
+				logger.info("No fixed deposits found.");
+				return;
+			}
 
-            List<Object> maturedDepositIds = new ArrayList<>();
-            logger.info("Found {} fixed deposits.", fixedDeposits.size());
+			List<Object> maturedDepositIds = new ArrayList<>();
+			logger.info("Found {} fixed deposits.", fixedDeposits.size());
 
-            for (FixedDeposit deposit : fixedDeposits) {
-                if (deposit.getMaturityDate() > System.currentTimeMillis()) {
-                    processMaturedDeposit(deposit);
-                    maturedDepositIds.add(deposit.getId());
-                }
-            }
+			for (FixedDeposit deposit : fixedDeposits) {
+				if (deposit.getMaturityDate() > System.currentTimeMillis()) {
+					processMaturedDeposit(deposit);
+					maturedDepositIds.add(deposit.getId());
+					processDealsUpdate(deposit);
+				}
+			}
 
-            if (!maturedDepositIds.isEmpty()) {
-                deleteMaturedDeposits(maturedDepositIds);
-            }
+			if (!maturedDepositIds.isEmpty()) {
+				deleteMaturedDeposits(maturedDepositIds);
+			}
 
-        } catch (Exception e) {
-            logger.error("Error processing fixed deposits: {}", e.getMessage(), e);
-        }
-        logger.info("Fixed Deposit processing completed.");
-    }
+		} catch (Exception e) {
+			logger.error("Error processing fixed deposits: {}", e.getMessage(), e);
+		}
+		logger.info("Fixed Deposit processing completed.");
+	}
 
-    private void processMaturedDeposit(FixedDeposit deposit) throws Exception {
-        BigDecimal returnAmount = deposit.getInterestRate().add(deposit.getAmount());
+	private void processMaturedDeposit(FixedDeposit deposit) throws Exception {
+		BigDecimal returnAmount = deposit.getInterestRate().add(deposit.getAmount());
 
-        List<Account> accounts = getAccountsByAccountNumber(deposit.getAccountNumber());
-        Account operationalAccount = getOperationalAccount(accounts);
+		List<Account> accounts = getAccountsByAccountNumber(deposit.getAccountNumber());
+		Account operationalAccount = getOperationalAccount(accounts);
 
-        createTransaction(
-                operationalAccount.getAccountNumber(),
-                deposit.getAccountNumber(),
-                returnAmount,
-                operationalAccount.getBranchId()
-        );
-    }
+		createTransaction(operationalAccount.getAccountNumber(), deposit.getAccountNumber(), returnAmount,
+				operationalAccount.getBranchId());
+	}
 
-    private List<Account> getAccountsByAccountNumber(Long accountNumber) throws Exception {
-        Map<String, Object> accountMap = new HashMap<>();
-        accountMap.put("accountNumber", accountNumber);
-        List<Account> accounts = accountDAO.get(accountMap);
+	private void processDealsUpdate(FixedDeposit deposit) throws Exception {
+		
+		Map<DealsFields, Object> dealsMap = new HashMap<>();
+		dealsMap.put(DealsFields.DEAL_NAME, "Fixed Deposit");
 
-        if (accounts.isEmpty()) {
-            throw new CustomException("No account found for account number: " + accountNumber,
-                    HttpStatusCodes.BAD_REQUEST);
-        }
+		TaskExecutor.CRM.submitTask(() -> {
+			try {
+				String endpoint = OAuthConfig.get("crm.deal.endpoint");
+				String id = CRMService.getInstance().fetchRecord("Record_Module_Id", deposit.getId().toString(), endpoint);
+				CRMService.getInstance().updateRecords(id, dealsMap, "Deals", endpoint);
+			} catch (Exception e) {
+				logger.error("CRM Deals push failed: {}", e.getMessage(), e);
+			}
+		});
+		
+	}
 
-        Long branchId = accounts.get(0).getBranchId();
-        Map<String, Object> fetchMap = new HashMap<>();
-        fetchMap.put("fetch", true);
-        fetchMap.put("branchId", branchId);
+	private List<Account> getAccountsByAccountNumber(Long accountNumber) throws Exception {
+		Map<String, Object> accountMap = new HashMap<>();
+		accountMap.put("accountNumber", accountNumber);
+		List<Account> accounts = accountDAO.get(accountMap);
 
-        return accountDAO.get(fetchMap);
-    }
+		if (accounts.isEmpty()) {
+			throw new CustomException("No account found for account number: " + accountNumber,
+					HttpStatusCodes.BAD_REQUEST);
+		}
 
-    private Account getOperationalAccount(List<Account> accounts) throws CustomException {
-        return accounts.stream()
-                .filter(acc -> acc.getAccountTypeEnum().equals(AccountType.Operational))
-                .findFirst()
-                .orElseThrow(() -> new CustomException("Operational account not found.",
-                        HttpStatusCodes.BAD_REQUEST));
-    }
+		Long branchId = accounts.get(0).getBranchId();
+		Map<String, Object> fetchMap = new HashMap<>();
+		fetchMap.put("fetch", true);
+		fetchMap.put("branchId", branchId);
 
-    private void deleteMaturedDeposits(List<Object> depositIds) throws Exception {
-        Criteria criteria = new Criteria()
-                .setClazz(FixedDeposit.class)
-                .setColumn(Collections.singletonList(""))
-                .setOperator(Collections.singletonList("IN"))
-                .setValues(depositIds);
+		return accountDAO.get(fetchMap);
+	}
 
-        SQLHelper.delete(criteria);
-        logger.info("Deleted {} matured fixed deposits.", depositIds.size());
-    }
+	private Account getOperationalAccount(List<Account> accounts) throws CustomException {
+		return accounts.stream().filter(acc -> acc.getAccountTypeEnum().equals(AccountType.Operational)).findFirst()
+				.orElseThrow(() -> new CustomException("Operational account not found.", HttpStatusCodes.BAD_REQUEST));
+	}
 
-    private void createTransaction(Long toAccount, Long fromAccount, BigDecimal amount, Long branchId)
-            throws Exception {
+	private void deleteMaturedDeposits(List<Object> depositIds) throws Exception {
+		Criteria criteria = new Criteria().setClazz(FixedDeposit.class).setColumn(Collections.singletonList(""))
+				.setOperator(Collections.singletonList("IN")).setValues(depositIds);
 
-        Map<String, Object> txMap = new HashMap<>();
-        txMap.put("accountNumber", toAccount.toString());
-        txMap.put("transactionAccountNumber", fromAccount.toString());
-        txMap.put("amount", amount.toString());
-        txMap.put("branchId", branchId.toString());
-        txMap.put("remarks", "Fixed Deposit");
-        txMap.put("bankName", "Horizon");
-        txMap.put("transactionIfsc", "");
-        txMap.put("transactionType", "FixedDeposit");
+		SQLHelper.delete(criteria);
+		logger.info("Deleted {} matured fixed deposits.", depositIds.size());
+	}
 
-        long txId = TransactionService.getInstance().prepareTransaction(txMap, null);
-        TransactionService.getInstance().updateTransaction(txId);
-    }
+	private void createTransaction(Long toAccount, Long fromAccount, BigDecimal amount, Long branchId)
+			throws Exception {
+
+		Map<String, Object> txMap = new HashMap<>();
+		txMap.put("accountNumber", toAccount.toString());
+		txMap.put("transactionAccountNumber", fromAccount.toString());
+		txMap.put("amount", amount.toString());
+		txMap.put("branchId", branchId.toString());
+		txMap.put("remarks", "Fixed Deposit");
+		txMap.put("bankName", "Horizon");
+		txMap.put("transactionIfsc", "");
+		txMap.put("transactionType", "FixedDeposit");
+
+		long txId = TransactionService.getInstance().prepareTransaction(txMap, null);
+		TransactionService.getInstance().updateTransaction(txId);
+	}
 }

@@ -5,6 +5,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -334,17 +335,60 @@ public class Constants {
 
 	}
 
+	public enum FieldIdentifier {
+		CONTACTS_EMAIL(8, "Contacts", "Email"), CONTACTS_PHONE(7, "Contacts", "Phone"),
+		ACCOUNTS_EMAIL(9, "Accounts", "Email"), ACCOUNTS_PHONE(5, "Accounts", "Phone");
+
+		private final int id;
+		private final String module;
+		private final String field;	
+		private static final Map<Integer, String> identifierToModule = new HashMap<>();
+		
+		static {
+			for (FieldIdentifier fi : values()) {
+				identifierToModule.put(fi.getId(), fi.getModule());
+			}
+		}
+
+		FieldIdentifier(int id, String module, String field) {
+			this.id = id;
+			this.module = module;
+			this.field = field;
+		}
+
+		public int getId() {
+			return id;
+		}
+
+		public String getModule() {
+			return module;
+		}
+
+		public String getField() {
+			return field;
+		}
+
+		public static Optional<FieldIdentifier> fromModuleAndField(String module, String field) {
+			return Arrays.stream(values())
+					.filter(fi -> fi.module.equalsIgnoreCase(module) && fi.field.equalsIgnoreCase(field)).findFirst();
+		}
+
+		public static String getModuleForIdentifier(int identifier) {
+			return identifierToModule.getOrDefault(identifier, "Unknown");
+		}
+	}
+
 	public interface SymbolProvider {
 		String getSymbol();
 	}
 
 	public enum HttpMethod {
-		GET, POST
+		GET, POST, PUT
 	}
 
 	public static enum ContactsFields implements SymbolProvider {
-		FK_USER_ID("FK_User_Id"), EMAIL("Email"), FIRST_NAME("First_Name"), LAST_NAME("Last_Name"), PHONE("Phone"),
-		DOB("Date_Of_Birth"), FK_ACCOUNT_NAME("FK_Account_Name");
+		FK_USER_ID("FK_User_Id"), ID("id"), EMAIL("Email"), FIRST_NAME("First_Name"), LAST_NAME("Last_Name"),
+		PHONE("Phone"), DOB("Date_Of_Birth"), FK_ACCOUNT_NAME("FK_Account_Name"), IDENTIFIER("Identifier");
 
 		private final String ApiName;
 
@@ -366,8 +410,9 @@ public class Constants {
 	}
 
 	public static enum AccountsFields implements SymbolProvider {
-		FK_USER_ID("FK_User_Id"), PHONE("Phone"), ACCOUNT_NAME("Account_Name"), INDUSTRY("Industry"),
-		EMPLOYEES("Employees");
+		FK_USER_ID("FK_User_Id"), ID("id"), PHONE("Phone"), ACCOUNT_NAME("Account_Name"), INDUSTRY("Industry"),
+		EMPLOYEES("Employees"), IDENTIFIER("Identifier");
+		;
 
 		private final String ApiName;
 
@@ -389,7 +434,7 @@ public class Constants {
 	}
 
 	public static enum DealsFields implements SymbolProvider {
-		USER_ID("id"), AMOUNT("Amount"), STAGE("Stage"), DEAL_NAME("Deal_Name"), TYPE("Type"),
+		USER_ID("id"), MODULE_RECORD_ID("Module_Record_Id"), AMOUNT("Amount"), STAGE("Stage"), DEAL_NAME("Deal_Name"), TYPE("Type"),
 		FK_ACCOUNT_NAME("FK_Account_Name"), FK_Contact_NAME("FK_Contact_Name");
 		;
 
@@ -411,7 +456,7 @@ public class Constants {
 			}
 		}
 	}
-	
+
 	public static enum LeadsFields implements SymbolProvider {
 		COMPANY("Company"), FIRST_NAME("First_Name"), LAST_NAME("Last_Name"), EMAIL("Email");
 

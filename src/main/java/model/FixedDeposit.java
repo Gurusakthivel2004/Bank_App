@@ -4,29 +4,29 @@ import java.math.BigDecimal;
 
 public class FixedDeposit extends MarkedClass {
 
-	private long id;
-	private long accountNumber;
+	private Long id;
+	private Long accountNumber;
 	private BigDecimal amount;
 	private BigDecimal interestRate;
-	private long startDate;
-	private long maturityDate;
+	private Long startDate;
+	private Long maturityDate;
 	private boolean isActive;
 	private boolean isClosed;
 
-	public long getId() {
+	public Long getId() {
 		return id;
 	}
 
-	public FixedDeposit setId(long id) {
+	public FixedDeposit setId(Long id) {
 		this.id = id;
 		return this;
 	}
 
-	public long getAccountNumber() {
+	public Long getAccountNumber() {
 		return accountNumber;
 	}
 
-	public FixedDeposit setAccountNumber(long accountNumber) {
+	public FixedDeposit setAccountNumber(Long accountNumber) {
 		this.accountNumber = accountNumber;
 		return this;
 	}
@@ -49,20 +49,20 @@ public class FixedDeposit extends MarkedClass {
 		return this;
 	}
 
-	public long getStartDate() {
+	public Long getStartDate() {
 		return startDate;
 	}
 
-	public FixedDeposit setStartDate(long startDate) {
+	public FixedDeposit setStartDate(Long startDate) {
 		this.startDate = startDate;
 		return this;
 	}
 
-	public long getMaturityDate() {
+	public Long getMaturityDate() {
 		return maturityDate;
 	}
 
-	public FixedDeposit setMaturityDate(long maturityDate) {
+	public FixedDeposit setMaturityDate(Long maturityDate) {
 		this.maturityDate = maturityDate;
 		return this;
 	}

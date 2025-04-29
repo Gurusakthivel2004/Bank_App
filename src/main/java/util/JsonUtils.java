@@ -57,23 +57,17 @@ public class JsonUtils {
 		return node;
 	}
 
-	public static String buildModuleJsonFromMap(Map<Object, Object> dataMap) {
+	public static <K extends SymbolProvider> String buildModuleJsonFromMap(Map<K, Object> dataMap) {
 		JsonObject obj = new JsonObject();
 
 		List<String> specialKeys = Arrays.asList("FK_User_Id", "FK_Account_Name", "FK_Contact_Name");
 
 		Map<String, Object> stringKeyedMap = new HashMap<>();
-		for (Map.Entry<Object, Object> entry : dataMap.entrySet()) {
+		for (Map.Entry<K, Object> entry : dataMap.entrySet()) {
 			String keyStr;
-			Object key = entry.getKey();
+			SymbolProvider key = entry.getKey();
 
-			if (key instanceof SymbolProvider) {
-				keyStr = ((SymbolProvider) key).getSymbol();
-			} else if (key instanceof Enum) {
-				keyStr = ((Enum<?>) key).name();
-			} else {
-				keyStr = key.toString();
-			}
+			keyStr = key.getSymbol();
 			stringKeyedMap.put(keyStr, entry.getValue());
 		}
 

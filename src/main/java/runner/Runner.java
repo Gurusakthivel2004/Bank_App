@@ -1,7 +1,6 @@
 package runner;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import com.google.gson.JsonObject;
@@ -9,16 +8,9 @@ import com.google.gson.JsonParser;
 
 import dao.DAO;
 import dao.DaoFactory;
-import enums.Constants.Role;
-import enums.Constants.Status;
-import initializer.Initializer;
-import model.CustomerDetail;
-import model.OauthClientConfig;
 import model.OauthProvider;
-import service.CRMService;
-import service.UserService;
+import schedular.CRMSchedular;
 import util.Helper;
-import util.OAuthConfig;
 
 public class Runner {
 
@@ -29,9 +21,9 @@ public class Runner {
 		try {
 //			TransactionService.getInstance().updateTransactionStatus(5519l, TransactionStatus.Completed);
 //			generateTokens();
-		
-			Initializer.setDataSource();
-			CRMService.getInstance().refreshAccessToken();
+
+//			Initializer.setDataSource();
+//			CRMService.getInstance().refreshAccessToken();
 //			Map<String, Object> userMap = new HashMap<String, Object>();
 //			
 //			userMap.put("userId", 152l);
@@ -50,21 +42,31 @@ public class Runner {
 //					.setPassword("securepassword").setRoleEnum(Role.Customer).setStatusEnum(Status.Active)
 //					.setCreatedAt(System.currentTimeMillis()).setModifiedAt(System.currentTimeMillis())
 //					.setPerformedBy(1L).setPasswordVersion(1);
-			
+
 //			OauthClientConfig config = Helper.getClientConfig("Zoho");
 //			String jsonResponse = CRMService.getInstance().fetchRecords(OAuthConfig.get("crm.account.endpoint"), "Account_Name", "Zoho", config);
+//			Map<ContactsFields, Object> userMap = new HashMap<ContactsFields, Object>();
+//			userMap.put(ContactsFields.EMAIL, "vijayguru2004@zoho.com");
+//			userMap.put(ContactsFields.PHONE, "9361409787");
+//
+//			CRMService.getInstance().updateRecords("Email", "guruvijay@zoho.com", userMap, "Contacts");
+//			Map<AccountsFields, Object> accMap = new HashMap<AccountsFields, Object>();
+//			accMap.put(AccountsFields.PHONE, "9361409787");
+//			
+//			CRMService.getInstance().updateRecords("Account_Name", "Zoho", accMap, "Accounts");
+			CRMSchedular crmSchedular = new CRMSchedular();
+			crmSchedular.processUpdateSet();
 //			System.out.println("json response: " + jsonResponse);
 //
 //			pushAccountRecords(customerDetail);
 //			CRMService.getInstance().pushAccountRecords(customerDetail);
 		} catch (Exception e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 
 	}
 
-	private static void generateTokens() throws Exception {
+	public static void generateTokens() throws Exception {
 		String url = "https://accounts.localzoho.com/oauth/v2/token?" + "grant_type=client_credentials&"
 				+ "scope=zohocrm.settings.all,zohocrm.modules.all,zohocrm.users.all,zohocrm.org.all&"
 				+ "soid=ZohoCrm.103791165";

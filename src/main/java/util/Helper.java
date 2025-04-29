@@ -414,76 +414,73 @@ public class Helper {
 	}
 
 	private static String sendRequest(String url, String method, String body, String bearerToken, String basicUsername,
-			String basicPassword, boolean useProxy, String contentType) throws Exception {
+	        String basicPassword, boolean useProxy, String contentType) throws Exception {
 
-		HttpURLConnection conn;
+	    HttpURLConnection conn;
 
-		LOGGER.info("---- Sending HTTP Request ----");
-		LOGGER.info("URL           : " + url);
-		LOGGER.info("Method        : " + method);
-		LOGGER.info("Using Proxy   : " + useProxy);
-		LOGGER.info("Content-Type  : " + (contentType != null ? contentType : "application/json"));
+	    LOGGER.info("---- Sending HTTP Request ----");
+	    LOGGER.info("URL           : " + url);
+	    LOGGER.info("Method        : " + method);
+	    LOGGER.info("Using Proxy   : " + useProxy);
+	    LOGGER.info("Content-Type  : " + (contentType != null ? contentType : "application/json"));
+	    LOGGER.info("Body   : " + body);
 
-		if (useProxy) {
-			String proxyHost = OAuthConfig.get("proxy.host");
-			int proxyPort = Integer.parseInt(OAuthConfig.get("proxy.port"));
-			LOGGER.info("Proxy Host    : " + proxyHost);
-			LOGGER.info("Proxy Port    : " + proxyPort);
-			Proxy proxy = new Proxy(Proxy.Type.HTTP, new InetSocketAddress(proxyHost, proxyPort));
-			conn = (HttpURLConnection) new URL(url).openConnection(proxy);
-		} else {
-			conn = (HttpURLConnection) new URL(url).openConnection();
-		}
+	    if (useProxy) {
+	        String proxyHost = OAuthConfig.get("proxy.host");
+	        int proxyPort = Integer.parseInt(OAuthConfig.get("proxy.port"));
+	        LOGGER.info("Proxy Host    : " + proxyHost);
+	        LOGGER.info("Proxy Port    : " + proxyPort);
+	        Proxy proxy = new Proxy(Proxy.Type.HTTP, new InetSocketAddress(proxyHost, proxyPort));
+	        conn = (HttpURLConnection) new URL(url).openConnection(proxy);
+	    } else {
+	        conn = (HttpURLConnection) new URL(url).openConnection();
+	    }
 
-		conn.setRequestMethod(method);
-		conn.setConnectTimeout(10000);
-		conn.setReadTimeout(10000);
+	    conn.setRequestMethod(method);
+	    conn.setConnectTimeout(10000);
+	    conn.setReadTimeout(10000);
 
-		if ("POST".equalsIgnoreCase(method)) {
-			conn.setDoOutput(true);
-			conn.setRequestProperty("Content-Type", contentType != null ? contentType : "application/json");
-		}
+	    if (body != null && !body.isEmpty()) {
+	        conn.setDoOutput(true); 
+	        conn.setRequestProperty("Content-Type", contentType != null ? contentType : "application/json");
+	    }
+	    
+	    if (bearerToken != null && !bearerToken.isEmpty()) {
+	        conn.setRequestProperty("Authorization", "Bearer " + bearerToken);
+	        LOGGER.info("Authorization : Bearer Token Set");
+	    } else if (basicUsername != null && basicPassword != null) {
+	        String basicToken = Base64.getEncoder().encodeToString((basicUsername + ":" + basicPassword).getBytes("UTF-8"));
+	        conn.setRequestProperty("Authorization", "Basic " + basicToken);
+	        LOGGER.info("Authorization : Basic Auth Set");
+	    }
 
-		if (bearerToken != null && !bearerToken.isEmpty()) {
-			conn.setRequestProperty("Authorization", "Bearer " + bearerToken);
-			LOGGER.info("Authorization : Bearer Token Set");
-		} else if (basicUsername != null && basicPassword != null) {
-			String basicToken = Base64.getEncoder()
-					.encodeToString((basicUsername + ":" + basicPassword).getBytes("UTF-8"));
-			conn.setRequestProperty("Authorization", "Basic " + basicToken);
-			LOGGER.info("Authorization : Basic Auth Set");
-		}
+	    if (body != null && !body.isEmpty()) {
+	        try (OutputStream os = conn.getOutputStream()) {
+	            byte[] input = body.getBytes("UTF-8");
+	            os.write(input, 0, input.length);
+	            LOGGER.info("Request Body  : " + body);
+	        }
+	    }
 
-		if ("POST".equalsIgnoreCase(method) && body != null) {
-			try (OutputStream os = conn.getOutputStream()) {
-				byte[] input = body.getBytes("UTF-8");
-				os.write(input, 0, input.length);
-				LOGGER.info("Request Body  : " + body);
-			}
-		}
+	    int responseCode = conn.getResponseCode();
+	    LOGGER.info("Response Code : " + responseCode);
 
-		int responseCode = conn.getResponseCode();
-		LOGGER.info("Response Code : " + responseCode);
-
-		if (responseCode >= 200 && responseCode < 300) {
-			LOGGER.info("Response Code: " + responseCode);
-
-			String response = "";
-			try {
-			    response = readStream(conn.getInputStream());
-			} catch (IOException e) {
-			    InputStream errorStream = conn.getErrorStream();
-			    response = errorStream != null ? readStream(errorStream) : "No response body";
-			}
-			LOGGER.info("Full Response Body: " + response);
-
-			return response;
-		} else {
-			InputStream errorStream = conn.getErrorStream();
-			String errorMessage = errorStream != null ? readStream(errorStream) : "Error: No response body";
-			LOGGER.error("HTTP error code: " + responseCode + " - " + errorMessage);
-			throw new IOException("HTTP error code: " + responseCode + " - " + errorMessage);
-		}
+	    if (responseCode >= 200 && responseCode < 300) {
+	        String response = "";
+	        try {
+	            response = readStream(conn.getInputStream());
+	        } catch (IOException e) {
+	            InputStream errorStream = conn.getErrorStream();
+	            response = errorStream != null ? readStream(errorStream) : "No response body";
+	        }
+	        LOGGER.info("Full Response Body: " + response);
+	        return response;
+	    } else {
+	        InputStream errorStream = conn.getErrorStream();
+	        String errorMessage = errorStream != null ? readStream(errorStream) : "Error: No response body";
+	        LOGGER.error("HTTP error code: " + responseCode + " - " + errorMessage);
+	        throw new IOException("HTTP error code: " + responseCode + " - " + errorMessage);
+	    }
 	}
 
 	public static String sendPostRequestWithJson(String url, String jsonBody, String bearerToken) throws Exception {
@@ -493,6 +490,11 @@ public class Helper {
 	public static String sendPostRequestWithJsonProxy(String url, String jsonBody, String bearerToken,
 			String basicUsername, String basicPassword) throws Exception {
 		return sendRequest(url, "POST", jsonBody, bearerToken, basicUsername, basicPassword, true, null);
+	}
+	
+	public static String sendPutRequestWithJsonProxy(String url, String jsonBody, String bearerToken,
+			String basicUsername, String basicPassword) throws Exception {
+		return sendRequest(url, "PUT", jsonBody, bearerToken, basicUsername, basicPassword, true, null);
 	}
 
 	public static String sendGetRequest(String url, String bearerToken) throws Exception {
@@ -545,7 +547,7 @@ public class Helper {
 		response.flushBuffer();
 	}
 	
-	public static void pushDealRecord(String moduleName, String amount) throws Exception {
+	public static void pushDealRecord(String moduleName, String moduleId, String amount) throws Exception {
 		Long userId = (Long) getThreadLocalValue("id");
 		
 		Map<String, Object> orgMemberMap = new HashMap<>();
@@ -555,21 +557,20 @@ public class Helper {
 		List<OrgMember> orgMembers = orgMemberDAO.get(orgMemberMap);
 		
 		if(orgMembers.isEmpty()) {
-			throw new CustomException("User doesnot belong to an org.", HttpStatusCodes.BAD_REQUEST);
+			throw new CustomException("User does not belong to an org.", HttpStatusCodes.BAD_REQUEST);
 		}
 		
 		Org org = SubOrgService.getInstance().getParentOrgByKey("id", orgMembers.get(0).getOrgId());
 		
 		TaskExecutor.CRM.submitTask(() -> {
 			try {
-				CRMService.getInstance().pushDealsRecords(moduleName, amount, org.getName());
+				CRMService.getInstance().pushDealsRecords(moduleName, amount, org.getName(), moduleId);
 			} catch (Exception e) {
 				LOGGER.error("CRM Deals push failed: {}", e.getMessage(), e);
 			}
 		});
 	}
 	
-
 	public static void sendErrorResponse(HttpServletResponse response, CustomException exception) throws IOException {
 		response.setContentType("application/json");
 		response.setStatus(exception.getStatusCode());
@@ -737,7 +738,7 @@ public class Helper {
 				}
 			}
 		} catch (NumberFormatException e) {
-			System.err.println("Invalid account number format");
+			LOGGER.error("Invalid account number format");
 		}
 		return null;
 	}

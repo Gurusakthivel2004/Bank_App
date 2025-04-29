@@ -16,16 +16,14 @@ import org.apache.logging.log4j.Logger;
 import dao.DaoFactory;
 import enums.Constants.HttpStatusCodes;
 import io.github.cdimascio.dotenv.Dotenv;
-import model.OauthClientConfig;
 import pool.DBConnectionPool;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
+import schedular.CRMSchedular;
 import schedular.ExpiredSessionSchedular;
 import schedular.PasswordUpdateScheduler;
-import service.CRMService;
 import util.CustomException;
 import util.Helper;
-import util.OAuthConfig;
 
 @WebListener
 public class Initializer implements ServletContextListener {
@@ -52,11 +50,19 @@ public class Initializer implements ServletContextListener {
 	// Schedulers
 	private static final PasswordUpdateScheduler passwordUpdateScheduler = new PasswordUpdateScheduler();
 	private static final ExpiredSessionSchedular expiredSessionSchedular = new ExpiredSessionSchedular();
+	private static final CRMSchedular crmSchedular = new CRMSchedular();
 	private static final DatabaseInitializer databaseInitializer = new DatabaseInitializer();
 
 	public static void setDataSource() throws SQLException, ClassNotFoundException {
 		loadMySQLDriver();
 		dbConnectionPool = new DBConnectionPool(URL, USER, PASSWORD);
+		GenericObjectPoolConfig<Jedis> poolConfig = new GenericObjectPoolConfig<>();
+		poolConfig.setMaxTotal(REDIS_MAX_TOTAL);
+		poolConfig.setMaxIdle(REDIS_MAX_IDLE);
+		poolConfig.setMinIdle(REDIS_MIN_IDLE);
+		poolConfig.setBlockWhenExhausted(REDIS_BLOCK_WHEN_EXHAUSTED);
+
+		jedisPool = new JedisPool(poolConfig, REDIS_HOST, REDIS_PORT, REDIS_CONNECTION_TIMEOUT);
 	}
 
 	@Override
@@ -85,12 +91,7 @@ public class Initializer implements ServletContextListener {
 			// Start Schedulers
 			expiredSessionSchedular.startScheduler();
 			passwordUpdateScheduler.startScheduler();
-
-// fetch test
-			OauthClientConfig config = Helper.getClientConfig("Zoho");
-
-			CRMService.getInstance().fetchRecords(OAuthConfig.get("crm.account.endpoint"), "Account_Name", "Infosys",
-					config);
+			crmSchedular.startScheduler();
 
 		} catch (Exception e) {
 			logger.error("Error initializing resources: {}", e);

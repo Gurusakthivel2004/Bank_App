@@ -18,9 +18,11 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import cache.CacheUtil;
 import dao.DAO;
 import dao.DaoFactory;
+import enums.Constants.ContactsFields;
 import enums.Constants.HttpStatusCodes;
 import enums.Constants.LogType;
 import enums.Constants.Role;
+import enums.Constants.TaskExecutor;
 import model.ActivityLog;
 import model.ColumnCriteria;
 import model.CustomerDetail;
@@ -31,6 +33,7 @@ import model.User;
 import util.AuthUtils;
 import util.CustomException;
 import util.Helper;
+import util.OAuthConfig;
 import util.ValidationUtil;
 
 public class UserService {
@@ -40,7 +43,8 @@ public class UserService {
 	private DAO<CustomerDetail> customerDao = DaoFactory.getDAO(CustomerDetail.class);
 	private DAO<Staff> staffDao = DaoFactory.getDAO(Staff.class);
 
-	private UserService() {}
+	private UserService() {
+	}
 
 	private static class SingletonHelper {
 		private static final UserService INSTANCE = new UserService();
@@ -177,13 +181,13 @@ public class UserService {
 		Helper.logActivity(activityLog);
 	}
 
-	private List<Object> getCachedUsers(Map<String, Object> userMap) {
+	private <T extends User> List<T> getCachedUsers(Map<String, Object> userMap) {
 		String cacheKey = "userDetails";
-		return CacheUtil.getCachedList(cacheKey, new TypeReference<List<Object>>() {
+		return CacheUtil.getCachedList(cacheKey, new TypeReference<List<T>>() {
 		}, userMap, "userId");
 	}
 
-	private DAO<?> determineDAO(Map<String, Object> userMap) throws CustomException {
+	private DAO<? extends User> determineDAO(Map<String, Object> userMap) throws CustomException {
 		if (userMap.containsKey("userId") && userMap.containsKey("role")) {
 			Role role = Role.fromString((String) userMap.get("role"));
 			userMap.put("role", role);
@@ -212,7 +216,7 @@ public class UserService {
 		}
 	}
 
-	private Map<String, Object> createResultMap(List<?> users, Long count) {
+	private <T extends User> Map<String, Object> createResultMap(List<T> users, Long count) {
 		Map<String, Object> resultMap = new HashMap<>();
 		resultMap.put("users", users);
 		if (count != null) {
@@ -235,7 +239,7 @@ public class UserService {
 		Long subOrgId = subOrgData.isEmpty() ? null : subOrgData.get(0).getId();
 		SubOrgService.getInstance().createMembers(org.getId(), subOrgId, userId, Role.User);
 	}
-	
+
 	private long createUserByRole(Map<String, Object> userMap, Role role) throws Exception {
 		if (role == Role.Customer) {
 			return handleCustomerCreation(userMap);
@@ -263,6 +267,30 @@ public class UserService {
 				.setUserAccountNumber(null).setRowId(userId).setTableName("User").setUserId(userId);
 
 		Helper.logActivity(activityLog);
+	}
+
+	private void updateContacts(Map<String, Object> userMap, String criteriaEmail) throws Exception {
+		String email = (String) userMap.get("email");
+		Long phone = (Long) userMap.get("phone");
+
+		Map<ContactsFields, Object> contactsMap = new HashMap<ContactsFields, Object>();
+
+		if (email != null && phone == null) {
+			contactsMap.put(ContactsFields.EMAIL, email);
+		}
+		if (phone != null) {
+			contactsMap.put(ContactsFields.PHONE, phone.toString());
+		}
+
+		TaskExecutor.CRM.submitTask(() -> {
+			try {
+				String endpoint = OAuthConfig.get("crm.contact.endpoint");
+				String id = CRMService.getInstance().fetchRecord("Email", criteriaEmail, endpoint);
+				CRMService.getInstance().updateRecords(id, contactsMap, "Contacts", endpoint);
+			} catch (Exception e) {
+				logger.error("CRM Deals push failed: {}", e.getMessage(), e);
+			}
+		});
 	}
 
 	public Map<String, Object> userLogin(String username, String password, HttpSession session) throws Exception {
@@ -405,18 +433,18 @@ public class UserService {
 	public <T extends User> Map<String, Object> getUserDetails(Map<String, Object> userMap) throws Exception {
 		logger.info("Fetching user details.");
 
-		List<Object> cachedUsers = getCachedUsers(userMap);
+		List<T> cachedUsers = getCachedUsers(userMap);
 		if (cachedUsers != null && userMap.size() == 1) {
 			return createResultMap(cachedUsers, null);
 		}
 
-		DAO<?> dao = determineDAO(userMap);
+		DAO<? extends User> dao = determineDAO(userMap);
 		Class<T> clazz = determineUserClass(userMap);
 
 		userMap.put("userClass", clazz);
 		long count = determineDataCount(userMap, dao);
 
-		List<?> users = dao.get(userMap);
+		List<? extends User> users = dao.get(userMap);
 		cacheUserDataIfNeeded(userMap, users);
 
 		return createResultMap(users, count);
@@ -430,9 +458,9 @@ public class UserService {
 		String subOrgName = (String) userMap.remove("subOrgName");
 
 		Role role = Role.fromString((String) userMap.get("role"));
-		
+
 		try {
-			
+
 			long userId = createUserByRole(userMap, role);
 			linkUserOrg(orgName, subOrgName, userId);
 
@@ -453,6 +481,7 @@ public class UserService {
 				return;
 			}
 
+			logger.info(userMap);
 			validateUpdateRequest(userMap);
 
 			long userId = Helper.parseLong(userMap.getOrDefault("userId", -1));
@@ -473,6 +502,12 @@ public class UserService {
 			logUpdateActivity(userId, updatedValues);
 
 			logger.info("User details updated successfully.");
+			logger.info(users);
+			logger.info(users.getClass());
+			logger.info(users.get(0));
+			logger.info(users.get(0).getClass());
+			logger.info(updatedValues);
+			updateContacts(updatedValues, users.get(0).getEmail());
 		} catch (CustomException e) {
 			logger.error("Error updating user details. Error: {}", e.getMessage());
 			throw e;

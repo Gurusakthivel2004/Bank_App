@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -16,9 +17,11 @@ import dao.DaoFactory;
 import enums.Constants.AccountsFields;
 import enums.Constants.ContactsFields;
 import enums.Constants.DealsFields;
+import enums.Constants.FieldIdentifier;
 import enums.Constants.HttpMethod;
 import enums.Constants.HttpStatusCodes;
 import enums.Constants.LeadsFields;
+import enums.Constants.SymbolProvider;
 import io.github.cdimascio.dotenv.Dotenv;
 import model.ColumnCriteria;
 import model.OauthClientConfig;
@@ -26,6 +29,7 @@ import model.OauthProvider;
 import model.Org;
 import model.SubOrg;
 import model.User;
+import util.CRMQueueManager;
 import util.CustomException;
 import util.Helper;
 import util.JsonUtils;
@@ -44,7 +48,8 @@ public class CRMService {
 	private static final String SCOPE = OAuthConfig.get("crm.scope");
 	private static final String SOID = "ZohoCrm." + OAuthConfig.get("crm.orgId");
 
-	private CRMService() {}
+	private CRMService() {
+	}
 
 	private static class SingletonHelper {
 		private static final CRMService INSTANCE = new CRMService();
@@ -56,59 +61,95 @@ public class CRMService {
 
 	public String pushAccountRecords(Org org) throws Exception {
 
-		Map<Object, Object> data = new HashMap<>();
+		Map<AccountsFields, Object> data = new HashMap<>();
 		data.put(AccountsFields.ACCOUNT_NAME, org.getName());
 		data.put(AccountsFields.INDUSTRY, org.getOrgType());
 		data.put(AccountsFields.EMPLOYEES, org.getEmployees());
 		data.put(AccountsFields.PHONE, org.getPhone().toString());
-		String response = pushToCrm(OAuthConfig.get("crm.account.endpoint"), data);
-		
+
+		String response = postToCrm(OAuthConfig.get("crm.account.endpoint"), data);
+
 		return JsonUtils.getValueByPath(response, "data[0].details", "id");
 	}
 
 	public void pushContactRecords(User user, String accountId) throws Exception {
-		
+
 		logger.info("Account ID :" + accountId);
 
-		Map<Object, Object> data = new HashMap<>();
+		Map<ContactsFields, Object> data = new HashMap<>();
 		data.put(ContactsFields.FK_ACCOUNT_NAME, accountId);
 		data.put(ContactsFields.EMAIL, user.getEmail());
 		data.put(ContactsFields.FIRST_NAME, user.getFullname());
 		data.put(ContactsFields.LAST_NAME, user.getUsername());
 		data.put(ContactsFields.PHONE, user.getPhone().toString());
 
-		pushToCrm(OAuthConfig.get("crm.contact.endpoint"), data);
+		postToCrm(OAuthConfig.get("crm.contact.endpoint"), data);
 	}
 
-	public void pushDealsRecords(String dealName, String amount, String accountName) throws Exception {
+	public void pushDealsRecords(String dealName, String amount, String accountName, String moduleRecordId) throws Exception {
 
 		OauthClientConfig config = Helper.getClientConfig(PROVIDER);
 		String jsonResponse = fetchRecords(OAuthConfig.get("crm.contact.endpoint"), "Account_Name", accountName,
 				config);
-		
+
 		String accountId = JsonUtils.getValueByPath(jsonResponse, "data[0].Account_Name", "id");
 		String contactId = JsonUtils.getValueByPath(jsonResponse, "data[0]", "id");
 
-		Map<Object, Object> data = new HashMap<>();
+		Map<DealsFields, Object> data = new HashMap<>();
 		data.put(DealsFields.FK_ACCOUNT_NAME, accountId);
 		data.put(DealsFields.FK_Contact_NAME, contactId);
+		data.put(DealsFields.MODULE_RECORD_ID, moduleRecordId);
 		data.put(DealsFields.AMOUNT, amount);
 		data.put(DealsFields.STAGE, "Needs Analysis");
 		data.put(DealsFields.TYPE, "New Business");
 		data.put(DealsFields.DEAL_NAME, dealName);
 
-		pushToCrm(OAuthConfig.get("crm.deal.endpoint"), data);
+		postToCrm(OAuthConfig.get("crm.deal.endpoint"), data);
 	}
-	
+
 	public String pushLeadsRecords(SubOrg subOrg, String company, String email) throws Exception {
 
-		Map<Object, Object> data = new HashMap<>();
+		Map<LeadsFields, Object> data = new HashMap<>();
 		data.put(LeadsFields.FIRST_NAME, subOrg.getName());
 		data.put(LeadsFields.COMPANY, company);
 		data.put(LeadsFields.EMAIL, email);
-		String response = pushToCrm(OAuthConfig.get("crm.lead.endpoint"), data);
-		
+		String response = postToCrm(OAuthConfig.get("crm.lead.endpoint"), data);
+
 		return JsonUtils.getValueByPath(response, "data[0].details", "id");
+	}
+
+	public <K extends Enum<K> & SymbolProvider> void updateRecords(String recordId, Map<K, Object> updateFields,
+			String moduleName, String endpointKey) throws Exception {
+
+		updateFields.put((K) Enum.valueOf(updateFields.keySet().iterator().next().getDeclaringClass(), "ID"), recordId);
+		Map<K, Object> structuredFields = new HashMap<>();
+
+		for (Map.Entry<K, Object> entry : updateFields.entrySet()) {
+			K field = entry.getKey();
+			Object value = entry.getValue();
+
+			if (field.name().equals("ID")) {
+				structuredFields.put(field, value);
+			} else {
+				Map<String, Object> valueWithIdentifier = new HashMap<>();
+				valueWithIdentifier.put("value", value);
+
+				Optional<FieldIdentifier> idOpt = FieldIdentifier.fromModuleAndField(moduleName, field.getSymbol());
+				idOpt.ifPresent(identifier -> valueWithIdentifier.put("identifier", identifier.getId()));
+
+				structuredFields.put(field, valueWithIdentifier);
+			}
+		}
+
+		CRMQueueManager.addToUpdateSet(structuredFields);
+	}
+
+	public String fetchRecord(String criteriaKey, String criteriaValue, String endpoint) throws Exception {
+		OauthClientConfig config = Helper.getClientConfig(PROVIDER);
+		String jsonResponse = fetchRecords(endpoint, criteriaKey, criteriaValue, config);
+		String id = JsonUtils.getValueByPath(jsonResponse, "data[0]", "id");
+
+		return id;
 	}
 
 	private OauthProvider fetchOauthProvider() throws Exception {
@@ -120,14 +161,22 @@ public class CRMService {
 		return oauthProviderDao.get(oauthMap).get(0);
 	}
 
-	public String pushToCrm(String endpointKey, Map<Object, Object> data) throws Exception {
+	public <K extends SymbolProvider> String postToCrm(String endpointKey, Map<K, Object> data) throws Exception {
 
 		OauthProvider provider = fetchOauthProvider();
 
 		String json = JsonUtils.buildModuleJsonFromMap(data);
-		
+
 		String url = API_DOMAIN + endpointKey;
 		return sendWithRetry(HttpMethod.POST, url, json, provider);
+	}
+
+	public <K extends SymbolProvider> String putToCrm(String endpointKey, String updateJson) throws Exception {
+
+		OauthProvider provider = fetchOauthProvider();
+
+		String url = API_DOMAIN + endpointKey;
+		return sendWithRetry(HttpMethod.PUT, url, updateJson, provider);
 	}
 
 	public String fetchRecords(String endpointKey, String criteriaKey, String criteriaValue, OauthClientConfig config)
@@ -144,7 +193,7 @@ public class CRMService {
 		logger.info("json response: " + jsonResponse);
 		return jsonResponse;
 	}
-	
+
 	public void refreshAccessToken() throws Exception {
 		OauthClientConfig clientConfig = Helper.getClientConfig(PROVIDER);
 		DAO<OauthProvider> oauthProviderDao = DaoFactory.getDAO(OauthProvider.class);
@@ -179,28 +228,30 @@ public class CRMService {
 
 		while (retries < RETRIES) {
 			try {
-				if (method == HttpMethod.POST) {
+				switch (method) {
+				case POST:
 					response = Helper.sendPostRequestWithJsonProxy(url, jsonBody, provider.getAccessToken(), null,
 							null);
-				} else {
+				case GET:
 					response = Helper.sendGetRequestWithProxy(url, provider.getAccessToken(), null, null);
+				case PUT:
+					response = Helper.sendPutRequestWithJsonProxy(url, jsonBody, provider.getAccessToken(), null, null);
 				}
-				if (response == null || response.length() == 0) {
-					retries++;
-				} else {
+
+				if (response != null && response.length() > 0) {
 					logger.info("returned response: " + response.length());
 					return response;
 				}
-
 			} catch (IOException e) {
 				logger.error("Request failed: {}", e.getMessage());
 
-				if (e.getMessage() != null && e.getMessage().contains("401")) {
+				if (e.getMessage() != null && e.getMessage().contains("401") || e.getMessage().contains("403")) {
 					logger.info("Access token might be expired. Attempting to refresh...");
 					refreshAccessToken();
-					retries++;
 				}
+
 			}
+			retries++;
 		}
 
 		logger.error("Request to {} failed after retries. Response: {}", url, response);
