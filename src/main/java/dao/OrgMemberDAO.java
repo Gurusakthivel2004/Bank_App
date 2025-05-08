@@ -39,6 +39,7 @@ public class OrgMemberDAO implements DAO<OrgMember> {
 		logger.info("Fetching user org map data");
 		Criteria criteria = new Criteria().setClazz(OrgMember.class).setSelectColumn(Arrays.asList("*"));
 		DAOHelper.addConditionIfPresent(criteria, orgMap, "userId", "user_id", "EQUAL_TO", 0l);
+		logger.info(criteria);
 		return SQLHelper.get(criteria, OrgMember.class);
 	}
 

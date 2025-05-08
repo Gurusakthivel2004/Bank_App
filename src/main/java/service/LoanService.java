@@ -11,9 +11,13 @@ import org.apache.logging.log4j.Logger;
 import dao.DAO;
 import dao.DaoFactory;
 import dao.OtpVerificationsDAO;
-import enums.Constants.LogType;
-import model.ActivityLog;
+import enums.Constants.HttpStatusCodes;
+import enums.Constants.Module;
+import model.Account;
 import model.Loan;
+import model.ModuleLog;
+import model.User;
+import util.CustomException;
 import util.Helper;
 
 public class LoanService {
@@ -30,18 +34,31 @@ public class LoanService {
 	public static LoanService getInstance() {
 		return SingletonHelper.INSTANCE;
 	}
-
+	
+	@SuppressWarnings("unchecked")
+	private User fetchUser(Long accountNumber) throws Exception {
+		Map<String, Object> accMap = new HashMap<>();
+		accMap.put("accountNumber", accountNumber);
+		
+		List<Account> accounts = (List<Account>) AccountService.getInstance().getAccountDetails(accMap);
+		if(accounts.isEmpty()) {
+			throw new CustomException("Account does not exists.", HttpStatusCodes.BAD_REQUEST);
+		}
+		
+		return UserService.getInstance().getUserById(accounts.get(0).getUserId());
+	}
+	
 	public void createLoan(Long accountNumber, BigDecimal amount) throws Exception {
 		logger.info("Creating loan to: {} amount: {}", accountNumber, amount);
+
+		User user = fetchUser(accountNumber);
 		Loan loan = new Loan();
 		loan.setAccountNumber(accountNumber);
 		loan.setAmount(amount);
 		loan.setCreatedAt(System.currentTimeMillis());
 
 		Long loanId = loanDAO.create(loan);
-		logActivity(accountNumber, null, loanId);
-		
-		Helper.pushDealRecord("Loan", amount.toString());
+		logModule(accountNumber, user.getId(), loanId, amount.toString());
 	}
 
 	public List<Loan> getLoanDetails(Long accountNumber) throws Exception {
@@ -52,15 +69,15 @@ public class LoanService {
 		return loanDAO.get(loanCriteriaMap);
 	}
 	
-	private void logActivity(Long accountNumber, Long userId, Long rowId) throws Exception {
-		logger.debug("Logging loan activity for account: {}", accountNumber);
+	private void logModule(Long accountNumber, Long userId, Long rowId, String amount) throws Exception {
+		logger.debug("Logging FD creation activity for account: {}", accountNumber);
 
-		ActivityLog activityLog = new ActivityLog().setLogMessage("Loan approved").setLogType(LogType.Insert)
-				.setRowId(rowId).setTableName("Loan").setUserId(userId).setUserAccountNumber(accountNumber)
-				.setPerformedBy(userId).setTimestamp(System.currentTimeMillis());
+		ModuleLog moduleLog = new ModuleLog().setMessage("Loan created").setModule(Module.Loan)
+				.setModuleId(rowId).setAccountNumber(accountNumber).setPerformedBy(userId)
+				.setCreatedAt(System.currentTimeMillis());
 
-		Helper.logActivity(activityLog);
-		logger.debug("Activity log created.");
+		logger.debug("Module log created.");
+		Helper.logAndPushModule(moduleLog, amount, userId);
 	}
 
 }

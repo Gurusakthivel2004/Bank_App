@@ -60,7 +60,14 @@ MOM:
 	4. Updates such as Email or phone number must reflect on the records on the CRM.
 	5. Change in the Owner of Accounts module (Org) must be handled.
 
+TODO before the last MOM:
+	1. Audit failed call and retry once the conn is available.
+	2. Bulk write updates.
+	
+MOM:
+         1. Instead of get call for every put or post request map the Record ID with a primary key of a module in cache.
+         2. Validate the phone number(E164 Format) and email via otp, using the google lib and LLM for spam detection and update the status in CRM according to the score generated.
+         3. Audit the failed Calls and retry once the connection is available.
+         4. Implement Bulk API for updates.
+         5. Push modules on different portals and the update should reflect across portals.
 
-TODO:
-	1. Redis sortedset, (Redis JSON refer atlast)
-	2. Maintain a queue for insert and update and process with each call but for update make it as single call either at time period or the coutn of 100 filled..

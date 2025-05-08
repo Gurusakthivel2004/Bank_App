@@ -66,8 +66,6 @@ public class FixedDepositService {
 
 		logger.info("FD created successfully. FD ID: {}", fdId);
 
-		logActivity(accountNumber, userId, fdId);
-
 		Map<String, Object> accountMap = new HashMap<>();
 		accountMap.put("fetch", true);
 		accountMap.put("branchId", account.getBranchId());
@@ -80,7 +78,7 @@ public class FixedDepositService {
 
 		createTransaction(accountNumber, operationalAccount.getAccountNumber(), amount, account.getBranchId(), session);
 
-		Helper.pushDealRecord("Fixed Deposit", fixedDeposit.getAmount().toString(), fdId.toString());
+		logAndPushModule(accountNumber, userId, fdId, fixedDeposit.getAmount().toString());
 	}
 
 	public List<FixedDeposit> getFixedDeposits(Map<String, Object> fixedDepositMap) throws Exception {
@@ -145,15 +143,15 @@ public class FixedDepositService {
 			return new BigDecimal("8.0");
 	}
 
-	private void logActivity(Long accountNumber, Long userId, Long rowId) throws Exception {
+	private void logAndPushModule(Long accountNumber, Long userId, Long rowId, String amount) throws Exception {
 		logger.debug("Logging FD creation activity for account: {}", accountNumber);
 
 		ModuleLog moduleLog = new ModuleLog().setMessage("Fixed Deposit created").setModule(Module.FixedDeposit)
 				.setModuleId(rowId).setAccountNumber(accountNumber).setPerformedBy(userId)
 				.setCreatedAt(System.currentTimeMillis());
 
-		Helper.logModule(moduleLog);
-		logger.debug("Activity log created.");
+		logger.debug("Moduke log created.");
+		Helper.logAndPushModule(moduleLog, amount, userId);
 	}
 
 	private void createTransaction(Long accountNumber, Long transactionAccountNumber, BigDecimal amount, Long branchId,

@@ -43,8 +43,7 @@ public class UserService {
 	private DAO<CustomerDetail> customerDao = DaoFactory.getDAO(CustomerDetail.class);
 	private DAO<Staff> staffDao = DaoFactory.getDAO(Staff.class);
 
-	private UserService() {
-	}
+	private UserService() {}
 
 	private static class SingletonHelper {
 		private static final UserService INSTANCE = new UserService();
@@ -269,7 +268,7 @@ public class UserService {
 		Helper.logActivity(activityLog);
 	}
 
-	private void updateContacts(Map<String, Object> userMap, String criteriaEmail) throws Exception {
+	private void updateContacts(Map<String, Object> userMap, Long userId, String criteriaEmail) throws Exception {
 		String email = (String) userMap.get("email");
 		Long phone = (Long) userMap.get("phone");
 
@@ -281,7 +280,17 @@ public class UserService {
 		if (phone != null) {
 			contactsMap.put(ContactsFields.PHONE, phone.toString());
 		}
+		
+		if(contactsMap.size() == 0) {
+			return;
+		}
 
+		Org org = Helper.getOrgData(userId);
+		if(org == null) {
+			logger.debug("Contacts update failed because user doesnt not belong to an org.");
+			return;
+		}
+		
 		TaskExecutor.CRM.submitTask(() -> {
 			try {
 				String endpoint = OAuthConfig.get("crm.contact.endpoint");
@@ -507,7 +516,7 @@ public class UserService {
 			logger.info(users.get(0));
 			logger.info(users.get(0).getClass());
 			logger.info(updatedValues);
-			updateContacts(updatedValues, users.get(0).getEmail());
+			updateContacts(updatedValues, users.get(0).getId(), users.get(0).getEmail());
 		} catch (CustomException e) {
 			logger.error("Error updating user details. Error: {}", e.getMessage());
 			throw e;

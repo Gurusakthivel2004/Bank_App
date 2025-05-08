@@ -57,6 +57,8 @@ public class DaoFactory {
 			return (DAO<T>) OrgMemberDAO.getInstance();
 		case "SubOrgMember":
 			return (DAO<T>) SubOrgMemberDAO.getInstance();
+		case "FailedRequest":
+			return (DAO<T>) FailedRequestDAO.getInstance();
 		default:
 			throw new UnsupportedOperationException("No DAO found for the provided class: " + clazz.getName());
 		}

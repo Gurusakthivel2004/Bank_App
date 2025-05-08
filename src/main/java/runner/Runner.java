@@ -8,9 +8,13 @@ import com.google.gson.JsonParser;
 
 import dao.DAO;
 import dao.DaoFactory;
+import initializer.Initializer;
+import model.OauthClientConfig;
 import model.OauthProvider;
-import schedular.CRMSchedular;
+import service.CRMService;
 import util.Helper;
+import util.HttpUtil;
+import util.OAuthConfig;
 
 public class Runner {
 
@@ -22,7 +26,7 @@ public class Runner {
 //			TransactionService.getInstance().updateTransactionStatus(5519l, TransactionStatus.Completed);
 //			generateTokens();
 
-//			Initializer.setDataSource();
+			Initializer.setDataSource();
 //			CRMService.getInstance().refreshAccessToken();
 //			Map<String, Object> userMap = new HashMap<String, Object>();
 //			
@@ -54,8 +58,10 @@ public class Runner {
 //			accMap.put(AccountsFields.PHONE, "9361409787");
 //			
 //			CRMService.getInstance().updateRecords("Account_Name", "Zoho", accMap, "Accounts");
-			CRMSchedular crmSchedular = new CRMSchedular();
-			crmSchedular.processUpdateSet();
+			OauthClientConfig config = Helper.getClientConfig("Zoho");
+			String jsonResponse = CRMService.getInstance().fetchRecords(OAuthConfig.get("crm.contact.endpoint"), "Account_Name", "Zoho",
+					config);
+			System.out.println(jsonResponse);
 //			System.out.println("json response: " + jsonResponse);
 //
 //			pushAccountRecords(customerDetail);
@@ -72,7 +78,7 @@ public class Runner {
 				+ "soid=ZohoCrm.103791165";
 		Map<String, Object> postMap = new HashMap<>();
 //		System.out.println(Helper.toJson(postMap));
-		String tokenResponse = Helper.sendPostRequestWithJsonProxy(url, Helper.toJson(postMap), null,
+		String tokenResponse = HttpUtil.sendPostRequestProxy(url, Helper.toJson(postMap), null,
 				"1000.AB2FWCIBJZOJMWJNDTW1LASSDY300X", "965c0de34496edf613c3cd43017d20213b59bddfe0");
 		JsonObject tokenJson = JsonParser.parseString(tokenResponse).getAsJsonObject();
 		System.out.println(tokenJson);

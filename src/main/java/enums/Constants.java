@@ -337,13 +337,14 @@ public class Constants {
 
 	public enum FieldIdentifier {
 		CONTACTS_EMAIL(8, "Contacts", "Email"), CONTACTS_PHONE(7, "Contacts", "Phone"),
-		ACCOUNTS_EMAIL(9, "Accounts", "Email"), ACCOUNTS_PHONE(5, "Accounts", "Phone");
+		ACCOUNTS_EMAIL(9, "Accounts", "Email"), ACCOUNTS_PHONE(5, "Accounts", "Phone"),
+		Deals_AMOUNT(2, "Deals", "Amount"), ACCOUNTS_STAGE(3, "Deals", "Stage");
 
 		private final int id;
 		private final String module;
-		private final String field;	
+		private final String field;
 		private static final Map<Integer, String> identifierToModule = new HashMap<>();
-		
+
 		static {
 			for (FieldIdentifier fi : values()) {
 				identifierToModule.put(fi.getId(), fi.getModule());
@@ -434,9 +435,8 @@ public class Constants {
 	}
 
 	public static enum DealsFields implements SymbolProvider {
-		USER_ID("id"), MODULE_RECORD_ID("Module_Record_Id"), AMOUNT("Amount"), STAGE("Stage"), DEAL_NAME("Deal_Name"), TYPE("Type"),
-		FK_ACCOUNT_NAME("FK_Account_Name"), FK_Contact_NAME("FK_Contact_Name");
-		;
+		USER_ID("id"), ID("id"), MODULE_RECORD_ID("Module_Record_Id"), AMOUNT("Amount"), STAGE("Stage"),
+		DEAL_NAME("Deal_Name"), TYPE("Type"), FK_ACCOUNT_NAME("FK_Account_Name"), FK_Contact_NAME("FK_Contact_Name");
 
 		private final String ApiName;
 
@@ -612,6 +612,23 @@ public class Constants {
 			} catch (IllegalArgumentException e) {
 				throw new CustomException("Invalid transaction status: " + transactionStatus,
 						HttpStatusCodes.BAD_REQUEST);
+			}
+		}
+	}
+
+	public enum RetryStatus {
+		PENDING, SUCCESS, FAILED;
+
+		@Override
+		public String toString() {
+			return name();
+		}
+
+		public static RetryStatus fromString(String module) throws CustomException {
+			try {
+				return RetryStatus.valueOf(module);
+			} catch (IllegalArgumentException e) {
+				throw new CustomException("Invalid module: " + module, HttpStatusCodes.BAD_REQUEST);
 			}
 		}
 	}

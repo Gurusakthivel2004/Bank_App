@@ -366,3 +366,24 @@ classes:
             columnName: "sub_org_id"
           userType:
             columnName: "user_type"
+
+  model.FailedRequest:
+        tableName: "failed_requests"
+        autoIncrementField: "id"
+        fields:
+          id:
+            columnName: "id"
+          url:
+            columnName: "url"
+          method:
+            columnName: "method"
+          requestBody:
+            columnName: "request_body"
+          statusCode:
+            columnName: "status_code"
+          errorMessage:
+            columnName: "error_message"
+          retryStatus:
+            columnName: "retry_status"
+          createdAt:
+            columnName: "created_at"

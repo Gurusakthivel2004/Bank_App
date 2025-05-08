@@ -23,12 +23,12 @@ import model.Account;
 import model.Criteria;
 import model.FixedDeposit;
 import model.User;
-import service.AccountService;
 import service.CRMService;
 import service.FixedDepositService;
 import service.TransactionService;
 import service.UserService;
 import util.CustomException;
+import util.Helper;
 import util.OAuthConfig;
 import util.SQLHelper;
 
@@ -41,7 +41,7 @@ public class FixedDepositSchedular {
 	private final DAO<Account> accountDAO = DaoFactory.getDAO(Account.class);
 
 	public void startScheduler() throws Exception {
-		scheduler.scheduleAtFixedRate(this::processFixedDeposits, 0, 1, TimeUnit.DAYS);
+		scheduler.scheduleAtFixedRate(this::processFixedDeposits, 0, 30, TimeUnit.MINUTES);
 		logger.info("Fixed Deposit scheduler initialized: runs every 24 hours.");
 	}
 
@@ -75,7 +75,9 @@ public class FixedDepositSchedular {
 			logger.info("Found {} fixed deposits.", fixedDeposits.size());
 
 			for (FixedDeposit deposit : fixedDeposits) {
-				if (deposit.getMaturityDate() > System.currentTimeMillis()) {
+				if (deposit.getMaturityDate() <= System.currentTimeMillis()) {
+					logger.info("Matured: " + deposit.getId());
+					logger.info(deposit.getMaturityDate() + " " + System.currentTimeMillis());
 					processMaturedDeposit(deposit);
 					maturedDepositIds.add(deposit.getId());
 					processDealsUpdate(deposit);
@@ -103,14 +105,16 @@ public class FixedDepositSchedular {
 	}
 
 	private void processDealsUpdate(FixedDeposit deposit) throws Exception {
-		
+
+		BigDecimal returnAmount = deposit.getInterestRate().add(deposit.getAmount());
 		Map<DealsFields, Object> dealsMap = new HashMap<>();
-		dealsMap.put(DealsFields.DEAL_NAME, "Fixed Deposit");
+		dealsMap.put(DealsFields.AMOUNT, returnAmount.toString());
+		dealsMap.put(DealsFields.STAGE, "Closed Won");
 
 		TaskExecutor.CRM.submitTask(() -> {
 			try {
 				String endpoint = OAuthConfig.get("crm.deal.endpoint");
-				String id = CRMService.getInstance().fetchRecord("Record_Module_Id", deposit.getId().toString(), endpoint);
+				String id = CRMService.getInstance().fetchRecord("Module_Record_Id", deposit.getId().toString(), endpoint);
 				CRMService.getInstance().updateRecords(id, dealsMap, "Deals", endpoint);
 			} catch (Exception e) {
 				logger.error("CRM Deals push failed: {}", e.getMessage(), e);
@@ -130,6 +134,14 @@ public class FixedDepositSchedular {
 		}
 
 		Long branchId = accounts.get(0).getBranchId();
+		User user = UserService.getInstance().getUserById(accounts.get(0).getUserId());
+		
+		Map<String, Object> claimsMap = new HashMap<>();
+		claimsMap.put("id", accounts.get(0).getUserId());
+		claimsMap.put("role", user.getRole());
+		
+		Helper.setThreadLocalValue(claimsMap);
+		
 		Map<String, Object> fetchMap = new HashMap<>();
 		fetchMap.put("fetch", true);
 		fetchMap.put("branchId", branchId);

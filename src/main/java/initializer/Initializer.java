@@ -21,6 +21,7 @@ import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 import schedular.CRMSchedular;
 import schedular.ExpiredSessionSchedular;
+import schedular.FixedDepositSchedular;
 import schedular.PasswordUpdateScheduler;
 import util.CustomException;
 import util.Helper;
@@ -48,10 +49,11 @@ public class Initializer implements ServletContextListener {
 	private static final int REDIS_CONNECTION_TIMEOUT = 2000;
 
 	// Schedulers
-	private static final PasswordUpdateScheduler passwordUpdateScheduler = new PasswordUpdateScheduler();
-	private static final ExpiredSessionSchedular expiredSessionSchedular = new ExpiredSessionSchedular();
-	private static final CRMSchedular crmSchedular = new CRMSchedular();
-	private static final DatabaseInitializer databaseInitializer = new DatabaseInitializer();
+	private static final PasswordUpdateScheduler PASSWORD_UPDATE_SCHEDULER = new PasswordUpdateScheduler();
+	private static final ExpiredSessionSchedular EXPIRED_SESSION_SCHEDULAR = new ExpiredSessionSchedular();
+	private static final FixedDepositSchedular FIXED_DEPOSIT_SCHEDULAR = new FixedDepositSchedular();
+	private static final CRMSchedular CRM_SCHEDULAR = new CRMSchedular();
+	private static final DatabaseInitializer DATABASE_INITIALIZER = new DatabaseInitializer();
 
 	public static void setDataSource() throws SQLException, ClassNotFoundException {
 		loadMySQLDriver();
@@ -89,9 +91,10 @@ public class Initializer implements ServletContextListener {
 			logger.info("Redis initialized with connection pooling.");
 
 			// Start Schedulers
-			expiredSessionSchedular.startScheduler();
-			passwordUpdateScheduler.startScheduler();
-			crmSchedular.startScheduler();
+			EXPIRED_SESSION_SCHEDULAR.startScheduler();
+			PASSWORD_UPDATE_SCHEDULER.startScheduler();
+			FIXED_DEPOSIT_SCHEDULAR.startScheduler();
+			CRM_SCHEDULAR.startScheduler();
 
 		} catch (Exception e) {
 			logger.error("Error initializing resources: {}", e);
@@ -120,8 +123,17 @@ public class Initializer implements ServletContextListener {
 		}
 
 		try {
-			if (passwordUpdateScheduler != null) {
-				passwordUpdateScheduler.stopScheduler();
+			if (PASSWORD_UPDATE_SCHEDULER != null) {
+				PASSWORD_UPDATE_SCHEDULER.stopScheduler();
+			}
+			if (EXPIRED_SESSION_SCHEDULAR != null) {
+				EXPIRED_SESSION_SCHEDULAR.stopScheduler();
+			}
+			if (CRM_SCHEDULAR != null) {
+				CRM_SCHEDULAR.stopScheduler();
+			}
+			if (FIXED_DEPOSIT_SCHEDULAR != null) {
+				FIXED_DEPOSIT_SCHEDULAR.stopScheduler();
 			}
 		} catch (Exception e) {
 			logger.error("Error while stopping scheduler: {}", e.getMessage(), e);
@@ -158,11 +170,11 @@ public class Initializer implements ServletContextListener {
 			String tempUrl = URL.replaceFirst("/bank$", "");
 			dbConnectionPool = new DBConnectionPool(tempUrl, USER, PASSWORD);
 			logger.info("Custom Connection Pool initialized.");
-			boolean dbExists = databaseInitializer.createDatabase(dbConnectionPool.getConnection());
+			boolean dbExists = DATABASE_INITIALIZER.createDatabase(dbConnectionPool.getConnection());
 			if (!dbExists) {
 				dbConnectionPool.closePool();
 				dbConnectionPool = new DBConnectionPool(URL, USER, PASSWORD);
-				databaseInitializer.generateTablesFromXML(dbConnectionPool.getConnection());
+				DATABASE_INITIALIZER.generateTablesFromXML(dbConnectionPool.getConnection());
 			}
 		} catch (SQLException e) {
 			logger.error("Failed to initialize Database Connection Pool: {}", e.getMessage());

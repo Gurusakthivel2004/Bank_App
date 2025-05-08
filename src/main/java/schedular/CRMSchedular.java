@@ -61,6 +61,7 @@ public class CRMSchedular {
 
 	        List<Map<String, Object>> contactsData = new ArrayList<>();
 	        List<Map<String, Object>> accountsData = new ArrayList<>();
+	        List<Map<String, Object>> dealsData = new ArrayList<>();
 
 	        for (String entry : entries) {
 	            Map<String, Object> record = new ObjectMapper().readValue(entry, new TypeReference<Map<String, Object>>() {});
@@ -93,6 +94,8 @@ public class CRMSchedular {
 	                    contactsData.add(cleanRecord);
 	                } else if ("Accounts".equalsIgnoreCase(moduleType)) {
 	                    accountsData.add(cleanRecord);
+	                } else if ("Deals".equalsIgnoreCase(moduleType)) {
+	                	dealsData.add(cleanRecord);
 	                } else {
 	                    logger.warn("Unknown moduleType for record: {}", record);
 	                }
@@ -114,6 +117,14 @@ public class CRMSchedular {
 	            logger.info("Json generated account updates to CRM."+ accountsPayload);
 	            CRMService.getInstance().putToCrm(OAuthConfig.get("crm.account.endpoint"), accountsJson);
 	            logger.info("Sent {} account updates to CRM.", accountsData.size());
+	        }
+	        
+	        if (!dealsData.isEmpty()) {
+	            Map<String, Object> dealsPayload = Collections.singletonMap("data", dealsData);
+	            String dealsJson = mapper.writeValueAsString(dealsPayload);
+	            logger.info("Json generated deals updates to CRM."+ dealsPayload);
+	            CRMService.getInstance().putToCrm(OAuthConfig.get("crm.deal.endpoint"), dealsJson);
+	            logger.info("Sent {} deals updates to CRM.", accountsData.size());
 	        }
 
 	        jedis.zremrangeByRank("updateSet", 0, Math.min(size, 100) - 1);

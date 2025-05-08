@@ -29,6 +29,7 @@ import model.User;
 import service.UserService;
 import util.CustomException;
 import util.Helper;
+import util.HttpUtil;
 import util.OAuthConfig;
 
 public class OauthCallbackController {
@@ -68,7 +69,7 @@ public class OauthCallbackController {
 				+ "&redirect_uri=" + URLEncoder.encode(redirectUri, "UTF-8") + "&grant_type=authorization_code";
 
 		// Get Access Token
-		String tokenResponse = Helper.sendPostRequest(tokenUrl, params);
+		String tokenResponse = HttpUtil.sendPostRequest(tokenUrl, params);
 		JsonObject tokenJson = JsonParser.parseString(tokenResponse).getAsJsonObject();
 
 		if (!tokenJson.has("access_token")) {
@@ -82,7 +83,7 @@ public class OauthCallbackController {
 
 		// Get User Info
 		String userInfoUrl = OAuthConfig.get(provider + ".user_info_url");
-		String userInfoResponse = Helper.sendGetRequest(userInfoUrl + "?access_token=" + accessToken, null);
+		String userInfoResponse = HttpUtil.sendGetRequest(userInfoUrl + "?access_token=" + accessToken, null);
 		JsonObject userInfoJson = JsonParser.parseString(userInfoResponse).getAsJsonObject();
 
 		// Extract User Info
@@ -108,7 +109,7 @@ public class OauthCallbackController {
 
 		String userInfoEndpoint = "https://www.googleapis.com/oauth2/v1/tokeninfo?access_token=" + accessToken;
 		try {
-			String getresponse = Helper.sendGetRequest(userInfoEndpoint, null);
+			String getresponse = HttpUtil.sendGetRequest(userInfoEndpoint, null);
 			return getresponse.contains("email") ? accessToken : null;
 		} catch (Exception e) {
 			OauthProvider oauthProvider = getOuathProvider(accessToken);
@@ -144,7 +145,7 @@ public class OauthCallbackController {
 		String params = "client_id=" + clientId + "&client_secret=" + clientSecret + "&refresh_token=" + refreshToken
 				+ "&grant_type=refresh_token";
 
-		String response = Helper.sendPostRequest(tokenUrl, params);
+		String response = HttpUtil.sendPostRequest(tokenUrl, params);
 
 		if (response.contains("error")) {
 			logger.error("Refresh token is invalid or expired. User needs to sign in again.");

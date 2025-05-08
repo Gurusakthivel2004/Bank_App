@@ -118,7 +118,7 @@ public class MessageService {
 		Long accountNumber = Helper.extractAccountNumber(message);
 		ModuleLog moduleLog = new ModuleLog().setModuleId(null).setAccountNumber(accountNumber).setModule(Module.Loan)
 				.setCreatedAt(System.currentTimeMillis()).setPerformedBy(userId).setMessage("Loan applied.");
-		Helper.logModule(moduleLog);
+		Helper.logAndPushModule(moduleLog, null, userId);
 	}
 
 }

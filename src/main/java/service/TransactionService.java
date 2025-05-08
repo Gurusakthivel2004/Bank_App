@@ -135,6 +135,8 @@ public class TransactionService {
 		lockAccount(secondLock);
 		try {
 			account = getAccount(accountNumber);
+			logger.info(account);
+			logger.info(amount);
 			ValidationUtil.validateTransactionAmount(amount, account);
 
 			closingBalance = computeClosingBalance(transactionType, amount, account);
@@ -299,6 +301,7 @@ public class TransactionService {
 	public Long createTransaction(Transaction transaction, Account account) throws Exception {
 		logger.info("Creating a new transaction...");
 		setInitialTransactionDetails(transaction);
+		logger.info(transaction);
 
 		ValidationUtil.validateModel(transaction, Transaction.class);
 		long txId = saveTransaction(transaction);
@@ -362,9 +365,9 @@ public class TransactionService {
 			throws CustomException {
 		logger.info("Computing fixed deposit balance...");
 		if (AccountType.Operational == account.getAccountTypeEnum()) {
-			return accountBalance.add(amount);
-		} else {
 			return accountBalance.subtract(amount);
+		} else {
+			return accountBalance.add(amount);
 		}
 	}
 }

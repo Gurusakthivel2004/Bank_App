@@ -32,6 +32,7 @@ import model.User;
 import util.CRMQueueManager;
 import util.CustomException;
 import util.Helper;
+import util.HttpUtil;
 import util.JsonUtils;
 import util.OAuthConfig;
 
@@ -48,8 +49,7 @@ public class CRMService {
 	private static final String SCOPE = OAuthConfig.get("crm.scope");
 	private static final String SOID = "ZohoCrm." + OAuthConfig.get("crm.orgId");
 
-	private CRMService() {
-	}
+	private CRMService() {}
 
 	private static class SingletonHelper {
 		private static final CRMService INSTANCE = new CRMService();
@@ -111,6 +111,7 @@ public class CRMService {
 
 		Map<LeadsFields, Object> data = new HashMap<>();
 		data.put(LeadsFields.FIRST_NAME, subOrg.getName());
+		data.put(LeadsFields.LAST_NAME, "test");
 		data.put(LeadsFields.COMPANY, company);
 		data.put(LeadsFields.EMAIL, email);
 		String response = postToCrm(OAuthConfig.get("crm.lead.endpoint"), data);
@@ -201,7 +202,7 @@ public class CRMService {
 		String url = ACCOUNT_URL + OAuthConfig.get("oauth.token.url") + "?" + "grant_type=client_credentials&scope="
 				+ SCOPE + "&soid=" + SOID;
 
-		String tokenResponse = Helper.sendPostRequestWithJsonProxy(url, Helper.toJson(new HashMap<String, Object>()),
+		String tokenResponse = HttpUtil.sendPostRequestProxy(url, Helper.toJson(new HashMap<String, Object>()),
 				null, clientConfig.getClientId(), clientConfig.getClientSecret());
 
 		JsonObject tokenJson = JsonParser.parseString(tokenResponse).getAsJsonObject();
@@ -230,12 +231,17 @@ public class CRMService {
 			try {
 				switch (method) {
 				case POST:
-					response = Helper.sendPostRequestWithJsonProxy(url, jsonBody, provider.getAccessToken(), null,
+					response = HttpUtil.sendPostRequestProxy(url, jsonBody, provider.getAccessToken(), null,
 							null);
+					break;
 				case GET:
-					response = Helper.sendGetRequestWithProxy(url, provider.getAccessToken(), null, null);
+					response = HttpUtil.sendGetRequestProxy(url, provider.getAccessToken(), null, null);
+					break;
 				case PUT:
-					response = Helper.sendPutRequestWithJsonProxy(url, jsonBody, provider.getAccessToken(), null, null);
+					response = HttpUtil.sendPutRequestProxy(url, jsonBody, provider.getAccessToken(), null, null);
+					break;
+				default: 
+					return null;
 				}
 
 				if (response != null && response.length() > 0) {
@@ -245,7 +251,7 @@ public class CRMService {
 			} catch (IOException e) {
 				logger.error("Request failed: {}", e.getMessage());
 
-				if (e.getMessage() != null && e.getMessage().contains("401") || e.getMessage().contains("403")) {
+				if (e.getMessage() != null && e.getMessage().contains("401")) {
 					logger.info("Access token might be expired. Attempting to refresh...");
 					refreshAccessToken();
 				}
