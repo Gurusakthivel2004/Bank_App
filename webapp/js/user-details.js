@@ -134,6 +134,85 @@ document.addEventListener("DOMContentLoaded", () => {
 	document.getElementById("userTypesearchInput").addEventListener("input", applyFilters);
 });
 
+let otpTimerInterval = null;
+
+async function startOTPTimer() {
+	await fetch('/Bank_Application/api/CreateOtp', {
+		method: 'POST',
+		headers: {
+			'Content-Type': 'application/json',
+		},
+	});
+	const timerElement = document.getElementById('otp-timer');
+	const existingStartTime = sessionStorage.getItem("otpStartTime");
+	const now = Date.now();
+
+	let startTime;
+	if (existingStartTime) {
+		startTime = parseInt(existingStartTime);
+	} else {
+		startTime = now;
+		sessionStorage.setItem("otpStartTime", startTime);
+	}
+
+	if (otpTimerInterval !== null) {
+		clearInterval(otpTimerInterval);
+	}
+
+	otpTimerInterval = setInterval(() => {
+		const elapsed = Math.floor((Date.now() - startTime) / 1000);
+		const remaining = 300 - elapsed;
+
+		if (remaining <= 0) {
+			clearInterval(otpTimerInterval);
+			timerElement.textContent = "OTP expired. Please request a new one.";
+			document.querySelector('button[onclick="verifyOTP()"]').disabled = true;
+			document.querySelectorAll('.otp-input').forEach(input => input.disabled = true);
+		} else {
+			const minutes = Math.floor(remaining / 60);
+			const seconds = remaining % 60;
+			timerElement.textContent = `Time remaining: ${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+		}
+	}, 1000);
+}
+
+async function resendOTP() {
+	sessionStorage.removeItem("otpStartTime");
+	await fetch('/Bank_Application/api/Otp', {
+		method: 'GET',
+		headers: {
+			'Content-Type': 'application/json',
+		},
+	});
+	startOTPTimer();
+}
+
+async function verifyOTP() {
+	const otp = [...document.querySelectorAll(".otp-input")].map(input => input.value).join("");
+	const requestBody = {
+		"otp": otp
+	}
+	const response = await fetch('/Bank_Application/api/Otp', {
+		method: 'POST',
+		headers: {
+			'Content-Type': 'application/json',
+		},
+		body: JSON.stringify(requestBody)
+	});
+
+	const result = await response.json();
+	const otpError = document.getElementById("otp-error");
+	if (result.message == "success") {
+		otpError.style.display = "none";
+		document.getElementById("otpModal").style.display = "none";
+		sessionStorage.removeItem("otpStartTime");
+		saveNewUser();
+	} else {
+		otpError.style.display = "block";
+		otpError.innerHTML = result.message;
+	}
+}
+
 function renderUsers(users) {
 	const userHistory = document.querySelector(".user-data");
 	userHistory.innerHTML = '';
@@ -371,25 +450,35 @@ const newUser = _ => {
 	}
 }
 
+let userData;
+
 const createNewUser = async data => {
-	console.log("Sending data to server:", data);
+	startOTPTimer();
+	document.getElementById("newUserModal").style.display = "none";
+	document.getElementById("otpModal").style.display = "flex";
+	userData = data;
+};
+
+const saveNewUser = async _ => {
+	console.log("Sending data to server:", userData);
 	const userDetailsResponse = await fetch('/Bank_Application/api/User', {
 		method: 'POST',
 		headers: {
 			'Content-Type': 'application/json',
 		},
-		body: JSON.stringify(data)
+		body: JSON.stringify(userData)
 	});
 	const result = await userDetailsResponse.json();
 	console.log(result);
 	if (result.message == 'success') {
 		successDisplayWithMsg("User created successfully.");
-	} else {
+	}
+	else {
 		const errorMessageElement = document.getElementById('errorMessage');
 		errorMessageElement.style.display = "block";
 		errorMessageElement.innerHTML = result.message;
 	}
-};
+}
 
 document.querySelectorAll('.accNumberInput').forEach(item => {
 	item.addEventListener('click', function(event) {

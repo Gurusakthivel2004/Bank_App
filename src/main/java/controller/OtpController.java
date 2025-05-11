@@ -70,11 +70,14 @@ public class OtpController {
 
 		OtpVerifications otpVerification = fetchLatestOtp(accountNumber);
 
-		String otp = extractOtpFromRequest(request);
+		String otp = extractFromRequest(request, "otp");
+		String serviceRequired = extractFromRequest(request, "serviceRequired");
 
 		validateOtp(otpVerification, otp);
 
-		completeTransaction(session, txId, accountNumber);
+		if(serviceRequired.equals("Transaction")) {
+			completeTransaction(session, txId, accountNumber);
+		}
 		Helper.sendSuccessResponse(response, "success");
 	}
 
@@ -99,12 +102,12 @@ public class OtpController {
 		return otpList.get(0);
 	}
 
-	private String extractOtpFromRequest(HttpServletRequest request) throws Exception {
+	private String extractFromRequest(HttpServletRequest request, String key) throws Exception {
 		JsonObject jsonObject = Helper.parseRequestBody(request);
 		logger.debug("Parsed request body: {}", jsonObject);
 
 		Map<String, Object> otpMap = Helper.mapJsonObject(jsonObject);
-		return otpMap.get("otp").toString();
+		return otpMap.get(key).toString();
 	}
 
 	private void validateOtp(OtpVerifications otpVerification, String otp) throws CustomException {

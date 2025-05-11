@@ -27,7 +27,7 @@ public class Constants {
 		GET_USERDASHBOARD("^/UserDashboard$"), TRANSACTION_CRUD("^/Transaction$"), LOGOUT("^/Logout$"),
 		LOG("^/Log$", Arrays.asList("Customer", "Employee")), MESSAGE_CRUD("^/Message$"), OAUTH("^/oauth"),
 		OAUTHCALLBACK("^/oauthCallback"), CAPTCHA("^/Captcha"), FIXED_DEPOSIT("^/FixedDeposit"), ORG("^/Org"),
-		SUB_ORG("^/SubOrg");
+		SUB_ORG("^/SubOrg"), CREATE_OTP("^/CreateOtp");
 
 		private final String REGEX_PATTERN;
 		private final List<String> restrictedForRole;
@@ -138,6 +138,7 @@ public class Constants {
 				put("FixedDeposit", new ArrayList<>(Arrays.asList("GET", "POST")));
 				put("Org", new ArrayList<>(Arrays.asList("POST", "GET")));
 				put("SubOrg", new ArrayList<>(Arrays.asList("POST", "GET")));
+				put("CreateOtp", new ArrayList<>(Arrays.asList("POST")));
 			}
 		}, new ArrayList<>()), ROLE_MANAGER("Manager", new HashMap<String, List<String>>() {
 			{
@@ -153,6 +154,7 @@ public class Constants {
 				put("FixedDeposit", new ArrayList<>(Arrays.asList("GET", "POST")));
 				put("Org", new ArrayList<>(Arrays.asList("POST", "GET")));
 				put("SubOrg", new ArrayList<>(Arrays.asList("POST", "GET")));
+				put("CreateOtp", new ArrayList<>(Arrays.asList("POST")));
 			}
 		}, new ArrayList<>());
 

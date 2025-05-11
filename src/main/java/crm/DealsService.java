@@ -3,6 +3,7 @@ package crm;
 import java.util.HashMap;
 import java.util.Map;
 
+import cache.CacheUtil;
 import enums.Constants.DealsFields;
 import util.JsonUtils;
 import util.OAuthConfig;
@@ -10,8 +11,20 @@ import util.OAuthConfig;
 public class DealsService {
 
 	private CRMHttpService crmHttpService = new CRMHttpService();
+	public static final String CRM_MODULE = "Deals";
+	public static final String CRM_MODULE_PK = "Module Record Id";
+	
+	private DealsService() {}
 
-	public void pushDeal(String dealName, String amount, String accountName, String moduleRecordId) throws Exception {
+	private static class SingletonHelper {
+		private static final DealsService INSTANCE = new DealsService();
+	}
+
+	public static DealsService getInstance() {
+		return SingletonHelper.INSTANCE;
+	}
+
+	public String pushDeal(String dealName, String amount, String accountName, String moduleRecordId) throws Exception {
 
 		String jsonResponse = crmHttpService.fetchRecord(OAuthConfig.get("crm.contact.endpoint"), "Account_Name",
 				accountName);
@@ -28,6 +41,10 @@ public class DealsService {
 		data.put(DealsFields.TYPE, "New Business");
 		data.put(DealsFields.DEAL_NAME, dealName);
 
-		crmHttpService.postToCrm(OAuthConfig.get("crm.deal.endpoint"), data);
+		String response = crmHttpService.postToCrm(OAuthConfig.get("crm.deal.endpoint"), data);
+		String recordId = JsonUtils.getValueByPath(response, "data[0].details", "id");
+		CacheUtil.saveCRMRecordId(CRM_MODULE, moduleRecordId, recordId);
+		
+		return recordId;
 	}
 }

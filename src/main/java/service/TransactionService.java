@@ -154,7 +154,7 @@ public class TransactionService {
 					branchId);
 			logger.info("Transaction successfully created for account number: {}", transaction.getAccountNumber());
 			if (!transaction.getTransactionTypeEnum().equals(TransactionType.FixedDeposit)) {
-				NotificationService.getInstance().sendOtp(customerId, accountNumber);
+				NotificationService.getInstance().sendOtp(customerId, accountNumber, null);
 			}
 			if (session != null) {
 				session.setAttribute("accountNumber", accountNumber);

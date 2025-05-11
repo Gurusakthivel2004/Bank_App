@@ -74,14 +74,15 @@ public class OrgService {
 	}
 	
 	private void pushToCRM(Org org, User user) {
-	    TaskExecutor.CRM.submitTask(() -> {
-	        try {
+		TaskExecutor.CRM.submitTask(() -> {
+			try {
 	        	String accountId = CRMService.getInstance().pushAccountRecords(org);
 	        	CRMService.getInstance().pushContactRecords(user, accountId);
 	        } catch (Exception e) {
 	            logger.error("CRM push failed: {}", e.getMessage(), e);
 	        }
-	    });
+		});
+		
 	}
 
 	public List<OrgMember> getOrgMemberDetails(Long userId) throws Exception {

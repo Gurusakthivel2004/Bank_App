@@ -14,16 +14,21 @@ import java.util.Base64;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import enums.Constants.HttpMethod;
+import model.FailedRequest;
+import model.OauthProvider;
+
 public class HttpUtil {
 	
 	private static final Logger LOGGER = LogManager.getLogger(HttpUtil.class);
+	private static final String DEFAULT_CONTENT_TYPE = "application/x-www-form-urlencoded";
 	
 	public static String sendPostRequest(String url, String jsonBody, String bearerToken) throws Exception {
 		return sendRequest(url, "POST", jsonBody, bearerToken, null, null, false, null);
 	}
 	
 	public static String sendPostRequest(String url, String params) throws Exception {
-		return sendRequest(url, "POST", params, null, null, null, false, "application/x-www-form-urlencoded");
+		return sendRequest(url, "POST", params, null, null, null, false, DEFAULT_CONTENT_TYPE);
 	}
 
 	public static String sendPostRequestProxy(String url, String jsonBody, String bearerToken,
@@ -44,6 +49,30 @@ public class HttpUtil {
 			String basicPassword) throws Exception {
 		return sendRequest(url, "GET", null, bearerToken, basicUsername, basicPassword, true, null);
 	}
+	
+	public static String sendRequest(FailedRequest request, OauthProvider provider) throws Exception {
+        try {
+        	LOGGER.info("Sending retry request for ID: {}", request.getId());
+            HttpMethod method = HttpMethod.valueOf(request.getMethod());
+            String url = request.getUrl();
+            String body = request.getRequestBody();
+            
+            switch (method) {
+			case POST:
+				return HttpUtil.sendPostRequestProxy(url, body, provider.getAccessToken(), null, null);
+			case GET:
+				return HttpUtil.sendGetRequestProxy(url, provider.getAccessToken(), null, null);
+			case PUT:
+				return HttpUtil.sendPutRequestProxy(url, body, provider.getAccessToken(), null, null);
+			default:
+				LOGGER.error("Unsupported HTTP method: {}", method);
+				return null;
+			}
+        } catch (Exception e) {
+        	LOGGER.error("Retry failed for FailedRequest ID {}: {}", request.getId(), e.getMessage(), e);
+        	throw e;
+        }
+    }
 
 	private static String readStream(InputStream stream) throws Exception {
 		BufferedReader in = new BufferedReader(new InputStreamReader(stream));

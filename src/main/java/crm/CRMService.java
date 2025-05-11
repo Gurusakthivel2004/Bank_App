@@ -24,10 +24,10 @@ import util.OAuthConfig;
 
 public class CRMService {
 
-    private AccountsService accountService = new AccountsService();
-    private ContactsService contactService = new ContactsService();
-    private DealsService dealsService = new DealsService();
-    private LeadsService leadService = new LeadsService();
+    private AccountsService accountService = AccountsService.getInstance();
+    private ContactsService contactService = ContactsService.getInstance();
+    private DealsService dealsService = DealsService.getInstance();
+    private LeadsService leadService = LeadsService.getInstance();
 
 	private static Dotenv dotenv = Helper.loadDotEnv();
 	private static final String SCOPE = OAuthConfig.get("crm.scope");

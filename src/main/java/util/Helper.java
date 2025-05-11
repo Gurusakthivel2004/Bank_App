@@ -452,6 +452,7 @@ public class Helper {
 				LOGGER.error("CRM Deals push failed: {}", e.getMessage(), e);
 			}
 		});
+	
 	}
 
 	public static Org getOrgData(Long userId) throws Exception {

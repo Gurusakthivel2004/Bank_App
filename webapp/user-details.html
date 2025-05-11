@@ -50,6 +50,54 @@
 				</div>
 			</div>
 		</nav>
+		
+			<div id="otpModal"
+			class="modal-overlay justify-content-center align-items-center"
+			style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.6); z-index: 1050;">
+			<div class="modal-content text-center p-4"
+				style="background-color: #fff; border-radius: 10px; width: 90%; max-width: 400px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);">
+
+				<!-- Modal Title -->
+				<h3 class="mb-3" style="color: rgb(41, 128, 185); letter-spacing: -0.8px; font-weight: 700;">Enter OTP</h3>
+				<p class="text-muted">We have sent a 6-digit OTP to your
+					registered email.</p>
+
+				<!-- OTP Input Fields -->
+				<div class="d-flex justify-content-center gap-2 my-3">
+					<input type="text" maxlength="1" class="otp-input text-center"
+						oninput="moveToNext(this, event)"
+						style="width: 40px; height: 50px; font-size: 20px; text-align: center; border: 2px solid #ddd; border-radius: 5px; outline: none;">
+					<input type="text" maxlength="1" class="otp-input text-center"
+						oninput="moveToNext(this, event)"
+						style="width: 40px; height: 50px; font-size: 20px; text-align: center; border: 2px solid #ddd; border-radius: 5px; outline: none;">
+					<input type="text" maxlength="1" class="otp-input text-center"
+						oninput="moveToNext(this, event)"
+						style="width: 40px; height: 50px; font-size: 20px; text-align: center; border: 2px solid #ddd; border-radius: 5px; outline: none;">
+					<input type="text" maxlength="1" class="otp-input text-center"
+						oninput="moveToNext(this, event)"
+						style="width: 40px; height: 50px; font-size: 20px; text-align: center; border: 2px solid #ddd; border-radius: 5px; outline: none;">
+					<input type="text" maxlength="1" class="otp-input text-center"
+						oninput="moveToNext(this, event)"
+						style="width: 40px; height: 50px; font-size: 20px; text-align: center; border: 2px solid #ddd; border-radius: 5px; outline: none;">
+					<input type="text" maxlength="1" class="otp-input text-center"
+						oninput="moveToNext(this, event)"
+						style="width: 40px; height: 50px; font-size: 20px; text-align: center; border: 2px solid #ddd; border-radius: 5px; outline: none;">
+				</div>
+
+
+				<p class="text-danger mt-2" id="otp-timer">Time remaining: 05:00</p>
+				<button class="btn btn-primary w-100" onclick="verifyOTP()">Verify
+					OTP</button>
+				<p class="mt-3 text-danger" style="display: none" id="otp-error">
+					Invalid code entered. Please try again.</p>
+
+				<!-- Resend OTP -->
+				<p class="text-muted mt-3">
+					Didn't receive the OTP? <a href="#" onclick="resendOTP()"
+						class="text-primary" style="text-decoration: none"> Resend</a>
+				</p>
+			</div>
+		</div>
 
 		<div id="employeeChatBox" class="modal-overlay" style="display: none;">
 			<!-- Employee Dashboard for Chat -->

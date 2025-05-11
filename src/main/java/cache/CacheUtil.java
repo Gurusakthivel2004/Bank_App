@@ -14,7 +14,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import enums.Constants.SymbolProvider;
 import redis.clients.jedis.Jedis;
 
 public class CacheUtil {
@@ -105,6 +104,40 @@ public class CacheUtil {
 		} catch (Exception e) {
 			logger.error("Failed to delete from Redis: {}", e.getMessage());
 		}
+	}
+
+	public static String getCRMRecordId(String moduleName, String primaryKey) {
+	    if (moduleName == null || primaryKey == null) {
+	        logger.error("ModuleName or PrimaryKey cannot be null.");
+	        return null;
+	    }
+	    try {
+	        Map<String, String> moduleCache = get(moduleName, new TypeReference<Map<String, String>>() {});
+	        if (moduleCache != null) {
+	            return moduleCache.get(primaryKey);
+	        }
+	    } catch (Exception e) {
+	        logger.error("Failed to get CRM recordId for module '{}' and key '{}': {}", moduleName, primaryKey, e.getMessage());
+	    }
+	    return null;
+	}
+
+	public static void saveCRMRecordId(String moduleName, String primaryKey, String recordId) {
+	    if (moduleName == null || primaryKey == null || recordId == null) {
+	        logger.error("ModuleName, PrimaryKey, or RecordId cannot be null.");
+	        return;
+	    }
+	    try {
+	        Map<String, String> moduleCache = get(moduleName, new TypeReference<Map<String, String>>() {});
+	        if (moduleCache == null) {
+	            moduleCache = new HashMap<>();
+	        }
+	        moduleCache.put(primaryKey, recordId);
+	        save(moduleName, moduleCache);
+	        logger.info("Successfully saved CRM recordId '{}' under module '{}' for key '{}'.", recordId, moduleName, primaryKey);
+	    } catch (Exception e) {
+	        logger.error("Failed to save CRM recordId for module '{}' and key '{}': {}", moduleName, primaryKey, e.getMessage());
+	    }
 	}
 
 	public static List<String> getAllKeys() {

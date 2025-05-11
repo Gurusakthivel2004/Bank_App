@@ -17,6 +17,7 @@ import enums.Constants.SymbolProvider;
 import io.github.cdimascio.dotenv.Dotenv;
 import model.FailedRequest;
 import model.OauthProvider;
+import service.CRMService;
 import util.CRMQueueManager;
 import util.Helper;
 import util.HttpUtil;
@@ -34,7 +35,7 @@ public class CRMHttpService {
 		return e.getMessage() != null && e.getMessage().contains("401");
 	}
 
-	private boolean isForbidden(Exception e) {
+	public static boolean isForbidden(Exception e) {
 		return e.getMessage() != null && e.getMessage().contains("403");
 	}
 
@@ -57,6 +58,7 @@ public class CRMHttpService {
 			throws Exception {
 		try {
 			switch (method) {
+
 			case POST:
 				return HttpUtil.sendPostRequestProxy(url, jsonBody, provider.getAccessToken(), null, null);
 			case GET:
@@ -73,8 +75,8 @@ public class CRMHttpService {
 				logger.info("Access token might be expired. Attempting to refresh...");
 				CRMService.getInstance().refreshAccessToken();
 			} else if (isForbidden(e)) {
-				logger.warn("Received 403 Forbidden. Logging the failed request. URL: {}, Method: {}, Body: {}", url,
-						method, jsonBody);
+				logger.warn("Received 403 Forbidden. Logging the failed request. URL: {}, Method: {}, Body: {}",
+						url, method, jsonBody);
 				logFailedRequest(url, method, jsonBody, e);
 			} else {
 				logger.error("Request to {} failed with error: {}", url, e.getMessage());
@@ -83,7 +85,7 @@ public class CRMHttpService {
 			throw e;
 		}
 	}
-	
+
 	public String fetchRecord(String criteriaKey, String criteriaValue, String endpoint) throws Exception {
 		OauthProvider provider = Helper.fetchOauthProvider(PROVIDER);
 
@@ -110,7 +112,7 @@ public class CRMHttpService {
 
 		return sendWithRetry(HttpMethod.PUT, url, updateJson, provider);
 	}
-	
+
 	public <K extends Enum<K> & SymbolProvider> void updateRecords(String recordId, Map<K, Object> updateFields,
 			String moduleName, String endpointKey) throws Exception {
 
@@ -139,5 +141,5 @@ public class CRMHttpService {
 
 		CRMQueueManager.addToUpdateSet(structuredFields);
 	}
-	
+
 }

@@ -16,6 +16,7 @@ import org.apache.logging.log4j.Logger;
 import com.fasterxml.jackson.core.type.TypeReference;
 
 import cache.CacheUtil;
+import crm.ContactsService;
 import dao.DAO;
 import dao.DaoFactory;
 import enums.Constants.ContactsFields;
@@ -280,26 +281,34 @@ public class UserService {
 		if (phone != null) {
 			contactsMap.put(ContactsFields.PHONE, phone.toString());
 		}
-		
-		if(contactsMap.size() == 0) {
+
+		if (contactsMap.size() == 0) {
 			return;
 		}
 
 		Org org = Helper.getOrgData(userId);
-		if(org == null) {
+		if (org == null) {
 			logger.debug("Contacts update failed because user doesnt not belong to an org.");
 			return;
 		}
-		
+
 		TaskExecutor.CRM.submitTask(() -> {
 			try {
 				String endpoint = OAuthConfig.get("crm.contact.endpoint");
-				String id = CRMService.getInstance().fetchRecord("Email", criteriaEmail, endpoint);
-				CRMService.getInstance().updateRecords(id, contactsMap, "Contacts", endpoint);
+				String recordId = CacheUtil.getCRMRecordId(ContactsService.CRM_MODULE, criteriaEmail);
+
+				if (recordId == null) {
+					recordId = CRMService.getInstance().fetchRecord(ContactsService.CRM_MODULE_PK, criteriaEmail,
+							endpoint);
+					CacheUtil.saveCRMRecordId(ContactsService.CRM_MODULE, criteriaEmail, recordId);
+				}
+
+				CRMService.getInstance().updateRecords(recordId, contactsMap, ContactsService.CRM_MODULE, endpoint);
 			} catch (Exception e) {
 				logger.error("CRM Deals push failed: {}", e.getMessage(), e);
 			}
 		});
+
 	}
 
 	public Map<String, Object> userLogin(String username, String password, HttpSession session) throws Exception {
@@ -510,12 +519,6 @@ public class UserService {
 			CacheUtil.delete("userDetails");
 			logUpdateActivity(userId, updatedValues);
 
-			logger.info("User details updated successfully.");
-			logger.info(users);
-			logger.info(users.getClass());
-			logger.info(users.get(0));
-			logger.info(users.get(0).getClass());
-			logger.info(updatedValues);
 			updateContacts(updatedValues, users.get(0).getId(), users.get(0).getEmail());
 		} catch (CustomException e) {
 			logger.error("Error updating user details. Error: {}", e.getMessage());

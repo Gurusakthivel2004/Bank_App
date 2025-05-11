@@ -94,12 +94,13 @@ public class NotificationService {
 		});
 	}
 
-	public void sendOtp(long userId, long accountNumber) throws Exception {
+	public void sendOtp(Long userId, Long accountNumber, String email) throws Exception {
 		User user = UserService.getInstance().getUserById(userId);
 		String otp = Helper.generateOTP();
-		sendEmail(user.getEmail(), "One-time Password", otp + " is your otp to process the payment.");
+		String userEmail = email != null ? email : user.getEmail();
+		sendEmail(userEmail, "One-time Password", otp + " is your otp to process the payment.");
 
-		deleteOtp(accountNumber);
+		deleteOtp(accountNumber != null ? accountNumber : userId);
 
 		OtpVerifications otpVerifications = new OtpVerifications();
 		otpVerifications.setUserId(userId);

@@ -3,6 +3,7 @@ package crm;
 import java.util.HashMap;
 import java.util.Map;
 
+import cache.CacheUtil;
 import enums.Constants.AccountsFields;
 import model.Org;
 import util.JsonUtils;
@@ -10,18 +11,34 @@ import util.OAuthConfig;
 
 public class AccountsService {
 
-    private CRMHttpService httpService = new CRMHttpService();
+	private static CRMHttpService httpService = new CRMHttpService();
+	public static final String CRM_MODULE = "Accounts";
+	public static final String CRM_MODULE_PK = "Phone";
+	
+	private AccountsService() {}
 
-    public String pushAccount(Org org) throws Exception {
-        Map<AccountsFields, Object> data = new HashMap<>();
-        data.put(AccountsFields.ACCOUNT_NAME, org.getName());
-        data.put(AccountsFields.INDUSTRY, org.getOrgType());
-        data.put(AccountsFields.EMPLOYEES, org.getEmployees());
-        data.put(AccountsFields.PHONE, org.getPhone().toString());
+	private static class SingletonHelper {
+		private static final AccountsService INSTANCE = new AccountsService();
+	}
 
-        String response = httpService.postToCrm(OAuthConfig.get("crm.account.endpoint"), data);
+	public static AccountsService getInstance() {
+		return SingletonHelper.INSTANCE;
+	}
+	
+	public String pushAccount(Org org) throws Exception {
+		String phone = org.getPhone().toString();
+		
+		Map<AccountsFields, Object> data = new HashMap<>();
+		data.put(AccountsFields.ACCOUNT_NAME, org.getName());
+		data.put(AccountsFields.INDUSTRY, org.getOrgType());
+		data.put(AccountsFields.EMPLOYEES, org.getEmployees());
+		data.put(AccountsFields.PHONE, phone);
 
-        return JsonUtils.getValueByPath(response, "data[0].details", "id");
-    }
-    
+		String response = httpService.postToCrm(OAuthConfig.get("crm.account.endpoint"), data);
+		String recordId = JsonUtils.getValueByPath(response, "data[0].details", "id");
+		CacheUtil.saveCRMRecordId(CRM_MODULE, phone, recordId);
+
+		return recordId;
+	}
+
 }

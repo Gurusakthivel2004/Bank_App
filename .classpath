@@ -60,5 +60,6 @@
 	<classpathentry kind="lib" path="webapp/WEB-INF/lib/postgresql-42.7.1.jar"/>
 	<classpathentry exported="true" kind="lib" path="/home/guru-pt7672/eclipse-workspace/Bank_Application/webapp/WEB-INF/lib/jakarta.mail-1.6.3.jar"/>
 	<classpathentry exported="true" kind="lib" path="/home/guru-pt7672/eclipse-workspace/Bank_Application/webapp/WEB-INF/lib/jakarta.activation-1.2.1.jar"/>
+	<classpathentry exported="true" kind="lib" path="/home/guru-pt7672/eclipse-workspace/Bank_Application/webapp/WEB-INF/lib/libphonenumber-8.13.24.jar"/>
 	<classpathentry kind="output" path="target/classes"/>
 </classpath>

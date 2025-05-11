@@ -3,17 +3,6 @@ let originalActiveItem = null;
 let validAccounts = [];
 const role = getCookie('role');
 
-function moveToNext(input, event) {
-	let next = input.nextElementSibling;
-	let prev = input.previousElementSibling;
-
-	if (event.inputType === 'deleteContentBackward' && prev) {
-		prev.focus();
-	} else if (next && input.value) {
-		next.focus();
-	}
-}
-
 const handleSubmit = async (event) => {
 	event.preventDefault();
 	const selectElement = document.querySelector('.accountsSelect');
@@ -353,7 +342,7 @@ function startOTPTimer() {
 
 async function resendOTP() {
 	sessionStorage.removeItem("otpStartTime");
-	const response = await fetch('/Bank_Application/api/Otp', {
+	await fetch('/Bank_Application/api/Otp', {
 		method: 'GET',
 		headers: {
 			'Content-Type': 'application/json',
@@ -365,7 +354,8 @@ async function resendOTP() {
 async function verifyOTP() {
 	const otp = [...document.querySelectorAll(".otp-input")].map(input => input.value).join("");
 	const requestBody = {
-		"otp": otp
+		"otp": otp,
+		"serviceRequired" : "Transaction"
 	}
 	const response = await fetch('/Bank_Application/api/Otp', {
 		method: 'POST',

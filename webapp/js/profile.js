@@ -16,6 +16,17 @@ const getCookie = name => {
 	return null;
 }
 
+function moveToNext(input, event) {
+	let next = input.nextElementSibling;
+	let prev = input.previousElementSibling;
+
+	if (event.inputType === 'deleteContentBackward' && prev) {
+		prev.focus();
+	} else if (next && input.value) {
+		next.focus();
+	}
+}
+
 const userRole = getCookie('role');
 const branchId = getCookie('branchId');
 
