@@ -132,17 +132,64 @@ document.addEventListener("DOMContentLoaded", () => {
 	document.getElementById("branchIdsearchInput").addEventListener("input", applyFilters);
 	document.getElementById("userStatussearchInput").addEventListener("input", applyFilters);
 	document.getElementById("userTypesearchInput").addEventListener("input", applyFilters);
+	const otpInputs = document.querySelectorAll(".otp-input");
+
+	otpInputs.forEach((input, index) => {
+		input.addEventListener("input", function(e) {
+			let value = e.target.value;
+
+			if (!/^\d$/.test(value)) {
+				e.target.value = "";
+				return;
+			}
+			if (index < otpInputs.length - 1 && value) {
+				otpInputs[index + 1].focus();
+			}
+		});
+
+		input.addEventListener("keydown", function(e) {
+			if (e.key === "Backspace") {
+				if (!input.value && index > 0) {
+					otpInputs[index - 1].focus();
+					otpInputs[index - 1].value = "";
+				}
+			}
+		});
+
+		input.addEventListener("keyup", function(e) {
+			if (e.key !== "Backspace" && input.value && index < otpInputs.length - 1) {
+				otpInputs[index + 1].focus();
+			}
+		});
+
+		input.addEventListener("paste", function(e) {
+			e.preventDefault();
+			const pasteData = (e.clipboardData || window.clipboardData).getData("text").replace(/\D/g, "");
+			const digits = pasteData.split("").slice(0, otpInputs.length);
+
+			otpInputs.forEach((inp, i) => inp.value = digits[i] || "");
+			if (digits.length === otpInputs.length) {
+				otpInputs[otpInputs.length - 1].focus();
+			}
+		});
+	});
 });
 
 let otpTimerInterval = null;
 
-async function startOTPTimer() {
-	await fetch('/Bank_Application/api/CreateOtp', {
-		method: 'POST',
-		headers: {
-			'Content-Type': 'application/json',
-		},
-	});
+async function startOTPTimer(email, flag) {
+	if (flag) {
+		const createOtp = {
+			email: email
+		}
+		await fetch('/Bank_Application/api/CreateOtp', {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+			},
+			body: JSON.stringify(createOtp)
+		});
+	}
 	const timerElement = document.getElementById('otp-timer');
 	const existingStartTime = sessionStorage.getItem("otpStartTime");
 	const now = Date.now();
@@ -169,6 +216,8 @@ async function startOTPTimer() {
 			document.querySelector('button[onclick="verifyOTP()"]').disabled = true;
 			document.querySelectorAll('.otp-input').forEach(input => input.disabled = true);
 		} else {
+			document.querySelector('button[onclick="verifyOTP()"]').disabled = false;
+			document.querySelectorAll('.otp-input').forEach(input => input.disabled = false);
 			const minutes = Math.floor(remaining / 60);
 			const seconds = remaining % 60;
 			timerElement.textContent = `Time remaining: ${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
@@ -177,14 +226,17 @@ async function startOTPTimer() {
 }
 
 async function resendOTP() {
+	console.log(userData);
+	const email = userData['email'];
+	console.log(email);
 	sessionStorage.removeItem("otpStartTime");
-	await fetch('/Bank_Application/api/Otp', {
+	await fetch(`/Bank_Application/api/Otp?email=${email}`, {
 		method: 'GET',
 		headers: {
 			'Content-Type': 'application/json',
 		},
 	});
-	startOTPTimer();
+	startOTPTimer(email, false);
 }
 
 async function verifyOTP() {
@@ -450,12 +502,12 @@ const newUser = _ => {
 	}
 }
 
-let userData;
+let userData = null;
 
 const createNewUser = async data => {
-	startOTPTimer();
-	document.getElementById("newUserModal").style.display = "none";
-	document.getElementById("otpModal").style.display = "flex";
+	startOTPTimer(data['email'], true);
+	toggleModal('newUserModal');
+	toggleModal('otpModal');
 	userData = data;
 };
 
@@ -493,15 +545,24 @@ document.querySelectorAll('.accNumberInput').forEach(item => {
 document.querySelectorAll('.dropdown-item').forEach(item => {
 	item.addEventListener('click', function(event) {
 		const parentDiv = this.closest('.detail-item');
-		const selectedText = this.innerHTML;
 		const dropdownTextElement = parentDiv.querySelector('.accNumberInput');
 		const dropdownMenu = parentDiv.querySelector(".dropdown-menu");
-		dropdownMenu.style.display = "none"
+
+		// Hide the dropdown
+		dropdownMenu.style.display = "none";
+
+		// Get only the text (after the image)
+		const selectedText = this.textContent.trim();
+
+		// Update input value
 		dropdownTextElement.value = selectedText;
+
+		// Update active class
 		parentDiv.querySelectorAll('.dropdown-item').forEach(item => item.classList.remove('active'));
 		this.classList.add('active');
 	});
 });
+
 
 function fetchDropdownOptions(query) {
 	const dropdown = document.getElementById('dropdown');
@@ -587,7 +648,7 @@ document.addEventListener('click', (event) => {
 });
 
 
-const inputFieldsIds = ["email", "phone", "address", "maritalStatus", "status", "role"];
+const inputFieldsIds = ["email", "phone", "address", "maritalStatus", "status", "role", "country"];
 let validBranchIds = [];
 
 const toggleEditUser = () => {
@@ -658,15 +719,12 @@ const validateEmail = (email) => {
 	return emailRegex.test(email.trim());
 };
 
-
-
 const validatePhone = (phone) => {
 	const phoneRegex = /^\d{10}$/;
 	return phoneRegex.test(phone);
 };
 
 const successDisplayWithMsg = (msg) => {
-	toggleModal('newUserModal')
 	const successPop = document.getElementById('successModal');
 	document.getElementById('successMessage').innerHTML = msg;
 	successPop.style.display = 'flex';

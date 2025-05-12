@@ -1,9 +1,11 @@
 package controller;
 
 import java.util.Map;
+import java.util.Random;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -30,10 +32,15 @@ public class CreateOtpController {
 	public void handlePost(HttpServletRequest request, HttpServletResponse response) throws Exception {
 		LOGGER.info("Creating and sending OTP to the user..");
 		Long userId = (Long) Helper.getThreadLocalValue("id");
+		HttpSession session = request.getSession();
+		
+		Random random = new Random();
+		long accountNumber = Math.abs(random.nextLong());
+		session.setAttribute("accountNumber", accountNumber);
 		
 		String email = extractFromRequest(request, "email");
 		
-		NotificationService.getInstance().sendOtp(userId, null, email);
+		NotificationService.getInstance().sendOtp(userId, accountNumber, email);
 		Helper.sendSuccessResponse(response, "success");
 	}
 	

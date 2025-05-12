@@ -12,14 +12,14 @@ public class User extends MarkedClass {
 	private Role role;
 	private String username;
 	private String password;
+	private String country;
 	private Integer passwordVersion;
 	private Status status;
 	private Long createdAt;
 	private Long modifiedAt;
 	private Long performedBy;
 
-	public User() {
-	}
+	public User() {}
 
 	public Long getId() {
 		return id;
@@ -146,19 +146,28 @@ public class User extends MarkedClass {
 		return this;
 	}
 
-	@Override
-	public String toString() {
-		return "User [id=" + id + ", fullname=" + fullname + ", email=" + email + ", phone=" + phone + ", role=" + role
-				+ ", username=" + username + ", password=" + password + ", status=" + status + ", createdAt="
-				+ createdAt + ", modifiedAt=" + modifiedAt + ", performedBy=" + performedBy + "]";
-	}
-
 	public Integer getPasswordVersion() {
 		return passwordVersion;
 	}
 
 	public void setPasswordVersion(Integer passwordVersion) {
 		this.passwordVersion = passwordVersion;
+	}
+
+	public String getCountry() {
+		return country;
+	}
+
+	public User setCountry(String country) {
+		this.country = country;
+		return this;
+	}
+	
+	@Override
+	public String toString() {
+		return "User [id=" + id + ", fullname=" + fullname + ", email=" + email + ", phone=" + phone + ", role=" + role
+				+ ", username=" + username + ", password=" + password + ", status=" + status + ", createdAt="
+				+ createdAt + ", modifiedAt=" + modifiedAt + ", performedBy=" + performedBy + "]";
 	}
 
 }

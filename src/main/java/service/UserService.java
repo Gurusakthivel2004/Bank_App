@@ -226,7 +226,7 @@ public class UserService {
 	}
 
 	private void linkUserOrg(String orgName, String subOrgName, long userId) throws Exception {
-		if (orgName == null && subOrgName == null) {
+		if (orgName.isEmpty() && subOrgName.isEmpty()) {
 			return;
 		}
 
@@ -472,13 +472,16 @@ public class UserService {
 	public void createUser(Map<String, Object> userMap) throws Exception {
 		logger.info("Attempting to create user");
 
+		logger.info("userMap keys: {}", userMap.keySet());
+		logger.info("userMap values: {}", userMap.values());
+
 		String orgName = (String) userMap.remove("orgName");
 		String subOrgName = (String) userMap.remove("subOrgName");
 
 		Role role = Role.fromString((String) userMap.get("role"));
-
+		userMap.put("status", "Active");
+		
 		try {
-
 			long userId = createUserByRole(userMap, role);
 			linkUserOrg(orgName, subOrgName, userId);
 

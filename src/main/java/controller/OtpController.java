@@ -31,7 +31,8 @@ public class OtpController {
 	private static Logger logger = LogManager.getLogger(OtpController.class);
 	private DAO<OtpVerifications> otpVerificationsDAO = DaoFactory.getDAO(OtpVerifications.class);
 
-	private OtpController() {}
+	private OtpController() {
+	}
 
 	private static class SingletonHelper {
 		private static final OtpController INSTANCE = new OtpController();
@@ -42,10 +43,25 @@ public class OtpController {
 	}
 
 	public void handleGet(HttpServletRequest request, HttpServletResponse response) throws Exception {
+		logger.info("Received GET request to fetch to resend OTP.");
+
+		Map<String, Object> otpMap = Helper.getParametersAsMap(request);
+		logger.debug("Extracted parameters from request: {}", otpMap);
+		HttpSession session = request.getSession();
+
+		String email = null;
 		Long userId = (Long) Helper.getThreadLocalValue("id");
-		User user = UserService.getInstance().getUserById(userId);
+		Long accountNumber = (Long) session.getAttribute("accountNumber");
+		
+		if (otpMap.containsKey("email")) {
+			email = (String) otpMap.get("email");
+		} else {
+			User user = UserService.getInstance().getUserById(userId);
+			email = user.getEmail();
+		}
+		
 		String otp = Helper.generateOTP();
-		NotificationService.getInstance().sendEmail(user.getEmail(), "One-time Password",
+		NotificationService.getInstance().sendEmail(email, "One-time Password",
 				otp + " is your otp to process the payment.");
 
 		ColumnCriteria columnCriteria = new ColumnCriteria().setFields(Arrays.asList("otp", "createdAt", "expiresAt"))
@@ -54,6 +70,7 @@ public class OtpController {
 
 		Map<String, Object> txMap = new HashMap<>();
 		txMap.put("userId", userId);
+		txMap.put("accountNumber", accountNumber);
 
 		otpVerificationsDAO.update(columnCriteria, txMap);
 
@@ -65,20 +82,26 @@ public class OtpController {
 
 		validateOtpSession(session);
 
-		Long txId = (Long) session.getAttribute("txId");
 		Long accountNumber = (Long) session.getAttribute("accountNumber");
+		Long userId = (Long) Helper.getThreadLocalValue("id");
 
-		OtpVerifications otpVerification = fetchLatestOtp(accountNumber);
+		OtpVerifications otpVerification = fetchLatestOtp(userId, accountNumber);
 
-		String otp = extractFromRequest(request, "otp");
-		String serviceRequired = extractFromRequest(request, "serviceRequired");
+		JsonObject requestBody = Helper.parseRequestBody(request);
+		logger.debug("Parsed request body: {}", requestBody);
+
+		String otp = requestBody.get("otp").getAsString();
+		String serviceRequired = null;
+		if (requestBody.has("serviceRequired") && !requestBody.get("serviceRequired").isJsonNull()) {
+			serviceRequired = requestBody.get("serviceRequired").getAsString();
+		}
 
 		validateOtp(otpVerification, otp);
 
-		if(serviceRequired.equals("Transaction")) {
-			completeTransaction(session, txId, accountNumber);
+		if (serviceRequired != null && serviceRequired.equals("Transaction")) {
+			completeTransaction(session, accountNumber);
 		}
-		Helper.sendSuccessResponse(response, "success");
+		Helper.sendSuccessResponse(response, "success"); 
 	}
 
 	private void validateOtpSession(HttpSession session) throws CustomException {
@@ -89,9 +112,15 @@ public class OtpController {
 		}
 	}
 
-	private OtpVerifications fetchLatestOtp(Long accountNumber) throws Exception {
+	private OtpVerifications fetchLatestOtp(Long userId, Long accountNumber) throws Exception {
 		Map<String, Object> otpCriteriaMap = new HashMap<>();
-		otpCriteriaMap.put("accountNumber", accountNumber);
+
+		if (accountNumber != null) {
+			otpCriteriaMap.put("accountNumber", accountNumber);
+		}
+		if (userId != null) {
+			otpCriteriaMap.put("userId", userId);
+		}
 
 		List<OtpVerifications> otpList = otpVerificationsDAO.get(otpCriteriaMap);
 
@@ -100,14 +129,6 @@ public class OtpController {
 		}
 
 		return otpList.get(0);
-	}
-
-	private String extractFromRequest(HttpServletRequest request, String key) throws Exception {
-		JsonObject jsonObject = Helper.parseRequestBody(request);
-		logger.debug("Parsed request body: {}", jsonObject);
-
-		Map<String, Object> otpMap = Helper.mapJsonObject(jsonObject);
-		return otpMap.get(key).toString();
 	}
 
 	private void validateOtp(OtpVerifications otpVerification, String otp) throws CustomException {
@@ -124,7 +145,8 @@ public class OtpController {
 		}
 	}
 
-	private void completeTransaction(HttpSession session, Long txId, Long accountNumber) throws Exception {
+	private void completeTransaction(HttpSession session, Long accountNumber) throws Exception {
+		Long txId = (Long) session.getAttribute("txId");
 		TransactionService.getInstance().updateTransaction(txId);
 		session.removeAttribute("txId");
 		session.removeAttribute("accountNumber");

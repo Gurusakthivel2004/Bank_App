@@ -50,15 +50,17 @@
 				</div>
 			</div>
 		</nav>
-		
-			<div id="otpModal"
+
+		<div id="otpModal"
 			class="modal-overlay justify-content-center align-items-center"
 			style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.6); z-index: 1050;">
 			<div class="modal-content text-center p-4"
 				style="background-color: #fff; border-radius: 10px; width: 90%; max-width: 400px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);">
 
 				<!-- Modal Title -->
-				<h3 class="mb-3" style="color: rgb(41, 128, 185); letter-spacing: -0.8px; font-weight: 700;">Enter OTP</h3>
+				<h3 class="mb-3"
+					style="color: rgb(41, 128, 185); letter-spacing: -0.8px; font-weight: 700;">Enter
+					OTP</h3>
 				<p class="text-muted">We have sent a 6-digit OTP to your
 					registered email.</p>
 
@@ -331,21 +333,64 @@
 							</div>
 						</div>
 						<div class="detail-item d-flex w-100 py-3 px-2 mx-2"
-							style="border-bottom: 1px solid #ccc" data-id="12">
+							style="border-bottom: 1px solid #ccc" data-id="13">
+
 							<span class="detail-label ps-4"
-								style="width: 50%; padding-left: 10%;">Status</span>
+								style="width: 50%; padding-left: 10%;">Country</span>
+
 							<div class="inputDiv w-20">
 								<div class="accounts-dropdown">
-									<input required id="status" readonly
+									<input required id="country" readonly
 										class="accNumberInput rounded p-1 px-2 ms-4 w-20"
-										style="border: 1px solid #c9c6c6; color: #2b5ab3;; font-weight: bold;"
-										id="accountDropdown" data-bs-toggle="dropdown-menu"
-										aria-expanded="false" />
+										style="border: 1px solid #c9c6c6; color: #2b5ab3; font-weight: bold;"
+										data-bs-toggle="dropdown-menu" aria-expanded="false"
+										placeholder="Select Country" />
+
 									<ul class="dropdown-menu shadow text-center"
-										aria-labelledby="accountDropdown"
-										style="display: none; width: 217px; margin-left: 25px;">
-										<li><a class="dropdown-item active" href="#">Active</a></li>
-										<li><a class="dropdown-item" href="#">Inactive</a></li>
+										style="width: 250px; margin-left: 25px;"
+										aria-labelledby="country">
+
+										<li><a class="dropdown-item d-flex align-items-center"
+											href="#"> <img src="https://flagcdn.com/w40/ie.png"
+												width="30" class="me-2"> Ireland
+										</a></li>
+										<li><a class="dropdown-item d-flex align-items-center"
+											href="#"> <img src="https://flagcdn.com/w40/us.png"
+												width="30" class="me-2"> United States
+										</a></li>
+										<li><a class="dropdown-item d-flex align-items-center"
+											href="#"> <img src="https://flagcdn.com/w40/gb.png"
+												width="30" class="me-2"> United Kingdom
+										</a></li>
+										<li><a class="dropdown-item d-flex align-items-center"
+											href="#"> <img src="https://flagcdn.com/w40/ca.png"
+												width="30" class="me-2"> Canada
+										</a></li>
+										<li><a class="dropdown-item d-flex align-items-center"
+											href="#"> <img src="https://flagcdn.com/w40/in.png"
+												width="30" class="me-2"> India
+										</a></li>
+										<li><a class="dropdown-item d-flex align-items-center"
+											href="#"> <img src="https://flagcdn.com/w40/au.png"
+												width="30" class="me-2"> Australia
+										</a></li>
+										<li><a class="dropdown-item d-flex align-items-center"
+											href="#"> <img src="https://flagcdn.com/w40/de.png"
+												width="30" class="me-2"> Germany
+										</a></li>
+										<li><a class="dropdown-item d-flex align-items-center"
+											href="#"> <img src="https://flagcdn.com/w40/fr.png"
+												width="30" class="me-2"> France
+										</a></li>
+										<li><a class="dropdown-item d-flex align-items-center"
+											href="#"> <img src="https://flagcdn.com/w40/jp.png"
+												width="30" class="me-2"> Japan
+										</a></li>
+										<li><a class="dropdown-item d-flex align-items-center"
+											href="#"> <img src="https://flagcdn.com/w40/br.png"
+												width="30" class="me-2"> Brazil
+										</a></li>
+
 									</ul>
 								</div>
 							</div>

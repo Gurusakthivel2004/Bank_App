@@ -43,6 +43,8 @@ classes:
         columnName: "password_version"
       status:
         columnName: "status"
+      country:
+        columnName: "country"
       createdAt:
         columnName: "created_at"
       modifiedAt:

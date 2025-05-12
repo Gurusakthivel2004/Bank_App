@@ -304,7 +304,7 @@ const handleInputDropdown = accountInput => {
 	})
 }
 
-let otpTimerInterval = null; 
+let otpTimerInterval = null;
 
 function startOTPTimer() {
 	const timerElement = document.getElementById('otp-timer');
@@ -333,6 +333,8 @@ function startOTPTimer() {
 			document.querySelector('button[onclick="verifyOTP()"]').disabled = true;
 			document.querySelectorAll('.otp-input').forEach(input => input.disabled = true);
 		} else {
+			document.querySelector('button[onclick="verifyOTP()"]').disabled = false;
+			document.querySelectorAll('.otp-input').forEach(input => input.disabled = false);
 			const minutes = Math.floor(remaining / 60);
 			const seconds = remaining % 60;
 			timerElement.textContent = `Time remaining: ${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
@@ -355,7 +357,7 @@ async function verifyOTP() {
 	const otp = [...document.querySelectorAll(".otp-input")].map(input => input.value).join("");
 	const requestBody = {
 		"otp": otp,
-		"serviceRequired" : "Transaction"
+		"serviceRequired": "Transaction"
 	}
 	const response = await fetch('/Bank_Application/api/Otp', {
 		method: 'POST',
