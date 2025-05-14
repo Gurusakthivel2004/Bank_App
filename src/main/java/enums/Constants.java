@@ -5,7 +5,6 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -337,47 +336,56 @@ public class Constants {
 
 	}
 
-	public enum FieldIdentifier {
-		CONTACTS_EMAIL(8, "Contacts", "Email"), CONTACTS_PHONE(7, "Contacts", "Phone"),
-		ACCOUNTS_EMAIL(9, "Accounts", "Email"), ACCOUNTS_PHONE(5, "Accounts", "Phone"),
-		Deals_AMOUNT(2, "Deals", "Amount"), ACCOUNTS_STAGE(3, "Deals", "Stage");
+	public enum ModuleCode {
+		Account(0), Contact(1), Deal(2), Lead(3);
 
-		private final int id;
-		private final String module;
-		private final String field;
-		private static final Map<Integer, String> identifierToModule = new HashMap<>();
+		private final Integer id;
+
+		private static final Map<Integer, ModuleCode> ID_TO_ENUM_MAP = new HashMap<>();
 
 		static {
-			for (FieldIdentifier fi : values()) {
-				identifierToModule.put(fi.getId(), fi.getModule());
+			for (ModuleCode useCase : values()) {
+				ID_TO_ENUM_MAP.put(useCase.id, useCase);
 			}
 		}
 
-		FieldIdentifier(int id, String module, String field) {
+		ModuleCode(Integer id) {
 			this.id = id;
-			this.module = module;
-			this.field = field;
 		}
 
-		public int getId() {
+		public Integer getId() {
 			return id;
 		}
 
-		public String getModule() {
-			return module;
+		public static ModuleCode fromId(Integer id) {
+			return ID_TO_ENUM_MAP.get(id);
 		}
 
-		public String getField() {
-			return field;
+	}
+
+	public enum UseCase {
+		ORG_PUSH(1), DEAL_PUSH(2), PHONE_VALIDATION(3), CUSTOM_UPDATE(4);
+
+		private final Integer id;
+
+		private static final Map<Integer, UseCase> ID_TO_ENUM_MAP = new HashMap<>();
+
+		static {
+			for (UseCase useCase : values()) {
+				ID_TO_ENUM_MAP.put(useCase.id, useCase);
+			}
 		}
 
-		public static Optional<FieldIdentifier> fromModuleAndField(String module, String field) {
-			return Arrays.stream(values())
-					.filter(fi -> fi.module.equalsIgnoreCase(module) && fi.field.equalsIgnoreCase(field)).findFirst();
+		UseCase(Integer id) {
+			this.id = id;
 		}
 
-		public static String getModuleForIdentifier(int identifier) {
-			return identifierToModule.getOrDefault(identifier, "Unknown");
+		public Integer getId() {
+			return id;
+		}
+
+		public static UseCase fromId(Integer id) {
+			return ID_TO_ENUM_MAP.get(id);
 		}
 	}
 
@@ -498,6 +506,47 @@ public class Constants {
 		}
 	}
 
+	public enum Country {
+		INDIA("India", "IN"), UNITED_STATES("United States", "US"), UNITED_KINGDOM("United Kingdom", "GB"),
+		GERMANY("Germany", "DE"), FRANCE("France", "FR"), CANADA("Canada", "CA"), AUSTRALIA("Australia", "AU"),
+		SINGAPORE("Singapore", "SG"), JAPAN("Japan", "JP"), BRAZIL("Brazil", "BR");
+
+		private final String countryName;
+		private final String regionCode;
+
+		Country(String countryName, String regionCode) {
+			this.countryName = countryName;
+			this.regionCode = regionCode;
+		}
+
+		public String getCountryName() {
+			return countryName;
+		}
+
+		public String getRegionCode() {
+			return regionCode;
+		}
+
+		public static Country fromCountryName(String name) {
+			for (Country country : values()) {
+				if (country.countryName.equalsIgnoreCase(name)) {
+					return country;
+				}
+			}
+			return null;
+		}
+
+		public static Country fromRegionCode(String regionCode) {
+			for (Country country : values()) {
+				if (country.getRegionCode().equalsIgnoreCase(regionCode)) {
+					return country;
+				}
+			}
+			return null;
+		}
+
+	}
+
 	public enum LogType {
 		Insert, Update, Delete, Login, Logout;
 
@@ -614,23 +663,6 @@ public class Constants {
 			} catch (IllegalArgumentException e) {
 				throw new CustomException("Invalid transaction status: " + transactionStatus,
 						HttpStatusCodes.BAD_REQUEST);
-			}
-		}
-	}
-
-	public enum RetryStatus {
-		PENDING, SUCCESS, FAILED;
-
-		@Override
-		public String toString() {
-			return name();
-		}
-
-		public static RetryStatus fromString(String module) throws CustomException {
-			try {
-				return RetryStatus.valueOf(module);
-			} catch (IllegalArgumentException e) {
-				throw new CustomException("Invalid module: " + module, HttpStatusCodes.BAD_REQUEST);
 			}
 		}
 	}

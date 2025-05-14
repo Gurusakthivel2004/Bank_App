@@ -22,6 +22,7 @@ import enums.Constants.Module;
 import model.Account;
 import model.FixedDeposit;
 import model.ModuleLog;
+import model.Org;
 import util.CustomException;
 import util.Helper;
 
@@ -119,7 +120,7 @@ public class FixedDepositService {
 	}
 
 	// Interest= (P×R×T) \ 100​
-	private static BigDecimal calculateInterest(Integer months, BigDecimal amount, BigDecimal annualRate) {
+	private BigDecimal calculateInterest(Integer months, BigDecimal amount, BigDecimal annualRate) {
 		BigDecimal monthsBD = new BigDecimal(months);
 		BigDecimal twelve = new BigDecimal("12");
 
@@ -132,7 +133,7 @@ public class FixedDepositService {
 		return interest;
 	}
 
-	private static BigDecimal getRateForDuration(int months) {
+	private BigDecimal getRateForDuration(int months) {
 		if (months <= 6)
 			return new BigDecimal("5.5");
 		else if (months <= 12)
@@ -149,9 +150,12 @@ public class FixedDepositService {
 		ModuleLog moduleLog = new ModuleLog().setMessage("Fixed Deposit created").setModule(Module.FixedDeposit)
 				.setModuleId(rowId).setAccountNumber(accountNumber).setPerformedBy(userId)
 				.setCreatedAt(System.currentTimeMillis());
-
-		logger.debug("Moduke log created.");
-		Helper.logAndPushModule(moduleLog, amount, userId);
+		
+		Org org = OrgService.getInstance().getOrg(userId);
+		Long adminId = OrgService.getInstance().getAdminId(org.getId());
+		
+		logger.debug("Module log created.");
+		Helper.logAndPushModule(moduleLog, amount, adminId, org);
 	}
 
 	private void createTransaction(Long accountNumber, Long transactionAccountNumber, BigDecimal amount, Long branchId,

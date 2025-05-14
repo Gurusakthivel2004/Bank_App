@@ -72,7 +72,6 @@ public class SubOrgService {
 	}
 
 	public void createMembers(Long orgId, Long subOrgId, Long userId, Role role) throws Exception {
-
 		OrgMember orgMember = new OrgMember();
 		orgMember.setOrgId(orgId);
 		orgMember.setUserId(userId);

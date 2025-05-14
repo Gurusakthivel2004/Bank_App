@@ -7,12 +7,12 @@ import java.util.Map;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import crm.AccountsService;
 import dao.DAO;
 import dao.DaoFactory;
 import enums.Constants.HttpStatusCodes;
 import enums.Constants.LogType;
 import enums.Constants.Role;
-import enums.Constants.TaskExecutor;
 import model.ActivityLog;
 import model.Org;
 import model.OrgMember;
@@ -56,33 +56,63 @@ public class OrgService {
 		orgMember.setUserTypeEnum(Role.Admin);
 		orgMemberDAO.create(orgMember);
 	}
+	
+	public Long getAdminId(Long orgId) throws Exception {
+		DAO<OrgMember> orgMemberDao = DaoFactory.getDAO(OrgMember.class);
+
+		Map<String, Object> orgMemberCriteria = new HashMap<>();
+		orgMemberCriteria.put("orgId", orgId);
+		orgMemberCriteria.put("userType", Role.Admin.name());
+		
+		List<OrgMember> orgMembers = orgMemberDao.get(orgMemberCriteria);
+
+		if (orgMembers.isEmpty()) {
+			throw new CustomException("Admin doesn't belong to an org.", HttpStatusCodes.BAD_REQUEST);
+		}
+
+		OrgMember orgMember = orgMembers.get(0);
+		return orgMember.getUserId();
+	}
+
+	public Org getOrg(Long userId) throws Exception {
+		DAO<OrgMember> orgMemberDao = DaoFactory.getDAO(OrgMember.class);
+
+		Map<String, Object> orgMemberCriteria = new HashMap<>();
+		orgMemberCriteria.put("userId", userId);
+
+		List<OrgMember> orgMembers = orgMemberDao.get(orgMemberCriteria);
+
+		if (orgMembers.isEmpty()) {
+			throw new CustomException("User doesn't belong to an org.", HttpStatusCodes.BAD_REQUEST);
+		}
+
+		OrgMember orgMember = orgMembers.get(0);
+
+		DAO<Org> orgDao = DaoFactory.getDAO(Org.class);
+
+		orgMemberCriteria.put("id", orgMember.getOrgId());
+		orgMemberCriteria.remove("userId");
+
+		List<Org> orgs = orgDao.get(orgMemberCriteria);
+
+		Org org = orgs.get(0);
+		return org;
+	}
 
 	public void createOrg(Map<String, Object> orgMap) throws Exception {
-	    logger.info("Creating org, data: {}", orgMap);
+		logger.info("Creating org, data: {}", orgMap);
 
-	    Long userId = (Long) Helper.getThreadLocalValue("id");
-	    validateUserNotInAnyOrg(userId);
+		Long userId = (Long) Helper.getThreadLocalValue("id");
+		validateUserNotInAnyOrg(userId);
 
-	    Org org = prepareOrgEntity(orgMap);
-	    Long orgId = orgDAO.create(org);
+		Org org = prepareOrgEntity(orgMap);
+		Long orgId = orgDAO.create(org);
 
-	    logActivity(orgId);
-	    createOrgAdminMembership(userId, orgId);
+		logActivity(orgId);
+		createOrgAdminMembership(userId, orgId);
 
-	    User user = UserService.getInstance().getUserById(userId);
-	    pushToCRM(org, user);
-	}
-	
-	private void pushToCRM(Org org, User user) {
-		TaskExecutor.CRM.submitTask(() -> {
-			try {
-	        	String accountId = CRMService.getInstance().pushAccountRecords(org);
-	        	CRMService.getInstance().pushContactRecords(user, accountId);
-	        } catch (Exception e) {
-	            logger.error("CRM push failed: {}", e.getMessage(), e);
-	        }
-		});
-		
+		User user = UserService.getInstance().getUserById(userId);
+		AccountsService.getInstance().pushOrgToCRM(org, user);
 	}
 
 	public List<OrgMember> getOrgMemberDetails(Long userId) throws Exception {

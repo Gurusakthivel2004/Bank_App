@@ -9,12 +9,10 @@ import com.google.gson.JsonParser;
 import dao.DAO;
 import dao.DaoFactory;
 import initializer.Initializer;
-import model.OauthClientConfig;
 import model.OauthProvider;
-import service.CRMService;
 import util.Helper;
 import util.HttpUtil;
-import util.OAuthConfig;
+import util.UsernameValidator;
 
 public class Runner {
 
@@ -33,9 +31,8 @@ public class Runner {
 //			userMap.put("userId", 152l);
 //			userMap.put("role", "Customer");
 //			Map<String, Object> users = UserService.getInstance().getUserDetails(userMap);
-////			Staff staff = users.get("users");
+//			Staff staff = users.get("users");
 //			System.out.println(((List<Object>) users.get("users")).get(0).getClass());
-//			
 //			
 //			CustomerDetail customerDetail = new CustomerDetail();
 //
@@ -58,10 +55,14 @@ public class Runner {
 //			accMap.put(AccountsFields.PHONE, "9361409787");
 //			
 //			CRMService.getInstance().updateRecords("Account_Name", "Zoho", accMap, "Accounts");
-			OauthClientConfig config = Helper.getClientConfig("Zoho");
-			String jsonResponse = CRMService.getInstance().fetchRecords(OAuthConfig.get("crm.contact.endpoint"), "Account_Name", "Zoho",
-					config);
-			System.out.println(jsonResponse);
+//			OauthClientConfig config = Helper.getClientConfig("Zoho");
+//			String jsonResponse = CRMService.getInstance().fetchRecords(OAuthConfig.get("crm.contact.endpoint"), "Account_Name", "Zoho",
+//					config);
+//			System.out.println(jsonResponse);
+			
+			double score = UsernameValidator.validateUsername("free$money$$123");
+			System.out.println("Spam Score: " + score);
+			
 //			System.out.println("json response: " + jsonResponse);
 //
 //			pushAccountRecords(customerDetail);
@@ -72,7 +73,7 @@ public class Runner {
 
 	}
 
-	public static void generateTokens() throws Exception {
+	private static void generateTokens() throws Exception {
 		String url = "https://accounts.localzoho.com/oauth/v2/token?" + "grant_type=client_credentials&"
 				+ "scope=zohocrm.settings.all,zohocrm.modules.all,zohocrm.users.all,zohocrm.org.all&"
 				+ "soid=ZohoCrm.103791165";

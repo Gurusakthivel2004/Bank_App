@@ -1,17 +1,10 @@
 package model;
 
-import enums.Constants.RetryStatus;
-
 public class FailedRequest extends MarkedClass {
 
     private Long id;
-    private String url;
-    private String method;
-    private String requestBody;
-    private Integer statusCode;
-    private String errorMessage;
+    private String requestJson;
     private Long createdAt;
-    private RetryStatus retryStatus;
 
     public Long getId() {
         return id;
@@ -21,45 +14,13 @@ public class FailedRequest extends MarkedClass {
         this.id = id;
     }
 
-    public String getUrl() {
-        return url;
-    }
+    public String getRequestJson() {
+		return requestJson;
+	}
 
-    public void setUrl(String url) {
-        this.url = url;
-    }
-
-    public String getMethod() {
-        return method;
-    }
-
-    public void setMethod(String method) {
-        this.method = method;
-    }
-
-    public String getRequestBody() {
-        return requestBody;
-    }
-
-    public void setRequestBody(String requestBody) {
-        this.requestBody = requestBody;
-    }
-
-    public Integer getStatusCode() {
-        return statusCode;
-    }
-
-    public void setStatusCode(Integer statusCode) {
-        this.statusCode = statusCode;
-    }
-
-    public String getErrorMessage() {
-        return errorMessage;
-    }
-
-    public void setErrorMessage(String errorMessage) {
-        this.errorMessage = errorMessage;
-    }
+	public void setRequestJson(String requestJson) {
+		this.requestJson = requestJson;
+	}
 
     public Long getCreatedAt() {
         return createdAt;
@@ -67,27 +28,5 @@ public class FailedRequest extends MarkedClass {
 
     public void setCreatedAt(Long createdAt) {
         this.createdAt = createdAt;
-    }
-
-    public RetryStatus getRetryStatus() {
-        return retryStatus;
-    }
-
-    public void setRetryStatus(RetryStatus retryStatus) {
-        this.retryStatus = retryStatus;
-    }
-
-    @Override
-    public String toString() {
-        return "FailedRequest{" +
-                "id=" + id +
-                ", url='" + url + '\'' +
-                ", method='" + method + '\'' +
-                ", requestBody='" + requestBody + '\'' +
-                ", statusCode=" + statusCode +
-                ", errorMessage='" + errorMessage + '\'' +
-                ", createdAt=" + createdAt +
-                ", retryStatus=" + retryStatus +
-                '}';
     }
 }

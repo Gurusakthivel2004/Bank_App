@@ -77,7 +77,6 @@ public class Initializer implements ServletContextListener {
 			dbConnectionPool = new DBConnectionPool(URL, USER, PASSWORD);
 			logger.info("Custom Connection Pool reinitialized (with DB).");
 
-			// Step 4: Insert admin data
 			AdminCreator.createAdmin();
 
 			logger.info("Initializing Redis...");
@@ -90,7 +89,6 @@ public class Initializer implements ServletContextListener {
 			jedisPool = new JedisPool(poolConfig, REDIS_HOST, REDIS_PORT, REDIS_CONNECTION_TIMEOUT);
 			logger.info("Redis initialized with connection pooling.");
 
-			// Start Schedulers
 			EXPIRED_SESSION_SCHEDULAR.startScheduler();
 			PASSWORD_UPDATE_SCHEDULER.startScheduler();
 			FIXED_DEPOSIT_SCHEDULAR.startScheduler();

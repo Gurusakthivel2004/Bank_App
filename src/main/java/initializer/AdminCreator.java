@@ -29,12 +29,12 @@ public class AdminCreator {
 	static {
 		// MySQL & PostgreSQL Compatible Queries
 		INSERT_USER_MAP.put(DaoFactory.DatabaseType.MYSQL,
-				"INSERT INTO user (fullname, email, phone, role, username, password, status, created_at, modified_at, performed_by, password_version) "
-						+ "VALUES ('admin', 'admin@gmail.com', '9724851945', 'Manager', 'admin', '%s', 'Active', %d, %d, NULL, 1);");
+				"INSERT INTO user (fullname, email, phone, role, username, password, status, created_at, modified_at, performed_by, password_version, country_code) "
+						+ "VALUES ('admin', 'admin@gmail.com', '9724851945', 'Manager', 'admin', '%s', 'Active', %d, %d, NULL, 1, 'IN');");
 
 		INSERT_USER_MAP.put(DaoFactory.DatabaseType.POSTGRESQL,
-				"INSERT INTO \"user\" (fullname, email, phone, role, username, password, status, created_at, modified_at, performed_by, password_version) "
-						+ "VALUES ('admin', 'admin@gmail.com', '9724851945', 'Manager', 'admin', '%s', 'Active', %d, %d, NULL, 1) RETURNING id;");
+				"INSERT INTO \"user\" (fullname, email, phone, role, username, password, status, created_at, modified_at, performed_by, password_version, country_code) "
+						+ "VALUES ('admin', 'admin@gmail.com', '9724851945', 'Manager', 'admin', '%s', 'Active', %d, %d, NULL, 1, 'IN') RETURNING id;");
 
 		INSERT_BRANCH_MAP.put(DaoFactory.DatabaseType.MYSQL,
 				"INSERT INTO branch (ifsc_code, contact_number, name, address, created_at, modified_at, performed_by) "

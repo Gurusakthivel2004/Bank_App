@@ -1,24 +1,16 @@
 package crm;
 
 import java.io.IOException;
-import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import dao.DAO;
-import dao.DaoFactory;
-import enums.Constants.FieldIdentifier;
 import enums.Constants.HttpMethod;
-import enums.Constants.RetryStatus;
 import enums.Constants.SymbolProvider;
 import io.github.cdimascio.dotenv.Dotenv;
-import model.FailedRequest;
 import model.OauthProvider;
 import service.CRMService;
-import util.CRMQueueManager;
 import util.Helper;
 import util.HttpUtil;
 import util.JsonUtils;
@@ -30,6 +22,16 @@ public class CRMHttpService {
 
 	private static final String PROVIDER = "Zoho";
 	private static final String API_DOMAIN = dotenv.get("ZOHO_API_DOMAIN");
+	
+	private CRMHttpService() {}
+
+	private static class SingletonHelper {
+		private static final CRMHttpService INSTANCE = new CRMHttpService();
+	}
+
+	public static CRMHttpService getInstance() {
+		return SingletonHelper.INSTANCE;
+	}
 
 	private boolean isUnauthorized(Exception e) {
 		return e.getMessage() != null && e.getMessage().contains("401");
@@ -37,21 +39,6 @@ public class CRMHttpService {
 
 	public static boolean isForbidden(Exception e) {
 		return e.getMessage() != null && e.getMessage().contains("403");
-	}
-
-	private void logFailedRequest(String url, HttpMethod method, String jsonBody, Exception e) throws Exception {
-		DAO<FailedRequest> failedRequestDao = DaoFactory.getDAO(FailedRequest.class);
-
-		FailedRequest failedRequest = new FailedRequest();
-		failedRequest.setUrl(url);
-		failedRequest.setMethod(method.name());
-		failedRequest.setRequestBody(jsonBody);
-		failedRequest.setStatusCode(403);
-		failedRequest.setErrorMessage(e.getMessage());
-		failedRequest.setRetryStatus(RetryStatus.PENDING);
-		failedRequest.setCreatedAt(System.currentTimeMillis());
-
-		failedRequestDao.create(failedRequest);
 	}
 
 	private String sendWithRetry(HttpMethod method, String url, String jsonBody, OauthProvider provider)
@@ -77,7 +64,6 @@ public class CRMHttpService {
 			} else if (isForbidden(e)) {
 				logger.warn("Received 403 Forbidden. Logging the failed request. URL: {}, Method: {}, Body: {}",
 						url, method, jsonBody);
-				logFailedRequest(url, method, jsonBody, e);
 			} else {
 				logger.error("Request to {} failed with error: {}", url, e.getMessage());
 			}
@@ -111,35 +97,6 @@ public class CRMHttpService {
 		String url = API_DOMAIN + endpointKey;
 
 		return sendWithRetry(HttpMethod.PUT, url, updateJson, provider);
-	}
-
-	public <K extends Enum<K> & SymbolProvider> void updateRecords(String recordId, Map<K, Object> updateFields,
-			String moduleName, String endpointKey) throws Exception {
-
-		updateFields.put(Enum.valueOf(updateFields.keySet().iterator().next().getDeclaringClass(), "ID"), recordId);
-
-		Map<K, Object> structuredFields = new HashMap<>();
-		for (Map.Entry<K, Object> entry : updateFields.entrySet()) {
-			K field = entry.getKey();
-			Object value = entry.getValue();
-
-			if ("ID".equals(field.name())) {
-				structuredFields.put(field, value);
-			} else {
-				Map<String, Object> fieldValueMap = new HashMap<>();
-				fieldValueMap.put("value", value);
-
-				Optional<FieldIdentifier> identifierOpt = FieldIdentifier.fromModuleAndField(moduleName,
-						field.getSymbol());
-				if (identifierOpt.isPresent()) {
-					fieldValueMap.put("identifier", identifierOpt.get().getId());
-				}
-
-				structuredFields.put(field, fieldValueMap);
-			}
-		}
-
-		CRMQueueManager.addToUpdateSet(structuredFields);
 	}
 
 }

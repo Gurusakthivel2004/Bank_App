@@ -48,6 +48,7 @@ import com.google.gson.JsonParser;
 import com.google.gson.JsonPrimitive;
 import com.password4j.Password;
 
+import crm.CRMService;
 import dao.DAO;
 import dao.DaoFactory;
 import enums.Constants.HttpStatusCodes;
@@ -56,13 +57,13 @@ import enums.Constants.TaskExecutor;
 import enums.Constants.ValidQueryParams;
 import io.github.cdimascio.dotenv.Dotenv;
 import model.ActivityLog;
+import model.FailedRequest;
 import model.ModuleLog;
 import model.OauthClientConfig;
 import model.OauthProvider;
 import model.Org;
 import model.OrgMember;
 import model.User;
-import service.CRMService;
 import service.SubOrgService;
 import service.UserService;
 import util.ColumnYamlUtil.ClassMapping;
@@ -444,15 +445,15 @@ public class Helper {
 	}
 
 	public static void pushDealRecord(String moduleName, String moduleId, String amount, Long userId) throws Exception {
-		Org org = getOrgData(userId);
 		TaskExecutor.CRM.submitTask(() -> {
 			try {
-				CRMService.getInstance().pushDealsRecords(moduleName, amount, org.getName(), moduleId);
+				Org org = getOrgData(userId);
+				CRMService.getInstance().pushDealsRecords(moduleName, amount, moduleId, userId, org);
 			} catch (Exception e) {
 				LOGGER.error("CRM Deals push failed: {}", e.getMessage(), e);
 			}
 		});
-	
+
 	}
 
 	public static Org getOrgData(Long userId) throws Exception {
@@ -612,25 +613,29 @@ public class Helper {
 		}
 	}
 
-	private static Long pushModuleCRM(String moduleName, String amount, String moduleId, Long userId) throws Exception {
-		TaskExecutor.CRM.submitTask(() -> {
-			try {
-				Helper.pushDealRecord("Fixed Deposit", moduleId, amount, userId);
-			} catch (Exception e) {
-				LOGGER.error("Error occurred while pushing module to CRM", e);
-			}
-			return null;
-		});
-		return null;
+	public static void logFailedRequest(Map<String, String> jsonMap) throws Exception {
+		DAO<FailedRequest> failedRequestDao = DaoFactory.getDAO(FailedRequest.class);
+
+		JsonObject jsonObject = new JsonObject();
+		for (String key : jsonMap.keySet()) {
+			jsonObject.addProperty(key, jsonMap.get(key));
+		}
+
+		FailedRequest failedRequest = new FailedRequest();
+		failedRequest.setRequestJson(jsonObject.getAsString());
+		failedRequest.setCreatedAt(System.currentTimeMillis());
+
+		failedRequestDao.create(failedRequest);
 	}
 
-	public static Long logAndPushModule(ModuleLog moduleLog, String amount, Long userId) throws Exception {
+	public static Long logAndPushModule(ModuleLog moduleLog, String amount, Long userId, Org org) throws Exception {
 		DAO<ModuleLog> moduleLogDAO = DaoFactory.getDAO(ModuleLog.class);
 		TaskExecutor.LOG.submitTask(() -> {
 			try {
 				Long moduleId = moduleLogDAO.create(moduleLog);
 				if (amount != null) {
-					pushModuleCRM(moduleLog.getModule(), amount, moduleId.toString(), userId);
+					CRMService.getInstance().pushDealsRecords(moduleLog.getModule(), amount, moduleId.toString(),
+							userId, org);
 				}
 			} catch (Exception e) {
 				LOGGER.error("Error occurred while saving activity log", e);
@@ -703,14 +708,8 @@ public class Helper {
 				}
 				field.setAccessible(true);
 				if (field.getType() == Long.class || field.getType() == long.class) {
-					if (field.getName().equals("phone") || field.getName().equals("contactNumber")) {
-						Helper.checkPhoneNumber((String) value);
-					}
 					field.set(pojo, value instanceof Long ? value : Long.parseLong(value.toString()));
 				} else if (field.getType() == String.class) {
-					if (field.getName().equals("email")) {
-						Helper.checkEmail((String) value);
-					}
 					field.set(pojo, value.toString());
 				} else if (field.getType() == BigDecimal.class) {
 					field.set(pojo, new BigDecimal(value.toString()));
@@ -723,8 +722,6 @@ public class Helper {
 				}
 			}
 			return pojo;
-		} catch (CustomException e) {
-			throw e;
 		} catch (IllegalArgumentException e) {
 			LOGGER.error("Invalid argument provided while mapping data to object. Please check the input values.", e);
 			throw new CustomException("Invalid data provided. Please check the values and try again.",

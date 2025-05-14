@@ -179,7 +179,7 @@ public class ValidationUtil {
 
 	public static void validateStaffModel(Staff user) throws CustomException {
 		Helper.checkEmail(user.getEmail());
-		Helper.checkPhoneNumber(user.getPhone().toString());
+		PhoneUtil.isValidPhoneNumber(user.getPhone(), user.getCountryCode());
 		Helper.checkUsername(user.getUsername());
 	}
 

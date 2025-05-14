@@ -1,0 +1,49 @@
+package runner;
+
+import java.util.HashMap;
+import java.util.Map;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import cache.RedisCache;
+import initializer.Initializer;
+import redis.clients.jedis.Jedis;
+import schedular.CRMSchedular;
+
+public class CRMSchedulerRunner {
+
+    public static void main(String[] args) throws Exception {
+    	Initializer.setDataSource();
+        RedisCache redisCache = RedisCache.getInstance();
+        ObjectMapper mapper = new ObjectMapper();
+
+        try (Jedis jedis = redisCache.getConnection()) {
+            jedis.del("updateSet"); // clear old data for clean test
+
+            for (int i = 1; i <= 10; i++) {
+                Map<String, String> mockRecord = new HashMap<>();
+                mockRecord.put("Module_Code", "1"); // Let's assume 1 = CONTACT
+                mockRecord.put("Criteria_Key", "Email");
+                mockRecord.put("Criteria_Value", "vijayguru2004@gmail.com");
+
+                Map<String, String> updateFields = new HashMap<>();
+                updateFields.put("First_Name", "Test" + i);
+                updateFields.put("Last_Name", "User" + i);
+                updateFields.put("Phone", "99999888" + i);
+
+                mockRecord.put("Update_Fields", mapper.writeValueAsString(updateFields));
+
+                String recordJson = mapper.writeValueAsString(mockRecord);
+
+                // Add to Redis sorted set with score = timestamp or just i
+                jedis.zadd("updateSet", i, recordJson);
+            }
+
+            System.out.println("Inserted 10 mock CRM update records into Redis.");
+        }
+
+        // Run scheduler processing once (not the periodic version)
+        CRMSchedular schedular = new CRMSchedular();
+        schedular.processUpdateSet();
+    }
+}

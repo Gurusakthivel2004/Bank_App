@@ -43,8 +43,8 @@ classes:
         columnName: "password_version"
       status:
         columnName: "status"
-      country:
-        columnName: "country"
+      countryCode:
+        columnName: "country_code"
       createdAt:
         columnName: "created_at"
       modifiedAt:
@@ -375,17 +375,7 @@ classes:
         fields:
           id:
             columnName: "id"
-          url:
-            columnName: "url"
-          method:
-            columnName: "method"
-          requestBody:
-            columnName: "request_body"
-          statusCode:
-            columnName: "status_code"
-          errorMessage:
-            columnName: "error_message"
-          retryStatus:
-            columnName: "retry_status"
+          requestJson:
+            columnName: "request_json"
           createdAt:
             columnName: "created_at"

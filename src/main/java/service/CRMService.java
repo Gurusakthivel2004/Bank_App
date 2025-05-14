@@ -43,7 +43,7 @@ public class CRMService {
 
 	private static Dotenv dotenv = Helper.loadDotEnv();
 	private static final Integer RETRIES = 5;
-	private static final String PROVIDER = "Zoho";
+	public static final String PROVIDER = "Zoho";
 	private static final String API_DOMAIN = dotenv.get("ZOHO_API_DOMAIN");
 	private static final String ACCOUNT_URL = dotenv.get("ZOHO_ACCOUNTS_URL");
 	private static final String SCOPE = OAuthConfig.get("crm.scope");
@@ -86,26 +86,28 @@ public class CRMService {
 		postToCrm(OAuthConfig.get("crm.contact.endpoint"), data);
 	}
 
-	public void pushDealsRecords(String dealName, String amount, String accountName, String moduleRecordId) throws Exception {
-
-		OauthClientConfig config = Helper.getClientConfig(PROVIDER);
-		String jsonResponse = fetchRecords(OAuthConfig.get("crm.contact.endpoint"), "Account_Name", accountName,
-				config);
-
-		String accountId = JsonUtils.getValueByPath(jsonResponse, "data[0].Account_Name", "id");
-		String contactId = JsonUtils.getValueByPath(jsonResponse, "data[0]", "id");
-
-		Map<DealsFields, Object> data = new HashMap<>();
-		data.put(DealsFields.FK_ACCOUNT_NAME, accountId);
-		data.put(DealsFields.FK_Contact_NAME, contactId);
-		data.put(DealsFields.MODULE_RECORD_ID, moduleRecordId);
-		data.put(DealsFields.AMOUNT, amount);
-		data.put(DealsFields.STAGE, "Needs Analysis");
-		data.put(DealsFields.TYPE, "New Business");
-		data.put(DealsFields.DEAL_NAME, dealName);
-
-		postToCrm(OAuthConfig.get("crm.deal.endpoint"), data);
-	}
+//	public String pushDealsRecords(String dealName, String amount, String accountName, String moduleRecordId) throws Exception {
+//
+//		OauthClientConfig config = Helper.getClientConfig(PROVIDER);
+//		String jsonResponse = fetchRecords(OAuthConfig.get("crm.contact.endpoint"), "Account_Name", accountName,
+//				config);
+//
+//		String accountId = JsonUtils.getValueByPath(jsonResponse, "data[0].Account_Name", "id");
+//		String contactId = JsonUtils.getValueByPath(jsonResponse, "data[0]", "id");
+//
+//		Map<DealsFields, Object> data = new HashMap<>();
+//		data.put(DealsFields.FK_ACCOUNT_NAME, accountId);
+//		data.put(DealsFields.FK_Contact_NAME, contactId);
+//		data.put(DealsFields.MODULE_RECORD_ID, moduleRecordId);
+//		data.put(DealsFields.AMOUNT, amount);
+//		data.put(DealsFields.STAGE, "Needs Analysis");
+//		data.put(DealsFields.TYPE, "New Business");
+//		data.put(DealsFields.DEAL_NAME, dealName);
+//
+//		String response = postToCrm(OAuthConfig.get("crm.deal.endpoint"), data);
+//		
+//		return JsonUtils.getValueByPath(response, "data[0].details", "id");
+//	}
 
 	public String pushLeadsRecords(SubOrg subOrg, String company, String email) throws Exception {
 

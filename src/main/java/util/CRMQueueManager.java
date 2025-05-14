@@ -46,12 +46,7 @@ public class CRMQueueManager {
 		return null;
 	}
 
-	public static <K extends SymbolProvider> void addToUpdateSet(Map<K, Object> updateFields) {
-		Map<String, Object> payload = new HashMap<>();
-		for (Map.Entry<K, Object> entry : updateFields.entrySet()) {
-			payload.put(entry.getKey().getSymbol(), entry.getValue());
-		}
-
+	public static void addToUpdateSet(Map<String, Object> payload) {
 		try (Jedis jedis = redisCache.getConnection()) {
 			String json = new ObjectMapper().writeValueAsString(payload);
 			jedis.zadd("updateSet", System.currentTimeMillis(), json);

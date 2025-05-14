@@ -65,9 +65,21 @@ TODO before the last MOM:
 	2. Bulk write updates.
 	
 MOM:
-         1. Instead of get call for every put or post request map the Record ID with a primary key of a module in cache.
+         1. Instead of get call for every put or post request map the Record ID with a primary key of a module in cache. 
          2. Validate the phone number(E164 Format) and email via otp, using the google lib and LLM for spam detection and update the status in CRM according to the score generated.
          3. Audit the failed Calls and retry once the connection is available.
          4. Implement Bulk API for updates.
          5. Push modules on different portals and the update should reflect across portals.
 
+
+1. We can even avoid the 6 fetch by looking into the cache primary key -> recordId
+2. Bulk write
+
+{
+	Module_Code: 5,
+	UseCase: 2,
+	Module_Record_Id: 103141312,
+	Update Fields: {
+		Phone: +9176824332
+	}
+}

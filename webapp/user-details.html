@@ -297,46 +297,11 @@
 									type="email" />
 							</div>
 						</div>
-						<div class="detail-item d-flex  w-100 py-3 px-2 mx-2"
-							style="border-bottom: 1px solid #ccc" data-id="3">
-							<span class="detail-label ps-4"
-								style="width: 50%; padding-left: 10%;">Phone</span>
-							<div class="inputDiv w-40">
-								<input required id="phone"
-									class="accNumberInput rounded p-1 px-2 w-30"
-									style="border: 1px solid #c9c6c6; color: #2b5ab3; font-weight: bold;"
-									type="text" />
-							</div>
-						</div>
-						<div id="branchIdDiv" class="detail-item w-100 py-3 px-2 mx-2"
-							style="border-bottom: 1px solid #ccc; display: none">
-							<span class="detail-label ps-4"
-								style="width: 50%; padding-left: 10%;">Branch id</span>
-							<div class="inputDiv w-40">
-								<input class="p-1 px-2 w-30 rounded" id="branchId" required
-									oninput="fetchDropdownOptions(this.value)"
-									style="font-family: 'Arial', sans-serif;; font-weight: bold; color: #2b5ab3; border: 1px solid #c9c6c6;"
-									autocomplete="off">
-								<div id="dropdown" class="dropdown-menu w-30"
-									style="display: none; background: white; border: 1px solid #ddd; border-radius: 5px; z-index: 10;"></div>
-							</div>
-						</div>
-						<div class="detail-item d-flex w-100 py-3 px-2 mx-2"
-							style="border-bottom: 1px solid #ccc" data-id="4">
-							<span class="detail-label ps-4"
-								style="width: 50%; padding-left: 10%;">Username</span>
-							<div class="inputDiv w-40">
-								<input required id="username"
-									class="accNumberInput rounded p-1 px-2 w-30"
-									style="border: 1px solid #c9c6c6; color: #2b5ab3; font-weight: bold;"
-									type="text" />
-							</div>
-						</div>
 						<div class="detail-item d-flex w-100 py-3 px-2 mx-2"
 							style="border-bottom: 1px solid #ccc" data-id="13">
 
 							<span class="detail-label ps-4"
-								style="width: 50%; padding-left: 10%;">Country</span>
+								style="width: 50%; padding-left: 10%;">Country Code</span>
 
 							<div class="inputDiv w-20">
 								<div class="accounts-dropdown">
@@ -395,6 +360,43 @@
 								</div>
 							</div>
 						</div>
+						<div class="detail-item d-flex  w-100 py-3 px-2 mx-2"
+							style="border-bottom: 1px solid #ccc" data-id="3">
+							<span class="detail-label ps-4"
+								style="width: 50%; padding-left: 10%;">Phone</span>
+							<div class="inputDiv w-40">
+								<input required id="phone"
+									class="accNumberInput rounded p-1 px-2 w-30"
+									style="border: 1px solid #c9c6c6; color: #2b5ab3; font-weight: bold;"
+									type="text" />
+							</div>
+						</div>
+
+						<div id="branchIdDiv" class="detail-item w-100 py-3 px-2 mx-2"
+							style="border-bottom: 1px solid #ccc; display: none">
+							<span class="detail-label ps-4"
+								style="width: 50%; padding-left: 10%;">Branch id</span>
+							<div class="inputDiv w-40">
+								<input class="p-1 px-2 w-30 rounded" id="branchId" required
+									oninput="fetchDropdownOptions(this.value)"
+									style="font-family: 'Arial', sans-serif;; font-weight: bold; color: #2b5ab3; border: 1px solid #c9c6c6;"
+									autocomplete="off">
+								<div id="dropdown" class="dropdown-menu w-30"
+									style="display: none; background: white; border: 1px solid #ddd; border-radius: 5px; z-index: 10;"></div>
+							</div>
+						</div>
+						<div class="detail-item d-flex w-100 py-3 px-2 mx-2"
+							style="border-bottom: 1px solid #ccc" data-id="4">
+							<span class="detail-label ps-4"
+								style="width: 50%; padding-left: 10%;">Username</span>
+							<div class="inputDiv w-40">
+								<input required id="username"
+									class="accNumberInput rounded p-1 px-2 w-30"
+									style="border: 1px solid #c9c6c6; color: #2b5ab3; font-weight: bold;"
+									type="text" />
+							</div>
+						</div>
+
 						<div class="detail-item w-100 py-3 px-2 mx-2" data-id="12"
 							id="roleDiv"
 							style="display: none; border-bottom: 1px solid #ccc;">

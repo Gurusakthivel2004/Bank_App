@@ -11,7 +11,7 @@ import util.OAuthConfig;
 
 public class LeadsService {
 
-	private CRMHttpService crmHttpService = new CRMHttpService();
+	private CRMHttpService crmHttpService = CRMHttpService.getInstance();
 	public static final String CRM_MODULE = "Leads";
 	public static final String CRM_MODULE_PK = "Email";
 	

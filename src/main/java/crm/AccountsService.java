@@ -3,17 +3,25 @@ package crm;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import cache.CacheUtil;
 import enums.Constants.AccountsFields;
+import enums.Constants.TaskExecutor;
+import enums.Constants.UseCase;
 import model.Org;
+import model.User;
+import util.Helper;
 import util.JsonUtils;
 import util.OAuthConfig;
 
 public class AccountsService {
 
-	private static CRMHttpService httpService = new CRMHttpService();
+	private static CRMHttpService crmHttpService = CRMHttpService.getInstance();
 	public static final String CRM_MODULE = "Accounts";
 	public static final String CRM_MODULE_PK = "Phone";
+	private static final Logger LOGGER= LogManager.getLogger(AccountsService.class);
 	
 	private AccountsService() {}
 
@@ -25,7 +33,49 @@ public class AccountsService {
 		return SingletonHelper.INSTANCE;
 	}
 	
-	public String pushAccount(Org org) throws Exception {
+	public String pushOrgToCRM(Org org, User user) {
+		TaskExecutor.CRM.submitTask(() -> {
+			try {
+				// Fetch accounts
+				String accountsJsonResponse = crmHttpService.fetchRecord(OAuthConfig.get("crm.account.endpoint"),
+						"Account_Name", org.getName());
+
+				String accountId = JsonUtils.getValueByPath(accountsJsonResponse, "data[0]", "id");
+				// Push accounts record
+				if (accountId == null) {
+					accountId = pushAccountsRecord(org);
+				}
+				// Fetch contacts
+				String contactsJsonResponse = crmHttpService.fetchRecord(OAuthConfig.get("crm.contact.endpoint"),
+						"Account_Name", org.getName());
+
+				String contactId = JsonUtils.getValueByPath(contactsJsonResponse, "data[0]", "id");
+				// Push contacts record
+				if (contactId == null) {
+					CRMService.getInstance().pushContactRecords(user, accountId);
+				}
+				return accountId;
+			} catch (Exception e) {
+				if (CRMHttpService.isForbidden(e)) {
+					try {
+						Map<String, String> jsonMap = new HashMap<>();
+						jsonMap.put("orgId", org.getId().toString());
+						jsonMap.put("userId", user.getId().toString());
+						jsonMap.put("useCase", UseCase.ORG_PUSH.getId().toString());
+						
+						Helper.logFailedRequest(jsonMap);
+					} catch (Exception exception) {
+						LOGGER.error(exception.getMessage());
+					}
+				}
+				LOGGER.error("CRM push failed: {}", e.getMessage(), e);
+			}
+			return null;
+		});
+		return null;
+	}
+	
+	private String pushAccountsRecord(Org org) throws Exception {
 		String phone = org.getPhone().toString();
 		
 		Map<AccountsFields, Object> data = new HashMap<>();
@@ -34,7 +84,7 @@ public class AccountsService {
 		data.put(AccountsFields.EMPLOYEES, org.getEmployees());
 		data.put(AccountsFields.PHONE, phone);
 
-		String response = httpService.postToCrm(OAuthConfig.get("crm.account.endpoint"), data);
+		String response = crmHttpService.postToCrm(OAuthConfig.get("crm.account.endpoint"), data);
 		String recordId = JsonUtils.getValueByPath(response, "data[0].details", "id");
 		CacheUtil.saveCRMRecordId(CRM_MODULE, phone, recordId);
 

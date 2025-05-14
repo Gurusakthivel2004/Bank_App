@@ -20,6 +20,7 @@ import model.ActivityLog;
 import model.ColumnCriteria;
 import model.Message;
 import model.ModuleLog;
+import model.Org;
 import util.CustomException;
 import util.Helper;
 import util.ValidationUtil;
@@ -118,7 +119,12 @@ public class MessageService {
 		Long accountNumber = Helper.extractAccountNumber(message);
 		ModuleLog moduleLog = new ModuleLog().setModuleId(null).setAccountNumber(accountNumber).setModule(Module.Loan)
 				.setCreatedAt(System.currentTimeMillis()).setPerformedBy(userId).setMessage("Loan applied.");
-		Helper.logAndPushModule(moduleLog, null, userId);
+		
+		Org org = OrgService.getInstance().getOrg(userId);
+		Long adminId = OrgService.getInstance().getAdminId(org.getId());
+
+		logger.debug("Module log created.");
+		Helper.logAndPushModule(moduleLog, null, adminId, org);
 	}
 
 }

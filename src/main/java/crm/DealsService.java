@@ -3,16 +3,26 @@ package crm;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import cache.CacheUtil;
 import enums.Constants.DealsFields;
+import enums.Constants.TaskExecutor;
+import enums.Constants.UseCase;
+import model.Org;
+import model.User;
+import service.UserService;
+import util.Helper;
 import util.JsonUtils;
 import util.OAuthConfig;
 
 public class DealsService {
 
-	private CRMHttpService crmHttpService = new CRMHttpService();
+	private CRMHttpService crmHttpService = CRMHttpService.getInstance();
 	public static final String CRM_MODULE = "Deals";
 	public static final String CRM_MODULE_PK = "Module Record Id";
+	private static final Logger LOGGER= LogManager.getLogger(DealsService.class);
 	
 	private DealsService() {}
 
@@ -23,8 +33,45 @@ public class DealsService {
 	public static DealsService getInstance() {
 		return SingletonHelper.INSTANCE;
 	}
+	
+	public Long pushModuleToCRM(String moduleName, String amount, String moduleId, Long userId, Org org)
+			throws Exception {
+		TaskExecutor.CRM.submitTask(() -> {
+			try {
+				User user = UserService.getInstance().getUserById(userId);
+				// Fetch Deals
+				String dealsJsonResponse = crmHttpService.fetchRecord(OAuthConfig.get("crm.deal.endpoint"),
+						"Module_Record_Id", moduleId);
 
-	public String pushDeal(String dealName, String amount, String accountName, String moduleRecordId) throws Exception {
+				String dealId = JsonUtils.getValueByPath(dealsJsonResponse, "data[0]", "id");
+				// Push deals record
+				if (dealId == null) {
+					dealId = pushDealsRecords(moduleName, amount, org.getName(), moduleId);
+				}
+				// Push Accounts and Contacts if needed.
+				AccountsService.getInstance().pushOrgToCRM(org, user);
+			} catch (Exception e) {
+				if (CRMHttpService.isForbidden(e)) {
+					try {
+						Map<String, String> jsonMap = new HashMap<>();
+						jsonMap.put("orgId", org.getId().toString());
+						jsonMap.put("userId", userId.toString());
+						jsonMap.put("moduleRecordId", moduleId);
+						jsonMap.put("useCase", UseCase.DEAL_PUSH.getId().toString());
+						
+						Helper.logFailedRequest(jsonMap);
+					} catch (Exception exception) {
+						LOGGER.error(exception.getMessage());
+					}
+				}
+				LOGGER.error("CRM push failed: {}", e.getMessage(), e);
+			}
+			return null;
+		});
+		return null;
+	}
+
+	private String pushDealsRecords(String dealName, String amount, String accountName, String moduleRecordId) throws Exception {
 
 		String jsonResponse = crmHttpService.fetchRecord(OAuthConfig.get("crm.contact.endpoint"), "Account_Name",
 				accountName);

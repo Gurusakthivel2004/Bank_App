@@ -16,6 +16,7 @@ import enums.Constants.Module;
 import model.Account;
 import model.Loan;
 import model.ModuleLog;
+import model.Org;
 import model.User;
 import util.CustomException;
 import util.Helper;
@@ -34,20 +35,20 @@ public class LoanService {
 	public static LoanService getInstance() {
 		return SingletonHelper.INSTANCE;
 	}
-	
+
 	@SuppressWarnings("unchecked")
 	private User fetchUser(Long accountNumber) throws Exception {
 		Map<String, Object> accMap = new HashMap<>();
 		accMap.put("accountNumber", accountNumber);
-		
+
 		List<Account> accounts = (List<Account>) AccountService.getInstance().getAccountDetails(accMap);
-		if(accounts.isEmpty()) {
+		if (accounts.isEmpty()) {
 			throw new CustomException("Account does not exists.", HttpStatusCodes.BAD_REQUEST);
 		}
-		
+
 		return UserService.getInstance().getUserById(accounts.get(0).getUserId());
 	}
-	
+
 	public void createLoan(Long accountNumber, BigDecimal amount) throws Exception {
 		logger.info("Creating loan to: {} amount: {}", accountNumber, amount);
 
@@ -68,16 +69,18 @@ public class LoanService {
 
 		return loanDAO.get(loanCriteriaMap);
 	}
-	
+
 	private void logModule(Long accountNumber, Long userId, Long rowId, String amount) throws Exception {
 		logger.debug("Logging FD creation activity for account: {}", accountNumber);
 
-		ModuleLog moduleLog = new ModuleLog().setMessage("Loan created").setModule(Module.Loan)
-				.setModuleId(rowId).setAccountNumber(accountNumber).setPerformedBy(userId)
-				.setCreatedAt(System.currentTimeMillis());
+		ModuleLog moduleLog = new ModuleLog().setMessage("Loan created").setModule(Module.Loan).setModuleId(rowId)
+				.setAccountNumber(accountNumber).setPerformedBy(userId).setCreatedAt(System.currentTimeMillis());
+
+		Org org = OrgService.getInstance().getOrg(userId);
+		Long adminId = OrgService.getInstance().getAdminId(org.getId());
 
 		logger.debug("Module log created.");
-		Helper.logAndPushModule(moduleLog, amount, userId);
+		Helper.logAndPushModule(moduleLog, amount, adminId, org);
 	}
 
 }

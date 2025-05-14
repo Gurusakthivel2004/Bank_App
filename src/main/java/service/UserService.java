@@ -20,6 +20,7 @@ import crm.ContactsService;
 import dao.DAO;
 import dao.DaoFactory;
 import enums.Constants.ContactsFields;
+import enums.Constants.Country;
 import enums.Constants.HttpStatusCodes;
 import enums.Constants.LogType;
 import enums.Constants.Role;
@@ -44,7 +45,8 @@ public class UserService {
 	private DAO<CustomerDetail> customerDao = DaoFactory.getDAO(CustomerDetail.class);
 	private DAO<Staff> staffDao = DaoFactory.getDAO(Staff.class);
 
-	private UserService() {}
+	private UserService() {
+	}
 
 	private static class SingletonHelper {
 		private static final UserService INSTANCE = new UserService();
@@ -477,10 +479,14 @@ public class UserService {
 
 		String orgName = (String) userMap.remove("orgName");
 		String subOrgName = (String) userMap.remove("subOrgName");
+		
+		String countryName = (String) userMap.remove("country");
+		Country country = Country.fromCountryName(countryName);
 
 		Role role = Role.fromString((String) userMap.get("role"));
 		userMap.put("status", "Active");
-		
+		userMap.put("countryCode", country.getRegionCode());
+
 		try {
 			long userId = createUserByRole(userMap, role);
 			linkUserOrg(orgName, subOrgName, userId);

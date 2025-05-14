@@ -8,11 +8,11 @@ public class User extends MarkedClass {
 	private Long id;
 	private String fullname;
 	private String email;
-	private Long phone;
+	private String phone;
 	private Role role;
 	private String username;
 	private String password;
-	private String country;
+	private String countryCode;
 	private Integer passwordVersion;
 	private Status status;
 	private Long createdAt;
@@ -48,11 +48,11 @@ public class User extends MarkedClass {
 		return this;
 	}
 
-	public Long getPhone() {
+	public String getPhone() {
 		return phone;
 	}
 
-	public User setPhone(Long phone) {
+	public User setPhone(String phone) {
 		this.phone = phone;
 		return this;
 	}
@@ -154,12 +154,12 @@ public class User extends MarkedClass {
 		this.passwordVersion = passwordVersion;
 	}
 
-	public String getCountry() {
-		return country;
+	public String getCountryCode() {
+		return countryCode;
 	}
 
-	public User setCountry(String country) {
-		this.country = country;
+	public User setCountryCode(String countryCode) {
+		this.countryCode = countryCode;
 		return this;
 	}
 	
