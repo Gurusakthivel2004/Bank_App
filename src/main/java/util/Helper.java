@@ -48,7 +48,11 @@ import com.google.gson.JsonParser;
 import com.google.gson.JsonPrimitive;
 import com.password4j.Password;
 
+<<<<<<< HEAD
 import crm.CRMService;
+=======
+import crm.DealsService;
+>>>>>>> 7e942af (CRMSchedular update)
 import dao.DAO;
 import dao.DaoFactory;
 import enums.Constants.HttpStatusCodes;
@@ -448,7 +452,11 @@ public class Helper {
 		TaskExecutor.CRM.submitTask(() -> {
 			try {
 				Org org = getOrgData(userId);
+<<<<<<< HEAD
 				CRMService.getInstance().pushDealsRecords(moduleName, amount, moduleId, userId, org);
+=======
+				DealsService.getInstance().pushModuleToCRM(moduleName, amount, moduleId, userId, org);
+>>>>>>> 7e942af (CRMSchedular update)
 			} catch (Exception e) {
 				LOGGER.error("CRM Deals push failed: {}", e.getMessage(), e);
 			}
@@ -634,7 +642,11 @@ public class Helper {
 			try {
 				Long moduleId = moduleLogDAO.create(moduleLog);
 				if (amount != null) {
+<<<<<<< HEAD
 					CRMService.getInstance().pushDealsRecords(moduleLog.getModule(), amount, moduleId.toString(),
+=======
+					DealsService.getInstance().pushModuleToCRM(moduleLog.getModule(), amount, moduleId.toString(),
+>>>>>>> 7e942af (CRMSchedular update)
 							userId, org);
 				}
 			} catch (Exception e) {

@@ -35,14 +35,24 @@ public class ModuleLogDAO implements DAO<ModuleLog> {
 		return Helper.convertToLong(insertedValue);
 	}
 
+<<<<<<< HEAD
 	public List<ModuleLog> get(Map<String, Object> loanMap) throws Exception {
 		Criteria criteria = DAOHelper.initializeCriteria(ModuleLog.class);
 		DAOHelper.applyLoanLogFilters(criteria, loanMap);
+=======
+	public List<ModuleLog> get(Map<String, Object> moduleMap) throws Exception {
+		Criteria criteria = DAOHelper.initializeCriteria(ModuleLog.class);
+		DAOHelper.addConditionIfPresent(criteria, moduleMap, "moduleId", "module_id", "EQUAL_TO", 0l);
+>>>>>>> 7e942af (CRMSchedular update)
 		return SQLHelper.get(criteria, ModuleLog.class);
 	}
 
 	public void update(ColumnCriteria columnCriteria, Map<String, Object> otpMap) throws Exception {
+<<<<<<< HEAD
 		
+=======
+
+>>>>>>> 7e942af (CRMSchedular update)
 	}
 
 	public long getDataCount(Map<String, Object> loanMap) throws Exception {

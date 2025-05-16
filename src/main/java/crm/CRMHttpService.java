@@ -10,7 +10,10 @@ import enums.Constants.HttpMethod;
 import enums.Constants.SymbolProvider;
 import io.github.cdimascio.dotenv.Dotenv;
 import model.OauthProvider;
+<<<<<<< HEAD
 import service.CRMService;
+=======
+>>>>>>> 7e942af (CRMSchedular update)
 import util.Helper;
 import util.HttpUtil;
 import util.JsonUtils;
@@ -60,7 +63,11 @@ public class CRMHttpService {
 			logger.error("Request failed: {}", e.getMessage());
 			if (isUnauthorized(e)) {
 				logger.info("Access token might be expired. Attempting to refresh...");
+<<<<<<< HEAD
 				CRMService.getInstance().refreshAccessToken();
+=======
+				OauthService.getInstance().refreshAccessToken();
+>>>>>>> 7e942af (CRMSchedular update)
 			} else if (isForbidden(e)) {
 				logger.warn("Received 403 Forbidden. Logging the failed request. URL: {}, Method: {}, Body: {}",
 						url, method, jsonBody);
@@ -79,9 +86,14 @@ public class CRMHttpService {
 		String url = String.format(format, API_DOMAIN, endpoint, criteriaKey, criteriaValue);
 
 		String jsonResponse = sendWithRetry(HttpMethod.GET, url, null, provider);
+<<<<<<< HEAD
 		logger.info("JSON response: {}", jsonResponse);
 
 		return JsonUtils.getValueByPath(jsonResponse, "data[0]", "id");
+=======
+
+		return jsonResponse;
+>>>>>>> 7e942af (CRMSchedular update)
 	}
 
 	public <K extends SymbolProvider> String postToCrm(String endpointKey, Map<K, Object> data) throws Exception {

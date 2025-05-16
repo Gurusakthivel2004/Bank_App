@@ -9,8 +9,13 @@
 
 		<!-- File Appender with date-based filename -->
 		<RollingFile name="RollingFile"
+<<<<<<< HEAD
 			fileName="/home/guru-pt7672/Downloads/software/tomcat/webapps/Bank_Application/logs/app.log"
 			filePattern="/home/guru-pt7672/Downloads/software/tomcat/webapps/Bank_Application/logs/$${date:yyyy-MM-dd}/app-%d{yyyy-MM-dd}.log">
+=======
+			fileName="/home/temp/Downloads/software/tomcat/webapps/Bank_Application/logs/app.log"
+			filePattern="/home/temp/Downloads/software/tomcat/webapps/Bank_Application/logs/$${date:yyyy-MM-dd}/app-%d{yyyy-MM-dd}.log">
+>>>>>>> 7e942af (CRMSchedular update)
 
 		    <PatternLayout
 		        pattern="%d{yyyy-MM-dd HH:mm:ss} [%t] %-5level %logger{36} - %msg%n" />

@@ -13,6 +13,10 @@ import java.util.concurrent.TimeUnit;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+<<<<<<< HEAD
+=======
+import crm.DealsService;
+>>>>>>> 7e942af (CRMSchedular update)
 import dao.DAO;
 import dao.DaoFactory;
 import enums.Constants.AccountType;
@@ -22,6 +26,7 @@ import enums.Constants.TaskExecutor;
 import model.Account;
 import model.Criteria;
 import model.FixedDeposit;
+<<<<<<< HEAD
 import model.User;
 import service.CRMService;
 import service.FixedDepositService;
@@ -30,6 +35,16 @@ import service.UserService;
 import util.CustomException;
 import util.Helper;
 import util.OAuthConfig;
+=======
+import model.ModuleLog;
+import model.User;
+import service.FixedDepositService;
+import service.TransactionService;
+import service.UserService;
+import util.CRMQueueManager;
+import util.CustomException;
+import util.Helper;
+>>>>>>> 7e942af (CRMSchedular update)
 import util.SQLHelper;
 
 public class FixedDepositSchedular {
@@ -80,7 +95,13 @@ public class FixedDepositSchedular {
 					logger.info(deposit.getMaturityDate() + " " + System.currentTimeMillis());
 					processMaturedDeposit(deposit);
 					maturedDepositIds.add(deposit.getId());
+<<<<<<< HEAD
 					processDealsUpdate(deposit);
+=======
+					
+					Long moduleRecordId = fetchModuleRecordId(deposit.getId());
+					processDealsUpdate(deposit, moduleRecordId);
+>>>>>>> 7e942af (CRMSchedular update)
 				}
 			}
 
@@ -93,6 +114,19 @@ public class FixedDepositSchedular {
 		}
 		logger.info("Fixed Deposit processing completed.");
 	}
+<<<<<<< HEAD
+=======
+	
+	private Long fetchModuleRecordId(Long moduleId) throws Exception {
+		Map<String, Object> moduleMap = new HashMap<>();
+		moduleMap.put("moduleId", moduleId);
+		
+		DAO<ModuleLog> moduleLogDAO = DaoFactory.getDAO(ModuleLog.class);
+		List<ModuleLog> moduleLogs = moduleLogDAO.get(moduleMap);
+		
+		return moduleLogs.get(0).getId();
+	}
+>>>>>>> 7e942af (CRMSchedular update)
 
 	private void processMaturedDeposit(FixedDeposit deposit) throws Exception {
 		BigDecimal returnAmount = deposit.getInterestRate().add(deposit.getAmount());
@@ -104,7 +138,11 @@ public class FixedDepositSchedular {
 				operationalAccount.getBranchId());
 	}
 
+<<<<<<< HEAD
 	private void processDealsUpdate(FixedDeposit deposit) throws Exception {
+=======
+	private void processDealsUpdate(FixedDeposit deposit, Long moduleRecordId) throws Exception {
+>>>>>>> 7e942af (CRMSchedular update)
 
 		BigDecimal returnAmount = deposit.getInterestRate().add(deposit.getAmount());
 		Map<DealsFields, Object> dealsMap = new HashMap<>();
@@ -113,14 +151,23 @@ public class FixedDepositSchedular {
 
 		TaskExecutor.CRM.submitTask(() -> {
 			try {
+<<<<<<< HEAD
 				String endpoint = OAuthConfig.get("crm.deal.endpoint");
 				String id = CRMService.getInstance().fetchRecord("Module_Record_Id", deposit.getId().toString(), endpoint);
 				CRMService.getInstance().updateRecords(id, dealsMap, "Deals", endpoint);
+=======
+				CRMQueueManager.addUpdateJsonToSortedSet(DealsService.CRM_MODULE_PK, moduleRecordId, dealsMap,
+						DealsService.CRM_MODULE);
+>>>>>>> 7e942af (CRMSchedular update)
 			} catch (Exception e) {
 				logger.error("CRM Deals push failed: {}", e.getMessage(), e);
 			}
 		});
+<<<<<<< HEAD
 		
+=======
+
+>>>>>>> 7e942af (CRMSchedular update)
 	}
 
 	private List<Account> getAccountsByAccountNumber(Long accountNumber) throws Exception {
@@ -135,6 +182,7 @@ public class FixedDepositSchedular {
 
 		Long branchId = accounts.get(0).getBranchId();
 		User user = UserService.getInstance().getUserById(accounts.get(0).getUserId());
+<<<<<<< HEAD
 		
 		Map<String, Object> claimsMap = new HashMap<>();
 		claimsMap.put("id", accounts.get(0).getUserId());
@@ -142,6 +190,15 @@ public class FixedDepositSchedular {
 		
 		Helper.setThreadLocalValue(claimsMap);
 		
+=======
+
+		Map<String, Object> claimsMap = new HashMap<>();
+		claimsMap.put("id", accounts.get(0).getUserId());
+		claimsMap.put("role", user.getRole());
+
+		Helper.setThreadLocalValue(claimsMap);
+
+>>>>>>> 7e942af (CRMSchedular update)
 		Map<String, Object> fetchMap = new HashMap<>();
 		fetchMap.put("fetch", true);
 		fetchMap.put("branchId", branchId);

@@ -33,9 +33,15 @@ import model.Staff;
 import model.SubOrg;
 import model.User;
 import util.AuthUtils;
+<<<<<<< HEAD
 import util.CustomException;
 import util.Helper;
 import util.OAuthConfig;
+=======
+import util.CRMQueueManager;
+import util.CustomException;
+import util.Helper;
+>>>>>>> 7e942af (CRMSchedular update)
 import util.ValidationUtil;
 
 public class UserService {
@@ -45,8 +51,12 @@ public class UserService {
 	private DAO<CustomerDetail> customerDao = DaoFactory.getDAO(CustomerDetail.class);
 	private DAO<Staff> staffDao = DaoFactory.getDAO(Staff.class);
 
+<<<<<<< HEAD
 	private UserService() {
 	}
+=======
+	private UserService() {}
+>>>>>>> 7e942af (CRMSchedular update)
 
 	private static class SingletonHelper {
 		private static final UserService INSTANCE = new UserService();
@@ -272,6 +282,7 @@ public class UserService {
 	}
 
 	private void updateContacts(Map<String, Object> userMap, Long userId, String criteriaEmail) throws Exception {
+<<<<<<< HEAD
 		String email = (String) userMap.get("email");
 		Long phone = (Long) userMap.get("phone");
 
@@ -284,10 +295,24 @@ public class UserService {
 			contactsMap.put(ContactsFields.PHONE, phone.toString());
 		}
 
+=======
+
+		Map<ContactsFields, Object> contactsMap = new HashMap<ContactsFields, Object>();
+
+		if (userMap.containsKey("email")) {
+			String email = (String) userMap.get("email");
+			contactsMap.put(ContactsFields.EMAIL, email);
+		}
+		if (userMap.containsKey("phone")) {
+			String phone = (String) userMap.get("phone");
+			contactsMap.put(ContactsFields.PHONE,  phone);
+		}
+>>>>>>> 7e942af (CRMSchedular update)
 		if (contactsMap.size() == 0) {
 			return;
 		}
 
+<<<<<<< HEAD
 		Org org = Helper.getOrgData(userId);
 		if (org == null) {
 			logger.debug("Contacts update failed because user doesnt not belong to an org.");
@@ -306,6 +331,12 @@ public class UserService {
 				}
 
 				CRMService.getInstance().updateRecords(recordId, contactsMap, ContactsService.CRM_MODULE, endpoint);
+=======
+		TaskExecutor.CRM.submitTask(() -> {
+			try {
+				CRMQueueManager.addUpdateJsonToSortedSet(ContactsService.CRM_MODULE_PK, criteriaEmail, contactsMap,
+						ContactsService.CRM_MODULE);
+>>>>>>> 7e942af (CRMSchedular update)
 			} catch (Exception e) {
 				logger.error("CRM Deals push failed: {}", e.getMessage(), e);
 			}
@@ -479,7 +510,11 @@ public class UserService {
 
 		String orgName = (String) userMap.remove("orgName");
 		String subOrgName = (String) userMap.remove("subOrgName");
+<<<<<<< HEAD
 		
+=======
+
+>>>>>>> 7e942af (CRMSchedular update)
 		String countryName = (String) userMap.remove("country");
 		Country country = Country.fromCountryName(countryName);
 

@@ -14,6 +14,10 @@ public class ContactsService {
 	private CRMHttpService crmHttpService = CRMHttpService.getInstance();
 	public static final String CRM_MODULE = "Contacts";
 	public static final String CRM_MODULE_PK = "Email";
+<<<<<<< HEAD
+=======
+	private static final String CONTACT_ENDPOINT = OAuthConfig.get("crm.contact.endpoint");
+>>>>>>> 7e942af (CRMSchedular update)
 	
 	private ContactsService() {}
 
@@ -34,10 +38,22 @@ public class ContactsService {
 		data.put(ContactsFields.LAST_NAME, user.getUsername());
 		data.put(ContactsFields.PHONE, user.getPhone().toString());
 
+<<<<<<< HEAD
 		String response = crmHttpService.postToCrm(OAuthConfig.get("crm.contact.endpoint"), data);
+=======
+		String response = crmHttpService.postToCrm(CONTACT_ENDPOINT, data);
+>>>>>>> 7e942af (CRMSchedular update)
 		String recordId = JsonUtils.getValueByPath(response, "data[0].details", "id");
 		CacheUtil.saveCRMRecordId(CRM_MODULE, user.getEmail(), recordId);
 		
 		return recordId;
 	}
+<<<<<<< HEAD
+=======
+	
+	public String updateRecord(String updateJson) throws Exception {
+		String contactsJsonResponse = crmHttpService.putToCrm(CONTACT_ENDPOINT, updateJson);
+		return contactsJsonResponse;
+	}
+>>>>>>> 7e942af (CRMSchedular update)
 }

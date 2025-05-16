@@ -14,6 +14,10 @@ public class LeadsService {
 	private CRMHttpService crmHttpService = CRMHttpService.getInstance();
 	public static final String CRM_MODULE = "Leads";
 	public static final String CRM_MODULE_PK = "Email";
+<<<<<<< HEAD
+=======
+	private static final String LEAD_ENDPOINT = OAuthConfig.get("crm.lead.endpoint");
+>>>>>>> 7e942af (CRMSchedular update)
 	
 	private LeadsService() {}
 
@@ -24,6 +28,14 @@ public class LeadsService {
 	public static LeadsService getInstance() {
 		return SingletonHelper.INSTANCE;
 	}
+<<<<<<< HEAD
+=======
+	
+	public String updateRecord(String updateJson) throws Exception {
+		String leadsJsonResponse = crmHttpService.putToCrm(LEAD_ENDPOINT, updateJson);
+		return leadsJsonResponse;
+	}
+>>>>>>> 7e942af (CRMSchedular update)
 
 	public String pushLead(SubOrg subOrg, String company, String email) throws Exception {
 		
@@ -33,7 +45,11 @@ public class LeadsService {
 		data.put(LeadsFields.COMPANY, company);
 		data.put(LeadsFields.EMAIL, email);
 
+<<<<<<< HEAD
 		String response = crmHttpService.postToCrm(OAuthConfig.get("crm.lead.endpoint"), data);
+=======
+		String response = crmHttpService.postToCrm(LEAD_ENDPOINT, data);
+>>>>>>> 7e942af (CRMSchedular update)
 		String recordId = JsonUtils.getValueByPath(response, "data[0].details", "id");
 		CacheUtil.saveCRMRecordId(CRM_MODULE, email, recordId);
 		

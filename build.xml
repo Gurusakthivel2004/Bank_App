@@ -7,7 +7,11 @@
 	<property name="lib.dir" value="webapp/WEB-INF/lib" />
 	<property name="dist.dir" value="dist" />
 	<property name="war.file" value="${dist.dir}/Bank_Application.war" />
+<<<<<<< HEAD
 	<property name="tomcat.webapps" value="/home/guru-pt7672/Downloads/software/tomcat/webapps" />
+=======
+	<property name="tomcat.webapps" value="/home/temp/Downloads/software/tomcat/webapps" />
+>>>>>>> 7e942af (CRMSchedular update)
 
 	<path id="classpath">
 		<fileset dir="${lib.dir}">
@@ -59,7 +63,11 @@
 	</target>
 
 	<target name="start-tomcat">
+<<<<<<< HEAD
 		<exec executable="/home/guru-pt7672/Downloads/software/tomcat/bin/startup.sh">
+=======
+		<exec executable="/home/temp/Downloads/software/tomcat/bin/startup.sh">
+>>>>>>> 7e942af (CRMSchedular update)
 			<env key="JAVA_OPTS" value="-Dhttp.proxyHost=127.0.0.1 -Dhttp.proxyPort=3128" />
 		</exec>
 	</target>

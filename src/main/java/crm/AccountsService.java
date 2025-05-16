@@ -21,8 +21,15 @@ public class AccountsService {
 	private static CRMHttpService crmHttpService = CRMHttpService.getInstance();
 	public static final String CRM_MODULE = "Accounts";
 	public static final String CRM_MODULE_PK = "Phone";
+<<<<<<< HEAD
 	private static final Logger LOGGER= LogManager.getLogger(AccountsService.class);
 	
+=======
+	private static final String ACCOUNT_ENDPOINT = OAuthConfig.get("crm.account.endpoint");
+	private static final String CONTACT_ENDPOINT = OAuthConfig.get("crm.contact.endpoint");
+	private static final Logger LOGGER = LogManager.getLogger(AccountsService.class);
+
+>>>>>>> 7e942af (CRMSchedular update)
 	private AccountsService() {}
 
 	private static class SingletonHelper {
@@ -32,13 +39,22 @@ public class AccountsService {
 	public static AccountsService getInstance() {
 		return SingletonHelper.INSTANCE;
 	}
+<<<<<<< HEAD
 	
+=======
+
+>>>>>>> 7e942af (CRMSchedular update)
 	public String pushOrgToCRM(Org org, User user) {
 		TaskExecutor.CRM.submitTask(() -> {
 			try {
 				// Fetch accounts
+<<<<<<< HEAD
 				String accountsJsonResponse = crmHttpService.fetchRecord(OAuthConfig.get("crm.account.endpoint"),
 						"Account_Name", org.getName());
+=======
+				String accountsJsonResponse = crmHttpService.fetchRecord(ACCOUNT_ENDPOINT, "Account_Name",
+						org.getName());
+>>>>>>> 7e942af (CRMSchedular update)
 
 				String accountId = JsonUtils.getValueByPath(accountsJsonResponse, "data[0]", "id");
 				// Push accounts record
@@ -46,13 +62,22 @@ public class AccountsService {
 					accountId = pushAccountsRecord(org);
 				}
 				// Fetch contacts
+<<<<<<< HEAD
 				String contactsJsonResponse = crmHttpService.fetchRecord(OAuthConfig.get("crm.contact.endpoint"),
 						"Account_Name", org.getName());
+=======
+				String contactsJsonResponse = crmHttpService.fetchRecord(CONTACT_ENDPOINT, "Account_Name",
+						org.getName());
+>>>>>>> 7e942af (CRMSchedular update)
 
 				String contactId = JsonUtils.getValueByPath(contactsJsonResponse, "data[0]", "id");
 				// Push contacts record
 				if (contactId == null) {
+<<<<<<< HEAD
 					CRMService.getInstance().pushContactRecords(user, accountId);
+=======
+					ContactsService.getInstance().pushContact(user, accountId);
+>>>>>>> 7e942af (CRMSchedular update)
 				}
 				return accountId;
 			} catch (Exception e) {
@@ -62,7 +87,11 @@ public class AccountsService {
 						jsonMap.put("orgId", org.getId().toString());
 						jsonMap.put("userId", user.getId().toString());
 						jsonMap.put("useCase", UseCase.ORG_PUSH.getId().toString());
+<<<<<<< HEAD
 						
+=======
+
+>>>>>>> 7e942af (CRMSchedular update)
 						Helper.logFailedRequest(jsonMap);
 					} catch (Exception exception) {
 						LOGGER.error(exception.getMessage());
@@ -75,16 +104,31 @@ public class AccountsService {
 		return null;
 	}
 	
+<<<<<<< HEAD
 	private String pushAccountsRecord(Org org) throws Exception {
 		String phone = org.getPhone().toString();
 		
+=======
+	public String updateRecord(String updateJson) throws Exception {
+		String accountsJsonResponse = crmHttpService.putToCrm(ACCOUNT_ENDPOINT, updateJson);
+		return accountsJsonResponse;
+	}
+
+	private String pushAccountsRecord(Org org) throws Exception {
+		String phone = org.getPhone().toString();
+
+>>>>>>> 7e942af (CRMSchedular update)
 		Map<AccountsFields, Object> data = new HashMap<>();
 		data.put(AccountsFields.ACCOUNT_NAME, org.getName());
 		data.put(AccountsFields.INDUSTRY, org.getOrgType());
 		data.put(AccountsFields.EMPLOYEES, org.getEmployees());
 		data.put(AccountsFields.PHONE, phone);
 
+<<<<<<< HEAD
 		String response = crmHttpService.postToCrm(OAuthConfig.get("crm.account.endpoint"), data);
+=======
+		String response = crmHttpService.postToCrm(ACCOUNT_ENDPOINT, data);
+>>>>>>> 7e942af (CRMSchedular update)
 		String recordId = JsonUtils.getValueByPath(response, "data[0].details", "id");
 		CacheUtil.saveCRMRecordId(CRM_MODULE, phone, recordId);
 

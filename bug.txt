@@ -83,3 +83,12 @@ MOM:
 		Phone: +9176824332
 	}
 }
+<<<<<<< HEAD
+=======
+
+1. update bulk
+2. LLM and phone validation
+3. test failed request
+4. insert sorted set 
+5. Atlast multi portal push. 
+>>>>>>> 7e942af (CRMSchedular update)

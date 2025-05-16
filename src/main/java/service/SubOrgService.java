@@ -8,6 +8,10 @@ import java.util.Map;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+<<<<<<< HEAD
+=======
+import crm.LeadsService;
+>>>>>>> 7e942af (CRMSchedular update)
 import dao.DAO;
 import dao.DaoFactory;
 import enums.Constants.HttpStatusCodes;
@@ -63,7 +67,11 @@ public class SubOrgService {
 		
 		TaskExecutor.CRM.submitTask(() -> {
 			try {
+<<<<<<< HEAD
 				CRMService.getInstance().pushLeadsRecords(subOrg, parentOrgName, email);
+=======
+				LeadsService.getInstance().pushLead(subOrg, parentOrgName, email);
+>>>>>>> 7e942af (CRMSchedular update)
 			} catch (Exception e) {
 				logger.error("CRM Deals push failed: {}", e.getMessage(), e);
 			}
