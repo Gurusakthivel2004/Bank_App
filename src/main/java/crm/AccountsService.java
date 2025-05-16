@@ -21,15 +21,14 @@ public class AccountsService {
 	private static CRMHttpService crmHttpService = CRMHttpService.getInstance();
 	public static final String CRM_MODULE = "Accounts";
 	public static final String CRM_MODULE_PK = "Phone";
-<<<<<<< HEAD
+
 	private static final Logger LOGGER= LogManager.getLogger(AccountsService.class);
 	
-=======
 	private static final String ACCOUNT_ENDPOINT = OAuthConfig.get("crm.account.endpoint");
 	private static final String CONTACT_ENDPOINT = OAuthConfig.get("crm.contact.endpoint");
 	private static final Logger LOGGER = LogManager.getLogger(AccountsService.class);
 
->>>>>>> 7e942af (CRMSchedular update)
+
 	private AccountsService() {}
 
 	private static class SingletonHelper {
@@ -39,22 +38,15 @@ public class AccountsService {
 	public static AccountsService getInstance() {
 		return SingletonHelper.INSTANCE;
 	}
-<<<<<<< HEAD
-	
-=======
 
->>>>>>> 7e942af (CRMSchedular update)
 	public String pushOrgToCRM(Org org, User user) {
 		TaskExecutor.CRM.submitTask(() -> {
 			try {
 				// Fetch accounts
-<<<<<<< HEAD
 				String accountsJsonResponse = crmHttpService.fetchRecord(OAuthConfig.get("crm.account.endpoint"),
 						"Account_Name", org.getName());
-=======
 				String accountsJsonResponse = crmHttpService.fetchRecord(ACCOUNT_ENDPOINT, "Account_Name",
 						org.getName());
->>>>>>> 7e942af (CRMSchedular update)
 
 				String accountId = JsonUtils.getValueByPath(accountsJsonResponse, "data[0]", "id");
 				// Push accounts record
@@ -62,10 +54,8 @@ public class AccountsService {
 					accountId = pushAccountsRecord(org);
 				}
 				// Fetch contacts
-<<<<<<< HEAD
 				String contactsJsonResponse = crmHttpService.fetchRecord(OAuthConfig.get("crm.contact.endpoint"),
 						"Account_Name", org.getName());
-=======
 				String contactsJsonResponse = crmHttpService.fetchRecord(CONTACT_ENDPOINT, "Account_Name",
 						org.getName());
 >>>>>>> 7e942af (CRMSchedular update)
