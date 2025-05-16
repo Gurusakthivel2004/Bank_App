@@ -1,0 +1,160 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<database name="bank">
+	<table name="user">
+		<column name="id" type="bigint" auto_increment="true"
+			primary_key="true" not_null="true" />
+		<column name="fullname" type="varchar(100)" not_null="true" />
+		<column name="email" type="varchar(100)" unique="true"
+			not_null="true" />
+		<column name="phone" type="bigint" unique="true"
+			not_null="true" />
+		<column name="role" type="enum"
+			values="Customer,Employee,Manager" not_null="true" />
+		<column name="username" type="varchar(50)" unique="true"
+			not_null="true" />
+		<column name="password" type="varchar(255)" not_null="true" />
+		<column name="status" type="enum"
+			values="Suspended,Active,Inactive" not_null="true" />
+		<column name="created_at" type="bigint" default="NULL" />
+		<column name="modified_at" type="bigint" default="NULL" />
+		<column name="performed_by" type="bigint" default="NULL" />
+		<column name="password_version" type="tinyint" default="0"
+			not_null="true" />
+	</table>
+	<table name="account">
+		<column name="account_id" type="bigint" auto_increment="true"
+			primary_key="true" not_null="true" />
+		<column name="account_number" type="bigint" unique="true"
+			not_null="true" />
+		<column name="branch_id" type="bigint" default="NULL" />
+		<column name="user_id" type="bigint" foreign_key="user(id)"
+			on_delete="cascade" default="NULL" />
+		<column name="account_type" type="enum"
+			values="Savings,Current,Fixed_Deposit,Operational" not_null="true" />
+		<column name="status" type="enum"
+			values="Suspended,Active,Inactive" not_null="true" />
+		<column name="balance" type="decimal(15,2)" not_null="true" />
+		<column name="min_balance" type="decimal(15,2)" not_null="true" />
+		<column name="created_at" type="bigint" default="NULL" />
+		<column name="modified_at" type="bigint" default="NULL" />
+		<column name="performed_by" type="bigint" default="NULL" />
+		<column name="is_primary" type="tinyint(1)" default="0"
+			not_null="true" />
+	</table>
+
+	<table name="activityLog">
+		<column name="id" type="bigint" auto_increment="true"
+			primary_key="true" not_null="true" />
+		<column name="table_name" type="varchar(20)" not_null="true" />
+		<column name="log_type" type="enum"
+			values="Insert,Update,Login,Logout,Delete" not_null="true" />
+		<column name="row_id" type="bigint" not_null="true" />
+		<column name="user_id" type="bigint" foreign_key="user(id)"
+			on_delete="cascade" default="NULL" />
+		<column name="account_number" type="bigint"
+			foreign_key="account(account_number)" on_delete="set null"
+			default="NULL" />
+		<column name="log_message" type="varchar(150)" not_null="true" />
+		<column name="timestamp" type="bigint" not_null="true" />
+		<column name="performed_by" type="bigint"
+			foreign_key="user(id)" on_delete="set null" default="NULL" />
+	</table>
+
+	<table name="branch">
+		<column name="id" type="bigint" auto_increment="true"
+			primary_key="true" not_null="true" />
+		<column name="ifsc_code" type="varchar(11)" unique="true"
+			not_null="true" />
+		<column name="contact_number" type="bigint" unique="true"
+			default="NULL" />
+		<column name="name" type="varchar(100)" not_null="true" />
+		<column name="address" type="varchar(255)" not_null="true" />
+		<column name="created_at" type="bigint" default="NULL" />
+		<column name="modified_at" type="bigint" default="NULL" />
+		<column name="performed_by" type="bigint" default="NULL" />
+	</table>
+
+	<table name="customer">
+		<column name="user_id" type="bigint" primary_key="true"
+			not_null="true" foreign_key="user(id)" on_delete="cascade" />
+		<column name="pan_number" type="varchar(25)" unique="true"
+			not_null="true" />
+		<column name="aadhar_number" type="bigint" unique="true"
+			not_null="true" />
+	</table>
+
+	<table name="customerDetail">
+		<column name="user_id" type="bigint" primary_key="true"
+			not_null="true" foreign_key="customer(user_id)" on_delete="cascade" />
+		<column name="dob" type="varchar(10)" not_null="true" />
+		<column name="father_name" type="varchar(100)" not_null="true" />
+		<column name="mother_name" type="varchar(100)" not_null="true" />
+		<column name="address" type="varchar(255)" not_null="true" />
+		<column name="marital_status" type="varchar(10)"
+			not_null="true" />
+	</table>
+
+	<table name="message">
+		<column name="id" type="bigint" auto_increment="true"
+			primary_key="true" not_null="true" />
+		<column name="sender_id" type="bigint" not_null="true"
+			foreign_key="user(id)" />
+		<column name="message_type" type="varchar(50)" not_null="true" />
+		<column name="message_content" type="text" not_null="true" />
+		<column name="message_status" type="varchar(20)"
+			not_null="true" />
+		<column name="created_at" type="bigint" default="NULL" />
+		<column name="modified_at" type="bigint" default="NULL" />
+	</table>
+	<table name="oauth_provider">
+		<column name="id" type="bigint" auto_increment="true"
+			primary_key="true" not_null="true" />
+		<column name="user_id" type="bigint" not_null="true" />
+		<column name="provider" type="varchar(50)" not_null="true" />
+		<column name="provider_user_id" type="varchar(100)"
+			unique="true" not_null="true" />
+		<column name="access_token" type="text" not_null="true" />
+		<column name="refresh_token" type="text" default="NULL" />
+		<column name="expires_in" type="int" default="NULL" />
+		<column name="created_at" type="bigint" default="NULL" />
+	</table>
+
+	<table name="staff">
+		<column name="user_id" type="bigint" primary_key="true"
+			not_null="true" />
+		<column name="branch_id" type="bigint" default="NULL" />
+	</table>
+
+	<table name="transaction">
+		<column name="id" type="bigint" auto_increment="true"
+			primary_key="true" not_null="true" />
+		<column name="customer_id" type="bigint" default="NULL" />
+		<column name="account_number" type="bigint" not_null="true" />
+		<column name="transaction_account_number" type="bigint"
+			default="NULL" />
+		<column name="transaction_type" type="enum"
+			values="Credit,Debit,Deposit,Withdraw" not_null="true" />
+		<column name="status" type="enum"
+			values="Completed,Pending,Cancelled,Active,Expired" not_null="true" />
+		<column name="remarks" type="varchar(255)" default="NULL" />
+		<column name="amount" type="decimal(15,2)" not_null="true" />
+		<column name="closing_balance" type="decimal(15,2)"
+			not_null="true" />
+		<column name="transaction_time" type="bigint" default="NULL" />
+		<column name="performed_by" type="bigint" default="NULL" />
+		<column name="bank_name" type="varchar(255)" default="'Horizon'" />
+		<column name="transaction_ifsc" type="varchar(20)"
+			not_null="true" />
+	</table>
+
+	<table name="user_session">
+		<column name="id" type="bigint" auto_increment="true"
+			primary_key="true" not_null="true" />
+		<column name="session_id" type="varchar(255)" unique="true"
+			not_null="true" />
+		<column name="user_id" type="bigint" not_null="true" />
+		<column name="provider_id" type="bigint" default="NULL" />
+		<column name="created_at" type="bigint" not_null="true" />
+		<column name="expires_at" type="bigint" not_null="true" />
+	</table>
+</database>

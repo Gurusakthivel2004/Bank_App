@@ -1,0 +1,78 @@
+@charset "UTF-8";
+body {
+	background: url('../images/bg.svg') no-repeat center center;
+	background-size: 170%;
+	background-color: whitesmoke;
+}
+
+.top-container {
+	display: flex;
+	margin-top: 5%;
+	justify-content: center;
+	align-items: center;
+}
+
+.full-container {
+	display: flex;
+	width: 100%;
+	max-width: 1200px;
+	height: 700px;
+	border-radius: 12px;
+	overflow: hidden;
+	box-shadow: rgba(0, 0, 0, 0.16) 0px 3px 6px, rgba(0, 0, 0, 0.23) 0px 3px
+		6px;
+}
+
+.left-section {
+	flex: 0.5;
+	background: url('../images/bg-main-desktop.png') no-repeat center center;
+	width: 70px;
+	display: flex;
+	justify-content: center;
+	background-size: cover;
+	align-items: center;
+}
+
+.card-image {
+	position: relative;
+}
+
+.card-front {
+	width: 350px;
+	height: 200px;
+	border-radius: 12px;
+	margin-top: 30px;
+	margin-left: 250px;
+	box-shadow: rgba(0, 0, 0, 0.35) 1.95px 1.95px 2.6px;
+}
+
+.card-back {
+	width: 350px;
+	height: 200px;
+	border-radius: 12px;
+	margin-left: 320px;
+	margin-top: 40px;
+	box-shadow: rgba(0, 0, 0, 0.35) 1.95px 1.95px 2.6px;
+}
+
+.right-section {
+	flex: 1;
+	padding: 40px;
+	background-color: white;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+}
+
+.form-section {
+	height: 100%;
+	width: 700px;
+	padding-left: 140px;
+	margin-left: 140px;
+}
+
+.btn-confirm {
+	background-color: #2b0444;
+	color: white;
+	width: 100%;
+}

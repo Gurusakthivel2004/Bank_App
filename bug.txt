@@ -1,0 +1,91 @@
+1. horizon header
+2. special characters  on typing username
+3. no view icon for password
+4. add forgot password 
+5. strong password 
+6. tooltip display time kammi pannu
+7. info icon on hover show as branch info,remove branch
+8. alignment missing in account summary
+9. monthly financial summary ...check on net balance
+10. remove scrollbars  on dashboard
+11. change colour  on the type of transaction
+12. dont allow string types in account number in stmt page
+13. add dropdown arrow
+14. sidenav ensure it is clickable on the entire div
+15. payment page not in colour theme
+16. why heart symbol in send
+17. check whatsapp - unauthorized acct
+18. test download transaction 
+19. request services...
+20. Specify Phone Number Error Message (avoid common message)
+21. Marital Status change to dropdown instead of input
+22. optimize RolePermission constant approach (redundant)
+24. put User Lock in cache instead of map	
+25. use redis lock instead of reentrant lock
+26. change the hover style in User create button
+27. sub query not supported in query builder
+28. cant support multiple providers
+29. Constants not in uppercase
+30. addIfPresent method in DAOHelper could be in a yaml or enum (where condition)
+31. transaction and logs table should be partitioned month wise
+32. Chats should be downloaded.
+33. All Branch details must be displayed.
+34. Count is hardcoded ( * )
+35. AES encryption key must be fetched from request instead of storing in js variable.
+36. Dashboard single endpoint 
+37. Backup smtp server 
+38. commit transaction before returning to connection pool
+39. Federated sign in issue.
+40. request input regex
+41. executor service code not plugable
+42. redirect to create account right after creating a user.
+43. captcha in index page
+44. display closing balance
+45. log table design issue
+46. icon click in navbar
+47. payment page deposit shows other bank
+48. chat page not working in other page (except home)
+49. default redirect to login from error page
+50. masking of aadhar and pan number.
+
+ORG model use cases:
+	1. An organization can make bulk payment(salary credit to all the users under the org).
+	2. A Payroll report can be generated for a particular org / sub org each month for tax related audit.
+	3. Admin can view the users, accounts and transactions on their org.  
+
+MOM:
+	1. Instead of sub-orgs push the modules (Fixed Deposit, Loan) in deals modules and the sub org data in leads module.
+	2. Instead of single request each time make a bulk write, enqueue in a queue separate for the operations executed by a scheduler.
+	3. Handle the concurrency issue with a check in the insert queue.
+	4. Updates such as Email or phone number must reflect on the records on the CRM.
+	5. Change in the Owner of Accounts module (Org) must be handled.
+
+TODO before the last MOM:
+	1. Audit failed call and retry once the conn is available.
+	2. Bulk write updates.
+	
+MOM:
+         1. Instead of get call for every put or post request map the Record ID with a primary key of a module in cache. 
+         2. Validate the phone number(E164 Format) and email via otp, using the google lib and LLM for spam detection and update the status in CRM according to the score generated.
+         3. Audit the failed Calls and retry once the connection is available.
+         4. Implement Bulk API for updates.
+         5. Push modules on different portals and the update should reflect across portals.
+
+
+1. We can even avoid the 6 fetch by looking into the cache primary key -> recordId
+2. Bulk write
+
+{
+	Module_Code: 5,
+	UseCase: 2,
+	Module_Record_Id: 103141312,
+	Update Fields: {
+		Phone: +9176824332
+	}
+}
+
+1. update bulk
+2. LLM and phone validation
+3. test failed request
+4. insert sorted set 
+5. Atlast multi portal push. 

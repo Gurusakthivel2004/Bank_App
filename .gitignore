@@ -1,0 +1,12 @@
+logs/
+target/
+build/
+.DS_Store
+Thumbs.db
+*.log
+*.class
+app.log
+*.jar
+webapp/WEB-INF/lib/*
+dist/*
+.env

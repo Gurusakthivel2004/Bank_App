@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="WARN">
+	<Appenders>
+		<!-- Console Appender -->
+		<Console name="Console" target="SYSTEM_OUT">
+			<PatternLayout
+				pattern="%d{yyyy-MM-dd HH:mm:ss} [%t] %-5level %logger{36} - %msg%n" />
+		</Console>
+
+		<!-- File Appender with date-based filename -->
+		<RollingFile name="RollingFile"
+			fileName="/home/temp/Downloads/software/tomcat/webapps/Bank_Application/logs/app.log"
+			filePattern="/home/temp/Downloads/software/tomcat/webapps/Bank_Application/logs/$${date:yyyy-MM-dd}/app-%d{yyyy-MM-dd}.log">
+
+		    <PatternLayout
+		        pattern="%d{yyyy-MM-dd HH:mm:ss} [%t] %-5level %logger{36} - %msg%n" />
+		    <Policies>
+		        <TimeBasedTriggeringPolicy interval="1" modulate="true" />
+		    </Policies>
+		    <DefaultRolloverStrategy max="10" />
+		</RollingFile>
+
+	</Appenders>
+
+	<Loggers>
+		<!-- Root Logger -->
+		<Root level="debug">
+			<AppenderRef ref="Console" />
+			<AppenderRef ref="RollingFile" />
+		</Root>
+
+	</Loggers>
+</Configuration>

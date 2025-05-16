@@ -1,0 +1,19 @@
+LOAD DATABASE
+    FROM mysql://root:root@localhost/bank
+    INTO postgresql://postgres:root@localhost/bank
+
+WITH
+    batch rows = 1000,
+    include no drop,
+    create tables,
+    create indexes,
+    reset sequences
+    
+CAST 
+    type enum to text drop typemod,
+    type set to text drop typemod,
+    type bit to integer,
+    type json to text;
+
+SET work_mem to '512MB',
+    maintenance_work_mem to '512MB';
