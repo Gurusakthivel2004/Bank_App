@@ -1,5 +1,6 @@
 package util;
 
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -8,6 +9,7 @@ import java.util.Map;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.JsonArray;
@@ -19,6 +21,11 @@ public class JsonUtils {
 
 	private static final Logger logger = LogManager.getLogger(JsonUtils.class);
 	private static final ObjectMapper mapper = new ObjectMapper();
+
+	public static Map<String, Object> toMap(String json) throws IOException {
+		return mapper.readValue(json, new TypeReference<Map<String, Object>>() {
+		});
+	}
 
 	public static String getValueByPath(String jsonString, String path, String key) throws Exception {
 		JsonNode rootNode = mapper.readTree(jsonString);
@@ -85,13 +92,12 @@ public class JsonUtils {
 			accountObj.addProperty("id", stringKeyedMap.get("FK_Account_Name").toString());
 			obj.add("Account_Name", accountObj);
 		}
-		
+
 		if (stringKeyedMap.containsKey("FK_Contact_Name")) {
 			JsonObject contactObj = new JsonObject();
 			contactObj.addProperty("id", stringKeyedMap.get("FK_Contact_Name").toString());
 			obj.add("Contact_Name", contactObj);
 		}
-
 
 		for (Map.Entry<String, Object> entry : stringKeyedMap.entrySet()) {
 			String key = entry.getKey();

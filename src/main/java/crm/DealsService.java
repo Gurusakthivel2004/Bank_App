@@ -12,7 +12,6 @@ import enums.Constants.TaskExecutor;
 import enums.Constants.UseCase;
 import model.Org;
 import model.User;
-import service.UserService;
 import util.Helper;
 import util.JsonUtils;
 import util.OAuthConfig;
@@ -22,8 +21,8 @@ public class DealsService {
 	private CRMHttpService crmHttpService = CRMHttpService.getInstance();
 	public static final String CRM_MODULE = "Deals";
 	public static final String CRM_MODULE_PK = "Module Record Id";
-	private static final String DEAL_ENDPOINT = OAuthConfig.get("crm.deal.endpoint");
-	private static final String CONTACT_ENDPOINT = OAuthConfig.get("crm.contact.endpoint");
+	private static final String DEAL_ENDPOINT = OAuthConfig.get("crm.deals.endpoint");
+	private static final String CONTACT_ENDPOINT = OAuthConfig.get("crm.contacts.endpoint");
 	private static final Logger LOGGER = LogManager.getLogger(DealsService.class);
 
 	private DealsService() {}
@@ -36,28 +35,29 @@ public class DealsService {
 		return SingletonHelper.INSTANCE;
 	}
 
-	public Long pushModuleToCRM(String moduleName, String amount, String moduleId, Long userId, Org org)
+	public Long pushModuleToCRM(String moduleName, String amount, String moduleRecordId, User user, Org org, boolean logFailedRequest)
 			throws Exception {
 		TaskExecutor.CRM.submitTask(() -> {
 			try {
-				User user = UserService.getInstance().getUserById(userId);
 				// Fetch Deals
-				String dealsJsonResponse = crmHttpService.fetchRecord(DEAL_ENDPOINT, "Module_Record_Id", moduleId);
+				String dealsJsonResponse = crmHttpService.fetchRecord(DEAL_ENDPOINT, "Module_Record_Id", moduleRecordId);
 
 				String dealId = JsonUtils.getValueByPath(dealsJsonResponse, "data[0]", "id");
 				// Push deals record
 				if (dealId == null) {
-					dealId = pushDealsRecords(moduleName, amount, org.getName(), moduleId);
+					dealId = pushDealsRecords(moduleName, amount, org.getName(), moduleRecordId);
 				}
 				// Push Accounts and Contacts if needed.
-				AccountsService.getInstance().pushOrgToCRM(org, user);
+				AccountsService.getInstance().pushOrgToCRM(org, user, true);
 			} catch (Exception e) {
-				if (CRMHttpService.isForbidden(e)) {
+				if (logFailedRequest) {
 					try {
-						Map<String, String> jsonMap = new HashMap<>();
+						Map<String, Object> jsonMap = new HashMap<>();
 						jsonMap.put("orgId", org.getId().toString());
-						jsonMap.put("userId", userId.toString());
-						jsonMap.put("moduleRecordId", moduleId);
+						jsonMap.put("userId", user.getId().toString());
+						jsonMap.put("moduleName", moduleName);
+						jsonMap.put("amount", amount);
+						jsonMap.put("moduleRecordId", moduleRecordId);
 						jsonMap.put("useCase", UseCase.DEAL_PUSH.getId().toString());
 
 						Helper.logFailedRequest(jsonMap);
@@ -71,7 +71,7 @@ public class DealsService {
 		});
 		return null;
 	}
-	
+
 	public String updateRecord(String updateJson) throws Exception {
 		String dealsJsonResponse = crmHttpService.putToCrm(DEAL_ENDPOINT, updateJson);
 		return dealsJsonResponse;
@@ -100,5 +100,5 @@ public class DealsService {
 
 		return recordId;
 	}
-	
+
 }

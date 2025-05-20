@@ -31,6 +31,8 @@ classes:
         columnName: "fullname"
       email:
         columnName: "email"
+      emailStatus:
+        columnName: "email_status"
       phone:
         columnName: "phone"
       role:
@@ -377,5 +379,7 @@ classes:
             columnName: "id"
           requestJson:
             columnName: "request_json"
+          retries:
+            columnName: "retries"
           createdAt:
             columnName: "created_at"

@@ -120,7 +120,7 @@ public class MessageService {
 		ModuleLog moduleLog = new ModuleLog().setModuleId(null).setAccountNumber(accountNumber).setModule(Module.Loan)
 				.setCreatedAt(System.currentTimeMillis()).setPerformedBy(userId).setMessage("Loan applied.");
 		
-		Org org = OrgService.getInstance().getOrg(userId);
+		Org org = OrgService.getInstance().getOrgByUserId(userId);
 		Long adminId = OrgService.getInstance().getAdminId(org.getId());
 
 		logger.debug("Module log created.");

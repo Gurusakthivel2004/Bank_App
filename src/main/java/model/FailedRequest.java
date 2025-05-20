@@ -4,6 +4,7 @@ public class FailedRequest extends MarkedClass {
 
     private Long id;
     private String requestJson;
+    private Integer retries;
     private Long createdAt;
 
     public Long getId() {
@@ -29,4 +30,18 @@ public class FailedRequest extends MarkedClass {
     public void setCreatedAt(Long createdAt) {
         this.createdAt = createdAt;
     }
+
+	@Override
+	public String toString() {
+		return "FailedRequest [id=" + id + ", requestJson=" + requestJson + ", createdAt=" + createdAt + "]";
+	}
+
+	public Integer getRetries() {
+		return retries;
+	}
+
+	public void setRetries(Integer retries) {
+		this.retries = retries;
+	}
+    
 }

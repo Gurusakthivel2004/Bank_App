@@ -84,8 +84,15 @@ MOM:
 	}
 }
 
-1. update bulk
-2. LLM and phone validation
-3. test failed request
-4. insert sorted set 
-5. Atlast multi portal push. 
+1. update bulk.
+2. LLM and phone validation.
+3. test failed request.
+4. insert sorted set.
+5. Atlast multi portal push.
+
+1. add to db
+2. if there are server issue dont remove from sorted set
+3. check db using schedular and update only the due to data failed requests..
+
+
+failed req la retry panropo structure issue

@@ -5,6 +5,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -288,7 +289,9 @@ public class Constants {
 	public enum HttpStatusCodes {
 		INTERNAL_SERVER_ERROR(500, "Internal Server Error"), BAD_REQUEST(400, "Bad Request"),
 		TOO_MANY_REQUESTS(429, "Too Many Requests"), NOT_FOUND(404, "Not Found"), OK(200, "OK"),
-		CONFLICT(409, "Conflict"), FORBIDDEN(403, "Forbidden"), UNAUTHORIZED(401, "Unauthorized");
+		CONFLICT(409, "Conflict"), FORBIDDEN(403, "Forbidden"), UNAUTHORIZED(401, "Unauthorized"),
+		INVALID_DATA(400, "Invalid Data"), INTERNAL_ERROR(500, "Internal Error"), INVALID_MODULE(400, "Invalid Module"),
+		INVALID_REQUEST_METHOD(400, "Invalid Request Method");
 
 		private final int CODE;
 		private final String MESSAGE;
@@ -305,6 +308,15 @@ public class Constants {
 		public String getMessage() {
 			return MESSAGE;
 		}
+
+		public static Optional<HttpStatusCodes> fromName(String name) {
+			try {
+				return Optional.of(HttpStatusCodes.valueOf(name));
+			} catch (IllegalArgumentException e) {
+				return Optional.empty();
+			}
+		}
+
 	}
 
 	public enum TaskExecutor {
@@ -337,7 +349,7 @@ public class Constants {
 	}
 
 	public enum ModuleCode {
-		Account(0), Contact(1), Deal(2), Lead(3);
+		Accounts(0), Contacts(1), Deals(2), Leads(3), Accountss(5);
 
 		private final Integer id;
 
@@ -359,6 +371,15 @@ public class Constants {
 
 		public static ModuleCode fromId(Integer id) {
 			return ID_TO_ENUM_MAP.get(id);
+		}
+		
+		public static ModuleCode fromName(String name) {
+		    for (ModuleCode code : values()) {
+		        if (code.name().equalsIgnoreCase(name)) {
+		            return code;
+		        }
+		    }
+		    return null;
 		}
 
 	}
@@ -399,7 +420,8 @@ public class Constants {
 
 	public static enum ContactsFields implements SymbolProvider {
 		FK_USER_ID("FK_User_Id"), ID("id"), EMAIL("Email"), FIRST_NAME("First_Name"), LAST_NAME("Last_Name"),
-		PHONE("Phone"), DOB("Date_Of_Birth"), FK_ACCOUNT_NAME("FK_Account_Name"), IDENTIFIER("Identifier");
+		PHONE("Phone"), DOB("Date_Of_Birth"), FK_ACCOUNT_NAME("FK_Account_Name"), IDENTIFIER("Identifier"),
+		EMAIL_STATUS("Email_Status");
 
 		private final String ApiName;
 

@@ -1,5 +1,6 @@
 package crm;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.Map;
 
@@ -21,7 +22,7 @@ public class CRMHttpService {
 
 	private static final String PROVIDER = "Zoho";
 	private static final String API_DOMAIN = dotenv.get("ZOHO_API_DOMAIN");
-	
+
 	private CRMHttpService() {}
 
 	private static class SingletonHelper {
@@ -36,9 +37,13 @@ public class CRMHttpService {
 		return e.getMessage() != null && e.getMessage().contains("401");
 	}
 
-	public static boolean isForbidden(Exception e) {
-		return e.getMessage() != null && e.getMessage().contains("403");
-	}
+		public static boolean isForbidden(Exception e) {
+			return e.getMessage() != null && e.getMessage().contains("403");
+		}
+		
+		public static boolean isServerError(Exception e) {
+			return e.getMessage() != null && e.getMessage().contains("500");
+		}
 
 	private String sendWithRetry(HttpMethod method, String url, String jsonBody, OauthProvider provider)
 			throws Exception {
@@ -60,9 +65,6 @@ public class CRMHttpService {
 			if (isUnauthorized(e)) {
 				logger.info("Access token might be expired. Attempting to refresh...");
 				OauthService.getInstance().refreshAccessToken();
-			} else if (isForbidden(e)) {
-				logger.warn("Received 403 Forbidden. Logging the failed request. URL: {}, Method: {}, Body: {}",
-						url, method, jsonBody);
 			} else {
 				logger.error("Request to {} failed with error: {}", url, e.getMessage());
 			}
@@ -71,7 +73,14 @@ public class CRMHttpService {
 		}
 	}
 
-	public String fetchRecord(String criteriaKey, String criteriaValue, String endpoint) throws Exception {
+	public String uploadFileToCrm(File zipFile, String uploadUrl) throws Exception {
+		OauthProvider provider = Helper.fetchOauthProvider(PROVIDER);
+		String response = HttpUtil.sendPostRequest(uploadUrl, zipFile, provider.getAccessToken(), "103791165");
+
+		return response;
+	}
+
+	public String fetchRecord(String criteriaKey, Object criteriaValue, String endpoint) throws Exception {
 		OauthProvider provider = Helper.fetchOauthProvider(PROVIDER);
 
 		String format = "%s%s/search?criteria=((%s:equals:%s))";
@@ -83,9 +92,13 @@ public class CRMHttpService {
 	}
 
 	public <K extends SymbolProvider> String postToCrm(String endpointKey, Map<K, Object> data) throws Exception {
+		String jsonBody = JsonUtils.buildModuleJsonFromMap(data);
+		return postToCrm(endpointKey, jsonBody);
+	}
+
+	public <K extends SymbolProvider> String postToCrm(String endpointKey, String jsonBody) throws Exception {
 		OauthProvider provider = Helper.fetchOauthProvider(PROVIDER);
 		String url = API_DOMAIN + endpointKey;
-		String jsonBody = JsonUtils.buildModuleJsonFromMap(data);
 
 		return sendWithRetry(HttpMethod.POST, url, jsonBody, provider);
 	}

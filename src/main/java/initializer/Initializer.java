@@ -19,7 +19,7 @@ import io.github.cdimascio.dotenv.Dotenv;
 import pool.DBConnectionPool;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
-import schedular.CRMSchedular;
+import schedular.CRMUpdateSchedular;
 import schedular.ExpiredSessionSchedular;
 import schedular.FixedDepositSchedular;
 import schedular.PasswordUpdateScheduler;
@@ -52,7 +52,7 @@ public class Initializer implements ServletContextListener {
 	private static final PasswordUpdateScheduler PASSWORD_UPDATE_SCHEDULER = new PasswordUpdateScheduler();
 	private static final ExpiredSessionSchedular EXPIRED_SESSION_SCHEDULAR = new ExpiredSessionSchedular();
 	private static final FixedDepositSchedular FIXED_DEPOSIT_SCHEDULAR = new FixedDepositSchedular();
-	private static final CRMSchedular CRM_SCHEDULAR = new CRMSchedular();
+	private static final CRMUpdateSchedular CRM_UPDATE_SCHEDULAR = new CRMUpdateSchedular();
 	private static final DatabaseInitializer DATABASE_INITIALIZER = new DatabaseInitializer();
 
 	public static void setDataSource() throws SQLException, ClassNotFoundException {
@@ -70,6 +70,7 @@ public class Initializer implements ServletContextListener {
 	@Override
 	public void contextInitialized(ServletContextEvent sce) {
 		try {
+			
 			logger.info("Initializing Database Connection Pool...");
 
 			createDB();
@@ -92,7 +93,7 @@ public class Initializer implements ServletContextListener {
 			EXPIRED_SESSION_SCHEDULAR.startScheduler();
 			PASSWORD_UPDATE_SCHEDULER.startScheduler();
 			FIXED_DEPOSIT_SCHEDULAR.startScheduler();
-			CRM_SCHEDULAR.startScheduler();
+			CRM_UPDATE_SCHEDULAR.startScheduler();
 
 		} catch (Exception e) {
 			logger.error("Error initializing resources: {}", e);
@@ -127,8 +128,8 @@ public class Initializer implements ServletContextListener {
 			if (EXPIRED_SESSION_SCHEDULAR != null) {
 				EXPIRED_SESSION_SCHEDULAR.stopScheduler();
 			}
-			if (CRM_SCHEDULAR != null) {
-				CRM_SCHEDULAR.stopScheduler();
+			if (CRM_UPDATE_SCHEDULAR != null) {
+				CRM_UPDATE_SCHEDULAR.stopScheduler();
 			}
 			if (FIXED_DEPOSIT_SCHEDULAR != null) {
 				FIXED_DEPOSIT_SCHEDULAR.stopScheduler();

@@ -76,7 +76,7 @@ public class LoanService {
 		ModuleLog moduleLog = new ModuleLog().setMessage("Loan created").setModule(Module.Loan).setModuleId(rowId)
 				.setAccountNumber(accountNumber).setPerformedBy(userId).setCreatedAt(System.currentTimeMillis());
 
-		Org org = OrgService.getInstance().getOrg(userId);
+		Org org = OrgService.getInstance().getOrgByUserId(userId);
 		Long adminId = OrgService.getInstance().getAdminId(org.getId());
 
 		logger.debug("Module log created.");

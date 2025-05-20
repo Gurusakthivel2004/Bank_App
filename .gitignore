@@ -10,3 +10,4 @@ app.log
 webapp/WEB-INF/lib/*
 dist/*
 .env
+bulk_csv/

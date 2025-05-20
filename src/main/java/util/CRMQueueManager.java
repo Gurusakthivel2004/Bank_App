@@ -22,7 +22,7 @@ public class CRMQueueManager {
 	public static <K extends SymbolProvider> void addUpdateJsonToSortedSet(String criteriaKey, Object criteriaValue,
 			Map<K, Object> updateFields, String moduleName) throws Exception {
 
-		ModuleCode moduleCode = ModuleCode.valueOf(moduleName.toUpperCase());
+		ModuleCode moduleCode = ModuleCode.valueOf(moduleName);
 		if (moduleCode == null) {
 			throw new IllegalArgumentException("Invalid module name: " + moduleName);
 		}
@@ -33,21 +33,28 @@ public class CRMQueueManager {
 		}
 
 		Map<String, Object> payload = new HashMap<>();
-		payload.put("Module_Code", moduleCode.getId());
-		payload.put("Criteria_Key", criteriaKey);
-		payload.put("Criteria_Value", criteriaValue);
-		payload.put("Update_Fields", flatFields);
+		payload.put("moduleCodeId", moduleCode.getId());
+		payload.put("retries", 0);
+		payload.put("criteriaKey", criteriaKey);
+		payload.put("criteriaValue", criteriaValue);
+		payload.put("updateFields", flatFields);
 
 		CRMQueueManager.addToUpdateSet(payload);
 	}
 
-	public static void addToUpdateSet(Map<String, Object> payload) {
-		try (Jedis jedis = redisCache.getConnection()) {
+	public static void addToUpdateSet(Map<String, Object> payload) throws JsonProcessingException {
+		try {
 			String json = new ObjectMapper().writeValueAsString(payload);
-			jedis.zadd("updateSet", System.currentTimeMillis(), json);
-			logger.info("Successfully added payload to Redis updateSet: {}", json);
+			addToUpdateSet(json);
 		} catch (JsonProcessingException e) {
 			logger.error("Failed to serialize payload to JSON: {}", e.getMessage(), e);
+		}
+	}
+
+	public static void addToUpdateSet(String json) {
+		try (Jedis jedis = redisCache.getConnection()) {
+			jedis.zadd("updateSet", System.currentTimeMillis(), json);
+			logger.info("Successfully added payload to Redis updateSet: {}", json);
 		} catch (Exception e) {
 			logger.error("Failed to add payload to Redis updateSet: {}", e.getMessage(), e);
 		}

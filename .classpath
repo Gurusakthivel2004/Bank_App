@@ -43,7 +43,6 @@
 	<classpathentry exported="true" kind="lib" path="/home/temp/eclipse-workspace/Bank_Application/webapp/WEB-INF/lib/jackson-annotations-2.15.2.jar"/>
 	<classpathentry exported="true" kind="lib" path="/home/temp/eclipse-workspace/Bank_Application/webapp/WEB-INF/lib/jackson-core-2.15.2.jar"/>
 	<classpathentry exported="true" kind="lib" path="/home/temp/eclipse-workspace/Bank_Application/webapp/WEB-INF/lib/jackson-databind-2.15.2.jar"/>
-	<classpathentry exported="true" kind="lib" path="/home/temp/eclipse-workspace/Bank_Application/webapp/WEB-INF/lib/jakarta.mail-1.6.3.jar"/>
 	<classpathentry exported="true" kind="lib" path="/home/temp/eclipse-workspace/Bank_Application/webapp/WEB-INF/lib/java-dotenv-3.1.1.jar"/>
 	<classpathentry exported="true" kind="lib" path="/home/temp/eclipse-workspace/Bank_Application/webapp/WEB-INF/lib/java-jwt-4.4.0.jar"/>
 	<classpathentry exported="true" kind="lib" path="/home/temp/eclipse-workspace/Bank_Application/webapp/WEB-INF/lib/javax.servlet-api-4.0.1.jar"/>
@@ -64,5 +63,9 @@
 	<classpathentry exported="true" kind="lib" path="/home/temp/eclipse-workspace/Bank_Application/webapp/WEB-INF/lib/opencsv-5.7.1.jar"/>
 	<classpathentry exported="true" kind="lib" path="/home/temp/eclipse-workspace/Bank_Application/webapp/WEB-INF/lib/libphonenumber-8.13.15.jar"/>
 	<classpathentry exported="true" kind="lib" path="/home/temp/eclipse-workspace/Bank_Application/webapp/WEB-INF/lib/postgresql-42.2.27.jar"/>
+	<classpathentry exported="true" kind="lib" path="/home/temp/eclipse-workspace/Bank_Application/webapp/WEB-INF/lib/jakarta.activation-api-1.2.2.jar"/>
+	<classpathentry exported="true" kind="lib" path="/home/temp/eclipse-workspace/Bank_Application/webapp/WEB-INF/lib/javax.mail-1.6.2.jar"/>
+	<classpathentry exported="true" kind="lib" path="/home/temp/eclipse-workspace/Bank_Application/webapp/WEB-INF/lib/jakarta.mail-2.0.1.jar"/>
+	<classpathentry exported="true" kind="lib" path="/home/temp/eclipse-workspace/Bank_Application/webapp/WEB-INF/lib/activation-1.1.1.jar"/>
 	<classpathentry kind="output" path="target/classes"/>
 </classpath>

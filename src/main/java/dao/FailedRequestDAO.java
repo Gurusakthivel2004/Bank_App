@@ -43,11 +43,11 @@ public class FailedRequestDAO implements DAO<FailedRequest> {
 		return SQLHelper.get(criteria, FailedRequest.class);
 	}
 
-	public long create(FailedRequest org) throws Exception {
+	public long create(FailedRequest failedRequest) throws Exception {
 		logger.info("Inserting failed request info...");
 
-		Helper.checkNullValues(org);
-		Object insertedValue = SQLHelper.insert(org);
+		Helper.checkNullValues(failedRequest);
+		Object insertedValue = SQLHelper.insert(failedRequest);
 
 		return Helper.convertToLong(insertedValue);
 	}

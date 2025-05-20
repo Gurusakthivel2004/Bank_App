@@ -35,7 +35,8 @@ public class NotificationService {
 	private static final String SMTP_USERNAME = dotenv.get("SMTP_USERNAME");
 	private static final String SMTP_PASSWORD = dotenv.get("SMTP_PASSWORD");
 
-	private NotificationService() {}
+	private NotificationService() {
+	}
 
 	private static class SingletonHelper {
 		private static final NotificationService INSTANCE = new NotificationService();
@@ -45,12 +46,11 @@ public class NotificationService {
 		return SingletonHelper.INSTANCE;
 	}
 
-	private void sendEmailAysnc(String toEmail, String subject, String messageBody) {
+	public void sendEmailAysnc(String toEmail, String subject, String messageBody) {
 		logger.info("Initializing email sending process...");
 
 		Properties properties = new Properties();
 		properties.put("mail.smtp.auth", "true");
-		properties.put("mail.smtp.starttls.enable", "true");
 		properties.put("mail.smtp.starttls.enable", "true");
 		properties.put("mail.smtp.starttls.required", "true");
 		properties.put("mail.smtp.ssl.protocols", "TLSv1.2");
@@ -68,6 +68,7 @@ public class NotificationService {
 		});
 		session.setProtocolForAddress("rfc822", "smtp");
 		session.setDebug(true);
+		session.setDebugOut(System.out);
 
 		try {
 			logger.info("Preparing email message...");

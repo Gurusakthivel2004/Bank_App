@@ -8,6 +8,7 @@ public class User extends MarkedClass {
 	private Long id;
 	private String fullname;
 	private String email;
+	private Boolean emailStatus;
 	private String phone;
 	private Role role;
 	private String username;
@@ -161,6 +162,14 @@ public class User extends MarkedClass {
 	public User setCountryCode(String countryCode) {
 		this.countryCode = countryCode;
 		return this;
+	}
+	
+	public Boolean getEmailStatus() {
+		return emailStatus;
+	}
+
+	public void setEmailStatus(Boolean emailStatus) {
+		this.emailStatus = emailStatus;
 	}
 	
 	@Override

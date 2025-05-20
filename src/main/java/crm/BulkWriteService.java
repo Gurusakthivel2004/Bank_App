@@ -1,51 +1,49 @@
 package crm;
 
-import com.opencsv.CSVWriter;
-
 import java.io.File;
-import java.io.FileWriter;
-import java.util.*;
+import java.util.List;
+import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import util.FileUtils;
+import util.OAuthConfig;
+
 public class BulkWriteService {
 
-    private static final Logger logger = LogManager.getLogger(BulkWriteService.class);
-    private static final String BASE_PATH = "bulk_csv"; 
+	private static final Logger logger = LogManager.getLogger(BulkWriteService.class);
+	private static final String UPLOAD_URL = OAuthConfig.get("crm.uploadfile.endpoint");
 
-    public static void generateCsvFiles(String moduleName, List<Map<String, String>> records) {
-         try {
-             writeCsvForModule(moduleName, records);
-         } catch (Exception e) {
-             logger.error("Failed to write bulk CSV for module {}: {}", moduleName, e.getMessage(), e);
-         }
-    }
+	public static void initiateBulkUpload(String endpoint, List<Map<String, Object>> dataList, String moduleAPIName,
+			String callbackUrl) throws Exception {
 
-    private static void writeCsvForModule(String module, List<Map<String, String>> records) throws Exception {
-        if (records.isEmpty()) return;
+		if (dataList == null || dataList.isEmpty()) {
+			logger.warn("Data list is empty. Aborting bulk upload.");
+			return;
+		}
 
-        File dir = new File(BASE_PATH);
-        if (!dir.exists()) dir.mkdirs();
+		File zipFile = FileUtils.generateCsvFiles(moduleAPIName, dataList);
+		if (zipFile == null || !zipFile.exists()) {
+			logger.error("Failed to generate CSV ZIP file for module {}", moduleAPIName);
+			return;
+		}
 
-        String filePath = BASE_PATH + File.separator + module.toLowerCase() + "_bulk.csv";
+		String fileId = CRMHttpService.getInstance().uploadFileToCrm(zipFile, UPLOAD_URL);
+		logger.info("Uploaded ZIP file to Zoho. Received file_id = {}", fileId);
 
-        try (CSVWriter writer = new CSVWriter(new FileWriter(filePath))) {
+		String requestPayload = buildBulkJobPayload(moduleAPIName, fileId, callbackUrl);
 
-            Set<String> allHeaders = new LinkedHashSet<>();
-            for (Map<String, String> record : records) {
-                allHeaders.addAll(record.keySet());
-            }
-            writer.writeNext(allHeaders.toArray(new String[0]));
+		String response = CRMHttpService.getInstance().postToCrm(endpoint, requestPayload);
+		logger.info("Bulk upload job created successfully. Response: {}", response);
+	}
 
-            for (Map<String, String> record : records) {
-                String[] row = allHeaders.stream()
-                        .map(key -> record.getOrDefault(key, ""))
-                        .toArray(String[]::new);
-                writer.writeNext(row);
-            }
-
-            logger.info("CSV file created for module {}: {}", module, filePath);
-        }
-    }
+	private static String buildBulkJobPayload(String module, String fileId, String callbackUrl) {
+		return String.format(
+				"{\n" + "  \"operation\": \"update\",\n" + "  \"ignore_empty\": true,\n" + "  \"resource\": [\n"
+						+ "    {\n" + "      \"type\": \"data\",\n" + "      \"module\": \"%s\",\n"
+						+ "      \"file_id\": \"%s\"\n" + "    }\n" + "  ],\n" + "  \"callback\": {\n"
+						+ "    \"url\": \"%s\",\n" + "    \"method\": \"post\"\n" + "  }\n" + "}",
+				module, fileId, callbackUrl);
+	}
 }

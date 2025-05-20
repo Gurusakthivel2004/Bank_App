@@ -18,11 +18,12 @@ import util.OAuthConfig;
 
 public class AccountsService {
 
-	private static CRMHttpService crmHttpService = CRMHttpService.getInstance();
 	public static final String CRM_MODULE = "Accounts";
 	public static final String CRM_MODULE_PK = "Phone";
-	private static final String ACCOUNT_ENDPOINT = OAuthConfig.get("crm.account.endpoint");
-	private static final String CONTACT_ENDPOINT = OAuthConfig.get("crm.contact.endpoint");
+	private static final String ACCOUNT_ENDPOINT = OAuthConfig.get("crm.accounts.endpoint");
+	private static final String CONTACT_ENDPOINT = OAuthConfig.get("crm.contacts.endpoint");
+
+	private static CRMHttpService crmHttpService = CRMHttpService.getInstance();
 	private static final Logger LOGGER = LogManager.getLogger(AccountsService.class);
 
 	private AccountsService() {}
@@ -35,7 +36,7 @@ public class AccountsService {
 		return SingletonHelper.INSTANCE;
 	}
 
-	public String pushOrgToCRM(Org org, User user) {
+	public String pushOrgToCRM(Org org, User user, boolean logFailedRequest) {
 		TaskExecutor.CRM.submitTask(() -> {
 			try {
 				// Fetch accounts
@@ -58,9 +59,10 @@ public class AccountsService {
 				}
 				return accountId;
 			} catch (Exception e) {
-				if (CRMHttpService.isForbidden(e)) {
+				if (logFailedRequest) {
+					LOGGER.warn("Received 403 Forbidden. Logging the failed request.");
 					try {
-						Map<String, String> jsonMap = new HashMap<>();
+						Map<String, Object> jsonMap = new HashMap<>();
 						jsonMap.put("orgId", org.getId().toString());
 						jsonMap.put("userId", user.getId().toString());
 						jsonMap.put("useCase", UseCase.ORG_PUSH.getId().toString());
@@ -76,7 +78,7 @@ public class AccountsService {
 		});
 		return null;
 	}
-	
+
 	public String updateRecord(String updateJson) throws Exception {
 		String accountsJsonResponse = crmHttpService.putToCrm(ACCOUNT_ENDPOINT, updateJson);
 		return accountsJsonResponse;

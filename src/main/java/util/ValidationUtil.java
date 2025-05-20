@@ -27,7 +27,7 @@ public class ValidationUtil {
 	private static Logger logger = LogManager.getLogger(ValidationUtil.class);
 
 	private static final List<String> USER_UPDATE_ALLOWED_FIELDS = Arrays.asList("phone", "email", "role", "status",
-			"password", "branchId", "fatherName", "motherName", "maritalStatus", "address");
+			"password", "branchId", "fatherName", "motherName", "maritalStatus", "address", "emailStatus");
 
 	private static final List<String> ACCOUNT_UPDATE_ALLOWED_FIELDS = Arrays.asList("branchId", "status");
 

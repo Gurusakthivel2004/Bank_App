@@ -258,11 +258,43 @@ async function verifyOTP() {
 		otpError.style.display = "none";
 		document.getElementById("otpModal").style.display = "none";
 		sessionStorage.removeItem("otpStartTime");
-		saveNewUser();
+		updateEmailStatus();
 	} else {
 		otpError.style.display = "block";
 		otpError.innerHTML = result.message;
 	}
+}
+
+async function updateEmailStatus () {
+	let userUpdateJson = {
+		updatedValues: {
+			emailStatus: true
+		},
+		userId: userId
+	};
+	console.log("Sending data to server:", userUpdateJson);
+		const userDetailsResponse = await fetch('/Bank_Application/api/User', {
+			method: 'PUT',
+			headers: {
+				'Content-Type': 'application/json'
+			},
+			body: JSON.stringify(userUpdateJson)
+		});
+		const result = await userDetailsResponse.json();
+		const successPop = document.getElementById('successPopup');
+		if (result.message != null && (result.message.includes('Session expired') || result.message == 'Invalid Access token')) {
+			document.querySelector('body').style.display = 'none';
+			deleteAllCookies();
+			window.location.href = "error.html";
+		}
+		if (result.message == 'success') {
+			successDisplayWithMsg('User created and verified successfully!');
+		} else {
+			errorDisplay(successPop, result.message);
+		}
+		setTimeout(() => {
+			successPop.style.display = 'none';
+		}, 3000);
 }
 
 function renderUsers(users) {
@@ -502,14 +534,16 @@ const newUser = _ => {
 	}
 }
 
-let userData = null;
-
 const createNewUser = async data => {
+	userData = data;
+	let status = saveNewUser(data);
+	if(!status) return;  
 	startOTPTimer(data['email'], true);
 	toggleModal('newUserModal');
 	toggleModal('otpModal');
-	userData = data;
 };
+
+let userId = null;
 
 const saveNewUser = async _ => {
 	console.log("Sending data to server:", userData);
@@ -523,7 +557,8 @@ const saveNewUser = async _ => {
 	const result = await userDetailsResponse.json();
 	console.log(result);
 	if (result.message == 'success') {
-		successDisplayWithMsg("User created successfully.");
+		userId = result.userId;
+		return true;
 	}
 	else {
 		const errorMessageElement = document.getElementById('errorMessage');

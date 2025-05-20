@@ -106,7 +106,7 @@ public class CacheUtil {
 		}
 	}
 
-	public static String getCRMRecordId(String moduleName, String primaryKey) {
+	public static String getCRMRecordId(String moduleName, Object primaryKey) {
 	    if (moduleName == null || primaryKey == null) {
 	        logger.error("ModuleName or PrimaryKey cannot be null.");
 	        return null;
@@ -122,13 +122,13 @@ public class CacheUtil {
 	    return null;
 	}
 
-	public static void saveCRMRecordId(String moduleName, String primaryKey, String recordId) {
+	public static void saveCRMRecordId(String moduleName, Object primaryKey, String recordId) {
 	    if (moduleName == null || primaryKey == null || recordId == null) {
 	        logger.error("ModuleName, PrimaryKey, or RecordId cannot be null.");
 	        return;
 	    }
 	    try {
-	        Map<String, String> moduleCache = get(moduleName, new TypeReference<Map<String, String>>() {});
+	        Map<Object, Object> moduleCache = get(moduleName, new TypeReference<Map<Object, Object>>() {});
 	        if (moduleCache == null) {
 	            moduleCache = new HashMap<>();
 	        }

@@ -59,9 +59,8 @@ public class Runner {
 //			String jsonResponse = CRMService.getInstance().fetchRecords(OAuthConfig.get("crm.contact.endpoint"), "Account_Name", "Zoho",
 //					config);
 //			System.out.println(jsonResponse);
-			
-			double score = UsernameValidator.validateUsername("free$money$$123");
-			System.out.println("Spam Score: " + score);
+
+			UsernameValidator.validateUsername("free$money$$123");
 			
 //			System.out.println("json response: " + jsonResponse);
 //

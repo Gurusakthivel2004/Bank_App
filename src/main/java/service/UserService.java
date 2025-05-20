@@ -69,10 +69,16 @@ public class UserService {
 		return updatedValues;
 	}
 
-	private Role extractRole(Map<String, Object> userMap) throws CustomException {
-		Role role = Role.fromString((String) userMap.get("role"));
+	private Role extractRole(Map<String, Object> userMap) throws Exception {
+		String role = (String) userMap.get("role");
+		if(role == null) {
+			long userId = Helper.parseLong(userMap.getOrDefault("userId", -1));
+			User user = getUserById(userId);
+			role = user.getRole();
+		}
+		Role roleEnum = Role.fromString(role);
 		userMap.remove("role");
-		return role;
+		return roleEnum;
 	}
 
 	@SuppressWarnings("unchecked")
@@ -281,6 +287,10 @@ public class UserService {
 		if (userMap.containsKey("phone")) {
 			String phone = (String) userMap.get("phone");
 			contactsMap.put(ContactsFields.PHONE,  phone);
+		} 
+		if (userMap.containsKey("emailStatus")) {
+			Boolean emailStatus = (Boolean) userMap.get("emailStatus");
+			contactsMap.put(ContactsFields.EMAIL_STATUS,  emailStatus ? "verified" : "not verified");
 		}
 		if (contactsMap.size() == 0) {
 			return;
@@ -455,7 +465,7 @@ public class UserService {
 
 	}
 
-	public void createUser(Map<String, Object> userMap) throws Exception {
+	public Long createUser(Map<String, Object> userMap) throws Exception {
 		logger.info("Attempting to create user");
 
 		logger.info("userMap keys: {}", userMap.keySet());
@@ -468,6 +478,7 @@ public class UserService {
 		Country country = Country.fromCountryName(countryName);
 
 		Role role = Role.fromString((String) userMap.get("role"));
+		userMap.put("emailStatus", false);
 		userMap.put("status", "Active");
 		userMap.put("countryCode", country.getRegionCode());
 
@@ -477,6 +488,7 @@ public class UserService {
 
 			logUserCreationActivity(userId);
 			logger.info("User created successfully.");
+			return userId;
 		} catch (CustomException e) {
 			logger.error("Error creating user. User data: {}. Error: {}", userMap, e);
 			throw e;

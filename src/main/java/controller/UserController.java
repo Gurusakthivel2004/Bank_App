@@ -1,5 +1,7 @@
 package controller;
 
+import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.Map;
 
 import javax.servlet.http.HttpServletRequest;
@@ -42,6 +44,17 @@ public class UserController {
 		logger.info("Received GET request without parameters, fetching from request.");
 		handleGet(request, response, Helper.getParametersAsMap(request));
 	}
+	
+	private void sendUserIdResponse(Long userId, HttpServletResponse response) throws IOException {
+		JsonObject responseJson = new JsonObject();
+		responseJson.addProperty("message", "success");
+		responseJson.addProperty("userId", userId.toString());
+		response.setStatus(HttpServletResponse.SC_OK);
+
+		try (PrintWriter out = response.getWriter()) {
+			out.print(responseJson.toString());
+		}
+	}
 
 	public void handlePost(HttpServletRequest request, HttpServletResponse response) throws Exception {
 		logger.info("Received POST request to create or get a user.");
@@ -56,8 +69,8 @@ public class UserController {
 		}
 
 		logger.info("Creating a new user with provided details.");
-		userService.createUser(userMap);
-		Helper.sendSuccessResponse(response, "success");
+		Long userId = userService.createUser(userMap);
+		sendUserIdResponse(userId, response);
 		logger.info("User created successfully.");
 	}
 

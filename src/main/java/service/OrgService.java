@@ -74,7 +74,7 @@ public class OrgService {
 		return orgMember.getUserId();
 	}
 
-	public Org getOrg(Long userId) throws Exception {
+	public Org getOrgByUserId(Long userId) throws Exception {
 		DAO<OrgMember> orgMemberDao = DaoFactory.getDAO(OrgMember.class);
 
 		Map<String, Object> orgMemberCriteria = new HashMap<>();
@@ -88,12 +88,15 @@ public class OrgService {
 
 		OrgMember orgMember = orgMembers.get(0);
 
+		return getOrgById(orgMember.getOrgId());
+	}
+	
+	public Org getOrgById(Long orgId) throws Exception {
 		DAO<Org> orgDao = DaoFactory.getDAO(Org.class);
+		Map<String, Object> orgCriteria = new HashMap<>();
+		orgCriteria.put("id", orgId);
 
-		orgMemberCriteria.put("id", orgMember.getOrgId());
-		orgMemberCriteria.remove("userId");
-
-		List<Org> orgs = orgDao.get(orgMemberCriteria);
+		List<Org> orgs = orgDao.get(orgCriteria);
 
 		Org org = orgs.get(0);
 		return org;
@@ -112,7 +115,7 @@ public class OrgService {
 		createOrgAdminMembership(userId, orgId);
 
 		User user = UserService.getInstance().getUserById(userId);
-		AccountsService.getInstance().pushOrgToCRM(org, user);
+		AccountsService.getInstance().pushOrgToCRM(org, user, true);
 	}
 
 	public List<OrgMember> getOrgMemberDetails(Long userId) throws Exception {

@@ -14,7 +14,7 @@ public class LeadsService {
 	private CRMHttpService crmHttpService = CRMHttpService.getInstance();
 	public static final String CRM_MODULE = "Leads";
 	public static final String CRM_MODULE_PK = "Email";
-	private static final String LEAD_ENDPOINT = OAuthConfig.get("crm.lead.endpoint");
+	private static final String LEAD_ENDPOINT = OAuthConfig.get("crm.leads.endpoint");
 	
 	private LeadsService() {}
 

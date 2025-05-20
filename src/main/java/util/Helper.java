@@ -448,7 +448,10 @@ public class Helper {
 		TaskExecutor.CRM.submitTask(() -> {
 			try {
 				Org org = getOrgData(userId);
-				DealsService.getInstance().pushModuleToCRM(moduleName, amount, moduleId, userId, org);
+
+				User user = UserService.getInstance().getUserById(userId);
+				
+				DealsService.getInstance().pushModuleToCRM(moduleName, amount, moduleId, user, org, true);
 			} catch (Exception e) {
 				LOGGER.error("CRM Deals push failed: {}", e.getMessage(), e);
 			}
@@ -613,19 +616,21 @@ public class Helper {
 		}
 	}
 
-	public static void logFailedRequest(Map<String, String> jsonMap) throws Exception {
+	public static void logFailedRequest(Map<String, Object> jsonMap) throws Exception {
+		LOGGER.info("Logging Failed request..");
 		DAO<FailedRequest> failedRequestDao = DaoFactory.getDAO(FailedRequest.class);
 
 		JsonObject jsonObject = new JsonObject();
 		for (String key : jsonMap.keySet()) {
-			jsonObject.addProperty(key, jsonMap.get(key));
+			jsonObject.addProperty(key, jsonMap.get(key).toString());
 		}
-
+		LOGGER.info("creating Failed request in DB.");
 		FailedRequest failedRequest = new FailedRequest();
-		failedRequest.setRequestJson(jsonObject.getAsString());
+		failedRequest.setRequestJson(jsonObject.toString());
 		failedRequest.setCreatedAt(System.currentTimeMillis());
-
+		LOGGER.info("Failed request: " + failedRequest);
 		failedRequestDao.create(failedRequest);
+		LOGGER.info("Failed request created in DB.");
 	}
 
 	public static Long logAndPushModule(ModuleLog moduleLog, String amount, Long userId, Org org) throws Exception {
@@ -634,8 +639,10 @@ public class Helper {
 			try {
 				Long moduleId = moduleLogDAO.create(moduleLog);
 				if (amount != null) {
-					DealsService.getInstance().pushModuleToCRM(moduleLog.getModule(), amount, moduleId.toString(),
-							userId, org);
+
+					User user = UserService.getInstance().getUserById(userId);
+					DealsService.getInstance().pushModuleToCRM(moduleLog.getModule(), amount, moduleId.toString(), user,
+							org, true);
 				}
 			} catch (Exception e) {
 				LOGGER.error("Error occurred while saving activity log", e);
