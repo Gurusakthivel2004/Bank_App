@@ -7,16 +7,17 @@ import java.util.Map;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import crm.AccountsService;
 import dao.DAO;
 import dao.DaoFactory;
 import enums.Constants.HttpStatusCodes;
 import enums.Constants.LogType;
 import enums.Constants.Role;
+import enums.Constants.UseCase;
 import model.ActivityLog;
 import model.Org;
 import model.OrgMember;
 import model.User;
+import util.CRMQueueManager;
 import util.CustomException;
 import util.Helper;
 
@@ -115,7 +116,14 @@ public class OrgService {
 		createOrgAdminMembership(userId, orgId);
 
 		User user = UserService.getInstance().getUserById(userId);
-		AccountsService.getInstance().pushOrgToCRM(org, user, true);
+		
+		Map<String, Object> payload = new HashMap<>();
+		payload.put("retries", 0);
+		payload.put("orgId", org.getId().toString());
+		payload.put("userId", user.getId().toString());
+		payload.put("useCaseId", UseCase.ORG_PUSH.getId().toString());
+		
+		CRMQueueManager.addToInsertSet(payload);
 	}
 
 	public List<OrgMember> getOrgMemberDetails(Long userId) throws Exception {

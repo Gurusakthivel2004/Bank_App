@@ -19,8 +19,7 @@ public class UserDAO<T extends User> implements DAO<T> {
 	private static Logger logger = LogManager.getLogger(UserDAO.class);
 	private static final Integer DEFAULT_VERSION = 1;
 
-	private UserDAO() {
-	}
+	private UserDAO() {}
 
 	private static class SingletonHelper {
 		private static final UserDAO<?> INSTANCE = new UserDAO<>();

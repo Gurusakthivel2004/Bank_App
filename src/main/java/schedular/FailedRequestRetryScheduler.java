@@ -15,28 +15,27 @@ import org.apache.logging.log4j.Logger;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import crm.AccountsService;
 import crm.CRMHttpService;
-import crm.DealsService;
 import dao.DAO;
 import dao.DaoFactory;
 import enums.Constants.UseCase;
 import model.Criteria;
 import model.FailedRequest;
-import model.Org;
-import model.User;
-import service.OrgService;
-import service.UserService;
-import util.CRMQueueManager;
 import util.SQLHelper;
 
 public class FailedRequestRetryScheduler {
 
 	private static final Logger LOGGER = LogManager.getLogger(FailedRequestRetryScheduler.class);
+	
 	private static final DAO<FailedRequest> FAILED_REQUEST_DAO = DaoFactory.getDAO(FailedRequest.class);
+	
 	private static final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
+	
+	private static final CRMUpdateSchedular CRM_UPDATE_SCHEDULAR = new CRMUpdateSchedular();
+	private static final CRMInsertSchedular CRM_INSERT_SCHEDULAR = new CRMInsertSchedular();
 
 	private void deleteRequest(List<Object> requestsIds) throws Exception {
+		
 		Criteria criteria = new Criteria().setClazz(FailedRequest.class).setColumn(Collections.singletonList("id"))
 				.setOperator(Collections.singletonList("IN")).setValues(requestsIds);
 
@@ -57,24 +56,24 @@ public class FailedRequestRetryScheduler {
 				}
 				ObjectMapper mapper = new ObjectMapper();
 				for (FailedRequest request : failedRequests) {
-					
+
 					Map<String, String> requestMap = mapper.readValue(request.getRequestJson(),
 							new TypeReference<Map<String, String>>() {
 							});
-					
+
 					Integer useCaseId = Integer.parseInt(requestMap.get("useCase"));
 					UseCase useCase = UseCase.fromId(useCaseId);
 					boolean result = false;
 
 					switch (useCase) {
 					case ORG_PUSH:
-						result = handleOrgPush(requestMap);
+						result = CRM_INSERT_SCHEDULAR.handleOrgPush(requestMap);
 						break;
 					case DEAL_PUSH:
-						result = handleDealPush(requestMap);
+						result = CRM_INSERT_SCHEDULAR.handleDealPush(requestMap);
 						break;
 					case CUSTOM_UPDATE:
-						handleCustomUpdate(requestMap);
+						CRM_UPDATE_SCHEDULAR.handleCustomUpdate(requestMap);
 						result = true;
 						break;
 					default:
@@ -101,47 +100,6 @@ public class FailedRequestRetryScheduler {
 
 		scheduler.scheduleAtFixedRate(task, 0, 30, TimeUnit.MINUTES);
 		LOGGER.info("FailedRequestRetryScheduler started: runs every 30 minutes.");
-	}
-	
-	private void handleCustomUpdate(Map<String, String> requestMap) throws Exception {
-		Integer moduleCodeId = Integer.parseInt(requestMap.get("moduleCodeId"));
-		String updateJson = requestMap.get("updateJson");
-		Integer retries = Integer.parseInt(requestMap.get("retries"));
-		
-		Map<String, Object> payload = new HashMap<>();
-		payload.put("moduleCodeId", moduleCodeId.toString());
-		payload.put("updateFields", updateJson);
-		payload.put("retries", retries);
-		
-		CRMQueueManager.addToUpdateSet(payload);
-		
-	}
-
-	private boolean handleOrgPush(Map<String, String> requestMap) throws Exception {
-		Long orgId = Long.parseLong(requestMap.get("orgId"));
-		Long userId = Long.parseLong(requestMap.get("userId"));
-
-		User user = UserService.getInstance().getUserById(userId);
-		Org org = OrgService.getInstance().getOrgById(orgId);
-
-		String accountId = AccountsService.getInstance().pushOrgToCRM(org, user, false);
-		return accountId == null;
-	}
-
-	private boolean handleDealPush(Map<String, String> requestMap) throws Exception {
-		Long orgId = Long.parseLong(requestMap.get("orgId"));
-		Long userId = Long.parseLong(requestMap.get("userId"));
-
-		String moduleRecordId = requestMap.get("moduleRecordId");
-		String amount = requestMap.get("amount");
-		String moduleName = requestMap.get("moduleName");
-
-		User user = UserService.getInstance().getUserById(userId);
-		Org org = OrgService.getInstance().getOrgById(orgId);
-
-		Long dealId = DealsService.getInstance().pushModuleToCRM(moduleName, amount, moduleRecordId, user, org, false);
-
-		return dealId == null;
 	}
 
 	public void stopScheduler() {

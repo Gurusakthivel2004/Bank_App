@@ -24,6 +24,7 @@ import enums.Constants.HttpStatusCodes;
 import enums.Constants.ModuleCode;
 import enums.Constants.UseCase;
 import redis.clients.jedis.Jedis;
+import util.CRMQueueManager;
 import util.FileUtils;
 import util.Helper;
 import util.JsonUtils;
@@ -59,7 +60,7 @@ public class CRMUpdateSchedular {
 		};
 
 		SCHEDULER.scheduleAtFixedRate(task, 0, 30, TimeUnit.MINUTES);
-		LOGGER.info("Password update scheduler started: runs every 24 hours.");
+		LOGGER.info("CRM Update scheduler started: runs every 24 hours.");
 	}
 
 	public void processUpdateSet() {
@@ -107,7 +108,7 @@ public class CRMUpdateSchedular {
 		for (String entry : entries) {
 			Map<String, Object> record = mapper.readValue(entry, new TypeReference<Map<String, Object>>() {
 			});
-			
+
 			Integer retries = (Integer) record.get("retries");
 			Integer moduleCodeId = Integer.parseInt((String) record.get("moduleCodeId"));
 
@@ -116,6 +117,13 @@ public class CRMUpdateSchedular {
 			String module = moduleCode.name();
 
 			Object criteriaValue = record.get("criteriaValue");
+
+			Integer inserted = CacheUtil.get(criteriaValue.toString(), new TypeReference<Integer>() {
+			});
+
+			if (inserted == 1) {
+				continue;
+			}
 
 			LOGGER.debug("Processing record for module: {}, criteria: {}={}", module, criteriaKey, criteriaValue);
 
@@ -127,23 +135,24 @@ public class CRMUpdateSchedular {
 			if (recordId == null) {
 				recordId = resolveRecordId(moduleCode, criteriaKey, criteriaValue);
 			}
-			
+
 			if (retries > MAXIMUM_RETRIES) {
-				removeFromUpdateSet(recordId);
+				removeFromUpdateSet(entry);
 				continue;
+			}
+
+			if (updateFields.containsKey("phone")) {
+				String phone = (String) updateFields.get("phone");
+				String countryCode = (String) updateFields.get("countryCode");
+
+				boolean isValidPhone = PhoneUtil.isValidPhoneNumber(phone, countryCode);
+				if (!isValidPhone) {
+					updateFields.remove("phone");
+				}
 			}
 
 			updateFields.put("retries", retries);
 			updateFields.put("id", recordId);
-
-			if (updateFields.containsKey("Phone")) {
-				String phone = (String) updateFields.get("Phone");
-//				String phone = (String) updateFields.get("Country_Code");
-				LOGGER.debug("Phone number present in updateFields for module {}: {}", module,
-						phone);
-				// Add Phone validation
-				
-			}
 
 			LOGGER.debug("Update fields prepared for record {}: {}", recordId, updateFields);
 			moduleData.computeIfAbsent(module, k -> new ArrayList<>()).add(updateFields);
@@ -162,7 +171,7 @@ public class CRMUpdateSchedular {
 		}
 
 		String endpoint = OAuthConfig.get("crm." + module.toLowerCase() + ".endpoint");
-		String jsonResponse = CRM_HTTP_SERVICE.fetchRecord(criteriaKey, criteriaValue, endpoint);
+		String jsonResponse = CRM_HTTP_SERVICE.fetchRecord(endpoint, criteriaKey, criteriaValue);
 		recordId = JsonUtils.getValueByPath(jsonResponse, "data[0]", "id");
 
 		LOGGER.info("Fetched recordId from CRM for module {} and value {}: {}", module, criteriaValue, recordId);
@@ -199,16 +208,10 @@ public class CRMUpdateSchedular {
 		}
 	}
 
-	private void removeFromUpdateSet(String recordId) {
+	private void removeFromUpdateSet(String entry) {
 		try (Jedis jedis = REDIS_CACHE.getConnection()) {
-			List<String> entries = jedis.zrange("updateSet", 0, -1);
-			for (String entry : entries) {
-				if (entry.contains(recordId)) {
-					jedis.zrem("updateSet", entry);
-					LOGGER.info("Removed recordId {} from updateSet", recordId);
-					break;
-				}
-			}
+			jedis.zrem("updateSet", entry);
+			LOGGER.info("Removed entry {} from updateSet", entry);
 		}
 	}
 
@@ -228,39 +231,45 @@ public class CRMUpdateSchedular {
 				JsonNode details = item.path("details");
 
 				Map<String, Object> originalUpdate = updateJson.get(i);
-
 				String status = item.path("status").asText();
 				String recordId = details.path("id").asText();
-				if (status.equals("success")) {
+
+				if ("success".equals(status)) {
 					removeFromUpdateSet(recordId);
-				} else if (status.equals("error")) {
-					String code = item.path("code").asText();
-					Optional<HttpStatusCodes> codeOpt = HttpStatusCodes.fromName(code);
-
-					codeOpt.ifPresent(statusCode -> {
-						switch (statusCode) {
-						case INVALID_DATA:
-						case INVALID_MODULE:
-						case INVALID_REQUEST_METHOD:
-							persistToDb(originalUpdate, module);
-							removeFromUpdateSet(recordId);
-							break;
-
-						case INTERNAL_ERROR:
-						case FORBIDDEN:
-							LOGGER.debug("Server error. skipping this json");
-							break;
-						default:
-							break;
-						}
-					});
-
+				} else if ("error".equals(status)) {
+					handleErrorResponse(item, originalUpdate, recordId, module);
 				}
 			}
 
 		} catch (Exception e) {
 			LOGGER.error("Error while parsing CRM response: {}", e.getMessage(), e);
 		}
+	}
+
+	private void handleErrorResponse(JsonNode item, Map<String, Object> originalUpdate, String recordId,
+			String module) {
+		String code = item.path("code").asText();
+		Optional<HttpStatusCodes> codeOpt = HttpStatusCodes.fromName(code);
+
+		codeOpt.ifPresent(statusCode -> {
+			switch (statusCode) {
+			case INVALID_DATA:
+			case INVALID_MODULE:
+			case INVALID_REQUEST_METHOD:
+				persistToDb(originalUpdate, module);
+				removeFromUpdateSet(recordId);
+				break;
+
+			case INTERNAL_ERROR:
+			case FORBIDDEN:
+				LOGGER.debug("Server error. Skipping this JSON.");
+				break;
+
+			default:
+				LOGGER.debug("Unhandled error code: {}", code);
+				break;
+			}
+		});
 	}
 
 	private void persistToDb(Map<String, Object> originalUpdate, String module) {
@@ -305,6 +314,19 @@ public class CRMUpdateSchedular {
 			FileUtils.generateCsvFiles(module, updates);
 		}
 		return null;
+	}
+
+	public void handleCustomUpdate(Map<String, String> requestMap) throws Exception {
+		Integer moduleCodeId = Integer.parseInt(requestMap.get("moduleCodeId"));
+		String updateJson = requestMap.get("updateJson");
+		Integer retries = Integer.parseInt(requestMap.get("retries"));
+
+		Map<String, Object> payload = new HashMap<>();
+		payload.put("moduleCodeId", moduleCodeId.toString());
+		payload.put("updateFields", updateJson);
+		payload.put("retries", retries);
+
+		CRMQueueManager.addToUpdateSet(payload);
 	}
 
 	public void stopScheduler() {

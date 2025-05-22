@@ -40,7 +40,7 @@ import util.ValidationUtil;
 
 public class UserService {
 
-	private Logger logger = LogManager.getLogger(UserService.class);
+	private final Logger LOGGER = LogManager.getLogger(UserService.class);
 	private DAO<User> userDao = DaoFactory.getDAO(User.class);
 	private DAO<CustomerDetail> customerDao = DaoFactory.getDAO(CustomerDetail.class);
 	private DAO<Staff> staffDao = DaoFactory.getDAO(Staff.class);
@@ -120,14 +120,14 @@ public class UserService {
 
 	private void checkCaptchaRequirement(String username, HttpSession session) throws CustomException {
 		if (AuthUtils.isCaptchaRequired(username, session)) {
-			logger.warn("User {} must solve CAPTCHA before logging in", username);
+			LOGGER.warn("User {} must solve CAPTCHA before logging in", username);
 			throw new CustomException("CAPTCHA verification required before login.", HttpStatusCodes.FORBIDDEN);
 		}
 	}
 
 	private void checkUserLockout(String username) throws CustomException {
 		if (AuthUtils.isUserLockedOut(username)) {
-			logger.warn("User {} is temporarily locked out due to too many failed attempts", username);
+			LOGGER.warn("User {} is temporarily locked out due to too many failed attempts", username);
 			throw new CustomException("Too many failed attempts. Please wait 5 minutes and try again.",
 					HttpStatusCodes.TOO_MANY_REQUESTS);
 		}
@@ -136,7 +136,7 @@ public class UserService {
 	private User validateCredentials(String username, String password) throws Exception {
 		List<User> users = checkPassword(username, password);
 		if (users == null || users.isEmpty() || users.size() > 1) {
-			logger.warn("User not found or invalid credentials for username: {}", username);
+			LOGGER.warn("User not found or invalid credentials for username: {}", username);
 			throw new CustomException("Invalid username or password.", HttpStatusCodes.UNAUTHORIZED);
 		}
 		return users.get(0);
@@ -172,7 +172,7 @@ public class UserService {
 
 	private void validateCurrentPassword(String currentPassword, User user) throws Exception {
 		if (!Helper.checkPassword(user, currentPassword)) {
-			logger.error("Password mismatch for user");
+			LOGGER.error("Password mismatch for user");
 			throw new CustomException("Please enter the correct password", HttpStatusCodes.UNAUTHORIZED);
 		}
 	}
@@ -286,7 +286,14 @@ public class UserService {
 		}
 		if (userMap.containsKey("phone")) {
 			String phone = (String) userMap.get("phone");
+			String countryCode = (String) userMap.get("countryCode");
+			
+			if(countryCode == null) {
+				countryCode = getUserById(userId).getCountryCode();
+			}
+			
 			contactsMap.put(ContactsFields.PHONE,  phone);
+			contactsMap.put(ContactsFields.COUNTRY_CODE,  countryCode);
 		} 
 		if (userMap.containsKey("emailStatus")) {
 			Boolean emailStatus = (Boolean) userMap.get("emailStatus");
@@ -301,14 +308,14 @@ public class UserService {
 				CRMQueueManager.addUpdateJsonToSortedSet(ContactsService.CRM_MODULE_PK, criteriaEmail, contactsMap,
 						ContactsService.CRM_MODULE);
 			} catch (Exception e) {
-				logger.error("CRM Deals push failed: {}", e.getMessage(), e);
+				LOGGER.error("CRM Deals push failed: {}", e.getMessage(), e);
 			}
 		});
 
 	}
 
 	public Map<String, Object> userLogin(String username, String password, HttpSession session) throws Exception {
-		logger.info("Attempting login for username: {}", username);
+		LOGGER.info("Attempting login for username: {}", username);
 
 		checkUserLockout(username);
 		checkCaptchaRequirement(username, session);
@@ -346,7 +353,7 @@ public class UserService {
 	}
 
 	public void addStaffDetails(Map<String, Object> userDetails, User user) throws CustomException {
-		logger.info("Fetching additional staff details for employee user.");
+		LOGGER.info("Fetching additional staff details for employee user.");
 		try {
 			String key = "staffId:" + user.getId();
 			Map<String, Object> userMap = new HashMap<>();
@@ -364,17 +371,17 @@ public class UserService {
 			if (!staffDetails.isEmpty()) {
 				userDetails.put("branchId", staffDetails.get(0).getBranchId());
 			} else {
-				logger.warn("No staff details found for user with ID: {}", user.getId());
+				LOGGER.warn("No staff details found for user with ID: {}", user.getId());
 			}
 		} catch (Exception e) {
-			logger.error("Error fetching staff details for user with ID: {}", user.getId(), e);
+			LOGGER.error("Error fetching staff details for user with ID: {}", user.getId(), e);
 			throw new CustomException("Unable to fetch staff details. Please try again later.",
 					HttpStatusCodes.INTERNAL_SERVER_ERROR);
 		}
 	}
 
 	private List<User> checkPassword(String username, String password) throws Exception {
-		logger.info("Validating password for user: {}", username);
+		LOGGER.info("Validating password for user: {}", username);
 		try {
 			List<User> users = null;
 
@@ -389,24 +396,24 @@ public class UserService {
 			}
 			User user = users.get(0);
 			if (user.getStatus() != "Active") {
-				logger.error("User suspended: {}", username);
+				LOGGER.error("User suspended: {}", username);
 				throw new CustomException("User suspended", HttpStatusCodes.UNAUTHORIZED);
 			}
 			if (!Helper.checkPassword(user, password)) {
-				logger.error("Password mismatch for user: {}", username);
+				LOGGER.error("Password mismatch for user: {}", username);
 				throw new CustomException("Password does not match", HttpStatusCodes.UNAUTHORIZED);
 			}
 
-			logger.info("Password validation successful for user: {}", username);
+			LOGGER.info("Password validation successful for user: {}", username);
 			return users;
 		} catch (CustomException e) {
-			logger.error("Password validation failed for user: {}. Error: ", username, e);
+			LOGGER.error("Password validation failed for user: {}. Error: ", username, e);
 			throw e;
 		}
 	}
 
 	public void updatePassword(Map<String, Object> passwordMap) throws Exception {
-		logger.info("Attempting to update password.");
+		LOGGER.info("Attempting to update password.");
 
 		try {
 			long userId = (long) Helper.getThreadLocalValue("id");
@@ -422,9 +429,9 @@ public class UserService {
 
 			logPasswordUpdateActivity(userId);
 
-			logger.info("Password updated successfully.");
+			LOGGER.info("Password updated successfully.");
 		} catch (CustomException e) {
-			logger.error("Password update failed. Error: {}", e.getMessage());
+			LOGGER.error("Password update failed. Error: {}", e.getMessage());
 			throw e;
 		}
 	}
@@ -445,7 +452,7 @@ public class UserService {
 	}
 
 	public <T extends User> Map<String, Object> getUserDetails(Map<String, Object> userMap) throws Exception {
-		logger.info("Fetching user details.");
+		LOGGER.info("Fetching user details.");
 
 		List<T> cachedUsers = getCachedUsers(userMap);
 		if (cachedUsers != null && userMap.size() == 1) {
@@ -466,10 +473,10 @@ public class UserService {
 	}
 
 	public Long createUser(Map<String, Object> userMap) throws Exception {
-		logger.info("Attempting to create user");
+		LOGGER.info("Attempting to create user");
 
-		logger.info("userMap keys: {}", userMap.keySet());
-		logger.info("userMap values: {}", userMap.values());
+		LOGGER.info("userMap keys: {}", userMap.keySet());
+		LOGGER.info("userMap values: {}", userMap.values());
 
 		String orgName = (String) userMap.remove("orgName");
 		String subOrgName = (String) userMap.remove("subOrgName");
@@ -487,16 +494,16 @@ public class UserService {
 			linkUserOrg(orgName, subOrgName, userId);
 
 			logUserCreationActivity(userId);
-			logger.info("User created successfully.");
+			LOGGER.info("User created successfully.");
 			return userId;
 		} catch (CustomException e) {
-			logger.error("Error creating user. User data: {}. Error: {}", userMap, e);
+			LOGGER.error("Error creating user. User data: {}. Error: {}", userMap, e);
 			throw e;
 		}
 	}
 
 	public void updateUserDetails(Map<String, Object> userMap) throws Exception {
-		logger.info("Attempting to update user details.");
+		LOGGER.info("Attempting to update user details.");
 
 		try {
 			if (userMap.containsKey("currentPassword")) {
@@ -504,7 +511,7 @@ public class UserService {
 				return;
 			}
 
-			logger.info(userMap);
+			LOGGER.info(userMap);
 			validateUpdateRequest(userMap);
 
 			long userId = Helper.parseLong(userMap.getOrDefault("userId", -1));
@@ -526,7 +533,7 @@ public class UserService {
 
 			updateContacts(updatedValues, users.get(0).getId(), users.get(0).getEmail());
 		} catch (CustomException e) {
-			logger.error("Error updating user details. Error: {}", e.getMessage());
+			LOGGER.error("Error updating user details. Error: {}", e.getMessage());
 			throw e;
 		}
 	}

@@ -80,10 +80,11 @@ public class CRMHttpService {
 		return response;
 	}
 
-	public String fetchRecord(String criteriaKey, Object criteriaValue, String endpoint) throws Exception {
+	public String fetchRecord(String endpoint, String criteriaKey, Object criteriaValue) throws Exception {
 		OauthProvider provider = Helper.fetchOauthProvider(PROVIDER);
 
 		String format = "%s%s/search?criteria=((%s:equals:%s))";
+		System.out.println(API_DOMAIN + ", " + endpoint + ", " + criteriaKey);
 		String url = String.format(format, API_DOMAIN, endpoint, criteriaKey, criteriaValue);
 
 		String jsonResponse = sendWithRetry(HttpMethod.GET, url, null, provider);

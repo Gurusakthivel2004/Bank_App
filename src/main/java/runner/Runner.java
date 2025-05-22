@@ -2,6 +2,7 @@ package runner;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.zip.GZIPInputStream;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -13,6 +14,9 @@ import model.OauthProvider;
 import util.Helper;
 import util.HttpUtil;
 import util.UsernameValidator;
+import java.io.*;
+import java.net.*;
+import java.nio.charset.StandardCharsets;
 
 public class Runner {
 
@@ -60,8 +64,8 @@ public class Runner {
 //					config);
 //			System.out.println(jsonResponse);
 
-			UsernameValidator.validateUsername("free$money$$123");
-			
+			Integer score = UsernameValidator.validateUsername("username123");
+			System.out.println(score);
 //			System.out.println("json response: " + jsonResponse);
 //
 //			pushAccountRecords(customerDetail);

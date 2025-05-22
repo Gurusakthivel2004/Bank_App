@@ -21,7 +21,6 @@ public class AccountsService {
 	public static final String CRM_MODULE = "Accounts";
 	public static final String CRM_MODULE_PK = "Phone";
 	private static final String ACCOUNT_ENDPOINT = OAuthConfig.get("crm.accounts.endpoint");
-	private static final String CONTACT_ENDPOINT = OAuthConfig.get("crm.contacts.endpoint");
 
 	private static CRMHttpService crmHttpService = CRMHttpService.getInstance();
 	private static final Logger LOGGER = LogManager.getLogger(AccountsService.class);
@@ -39,25 +38,7 @@ public class AccountsService {
 	public String pushOrgToCRM(Org org, User user, boolean logFailedRequest) {
 		TaskExecutor.CRM.submitTask(() -> {
 			try {
-				// Fetch accounts
-				String accountsJsonResponse = crmHttpService.fetchRecord(ACCOUNT_ENDPOINT, "Account_Name",
-						org.getName());
-
-				String accountId = JsonUtils.getValueByPath(accountsJsonResponse, "data[0]", "id");
-				// Push accounts record
-				if (accountId == null) {
-					accountId = pushAccountsRecord(org);
-				}
-				// Fetch contacts
-				String contactsJsonResponse = crmHttpService.fetchRecord(CONTACT_ENDPOINT, "Account_Name",
-						org.getName());
-
-				String contactId = JsonUtils.getValueByPath(contactsJsonResponse, "data[0]", "id");
-				// Push contacts record
-				if (contactId == null) {
-					ContactsService.getInstance().pushContact(user, accountId);
-				}
-				return accountId;
+				return lookupsAndPush(org, user);
 			} catch (Exception e) {
 				if (logFailedRequest) {
 					LOGGER.warn("Received 403 Forbidden. Logging the failed request.");
@@ -77,6 +58,27 @@ public class AccountsService {
 			return null;
 		});
 		return null;
+	}
+	
+	public String insertIfAbsent(Org org) throws Exception {
+		// Fetch accounts
+		String accountsJsonResponse = crmHttpService.fetchRecord(ACCOUNT_ENDPOINT, "Account_Name", org.getName());
+
+		String accountId = JsonUtils.getValueByPath(accountsJsonResponse, "data[0]", "id");
+		// Push accounts record
+		if (accountId == null) {
+			accountId = pushAccountsRecord(org);
+		}
+		
+		return accountId;
+	}
+
+	private String lookupsAndPush(Org org, User user) throws Exception {
+		String accountId = insertIfAbsent(org);
+		
+		String contactId = ContactsService.getInstance().insertIfAbsent(org, user, accountId);
+		
+		return contactId;
 	}
 
 	public String updateRecord(String updateJson) throws Exception {

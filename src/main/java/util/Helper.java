@@ -48,12 +48,14 @@ import com.google.gson.JsonParser;
 import com.google.gson.JsonPrimitive;
 import com.password4j.Password;
 
+import cache.CacheUtil;
 import crm.DealsService;
 import dao.DAO;
 import dao.DaoFactory;
 import enums.Constants.HttpStatusCodes;
 import enums.Constants.Role;
 import enums.Constants.TaskExecutor;
+import enums.Constants.UseCase;
 import enums.Constants.ValidQueryParams;
 import io.github.cdimascio.dotenv.Dotenv;
 import model.ActivityLog;
@@ -641,8 +643,18 @@ public class Helper {
 				if (amount != null) {
 
 					User user = UserService.getInstance().getUserById(userId);
-					DealsService.getInstance().pushModuleToCRM(moduleLog.getModule(), amount, moduleId.toString(), user,
-							org, true);
+					
+					Map<String, Object> payload = new HashMap<>();
+					payload.put("retries", 0);
+					payload.put("orgId", org.getId().toString());
+					payload.put("userId", user.getId().toString());
+					payload.put("moduleName", moduleLog.getModule());
+					payload.put("amount", amount);
+					payload.put("moduleRecordId", moduleId.toString());
+					payload.put("useCaseId", UseCase.DEAL_PUSH.getId().toString());
+					
+					CRMQueueManager.addToInsertSet(payload);
+					CacheUtil.save(moduleId.toString(), 1);
 				}
 			} catch (Exception e) {
 				LOGGER.error("Error occurred while saving activity log", e);

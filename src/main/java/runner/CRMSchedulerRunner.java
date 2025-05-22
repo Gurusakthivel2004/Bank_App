@@ -6,10 +6,14 @@ import java.util.Map;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import cache.RedisCache;
+import enums.Constants.UseCase;
 import initializer.Initializer;
 import redis.clients.jedis.Jedis;
+import schedular.CRMInsertSchedular;
 import schedular.CRMUpdateSchedular;
 import schedular.FailedRequestRetryScheduler;
+import service.UserService;
+import util.CRMQueueManager;
 
 public class CRMSchedulerRunner {
 
@@ -21,17 +25,52 @@ public class CRMSchedulerRunner {
 			Initializer.setDataSource();
 			redisCache = RedisCache.getInstance();
 //			OauthService.getInstance().refreshAccessToken();
-//		updateContactRecord();
-//		updateAccountRecord();	
-			// Run scheduler processing once (not the periodic version)
-			CRMUpdateSchedular schedular = new CRMUpdateSchedular();
-			schedular.processUpdateSet();
+//			updateContactRecord();
+//			updateAccountRecord();	
+//			insertOrg();
+//			insertDeal();
+
+			CRMInsertSchedular schedular1 = new CRMInsertSchedular();
+//			schedular1.processInsertSet();
+
+			CRMUpdateSchedular schedular2 = new CRMUpdateSchedular();
+//			schedular2.processUpdateSet();
 
 			FailedRequestRetryScheduler fschedular = new FailedRequestRetryScheduler();
 //			fschedular.startScheduler();
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
+	}
+
+	private static void insertDeal() throws Exception {
+		try (Jedis jedis = redisCache.getConnection()) {
+			jedis.del("insertSet");
+			Map<String, Object> payload = new HashMap<>();
+			payload.put("retries", 0);
+			payload.put("orgId", "66");
+			payload.put("userId", "149");
+			payload.put("moduleName", "Fixed Deposit");
+			payload.put("amount", "10000");
+			payload.put("moduleRecordId", "9");
+			payload.put("useCaseId", UseCase.DEAL_PUSH.getId().toString());
+			CRMQueueManager.addToInsertSet(payload);
+		}
+		System.out.println("Inserted Deal mock CRM insert records into Redis.");
+	}
+
+	private static void insertOrg() throws Exception {
+		try (Jedis jedis = redisCache.getConnection()) {
+			jedis.del("insertSet");
+			Map<String, Object> payload = new HashMap<>();
+			payload.put("retries", 0);
+			payload.put("orgId", "66");
+			payload.put("userId", "149");
+			payload.put("useCaseId", UseCase.ORG_PUSH.getId().toString());
+
+			CRMQueueManager.addToInsertSet(payload);
+		}
+		System.out.println("Inserted Org mock CRM insert records into Redis.");
 	}
 
 	private static void updateContactRecord() throws Exception {

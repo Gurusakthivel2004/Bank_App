@@ -22,7 +22,6 @@ public class DealsService {
 	public static final String CRM_MODULE = "Deals";
 	public static final String CRM_MODULE_PK = "Module Record Id";
 	private static final String DEAL_ENDPOINT = OAuthConfig.get("crm.deals.endpoint");
-	private static final String CONTACT_ENDPOINT = OAuthConfig.get("crm.contacts.endpoint");
 	private static final Logger LOGGER = LogManager.getLogger(DealsService.class);
 
 	private DealsService() {}
@@ -35,20 +34,19 @@ public class DealsService {
 		return SingletonHelper.INSTANCE;
 	}
 
-	public Long pushModuleToCRM(String moduleName, String amount, String moduleRecordId, User user, Org org, boolean logFailedRequest)
-			throws Exception {
+	public Long pushModuleToCRM(String moduleName, String amount, String moduleRecordId, User user, Org org,
+			boolean logFailedRequest) throws Exception {
 		TaskExecutor.CRM.submitTask(() -> {
 			try {
-				// Fetch Deals
-				String dealsJsonResponse = crmHttpService.fetchRecord(DEAL_ENDPOINT, "Module_Record_Id", moduleRecordId);
+				String accountId = AccountsService.getInstance().insertIfAbsent(org);
 
-				String dealId = JsonUtils.getValueByPath(dealsJsonResponse, "data[0]", "id");
-				// Push deals record
-				if (dealId == null) {
-					dealId = pushDealsRecords(moduleName, amount, org.getName(), moduleRecordId);
-				}
-				// Push Accounts and Contacts if needed.
-				AccountsService.getInstance().pushOrgToCRM(org, user, true);
+				String contactId = ContactsService.getInstance().insertIfAbsent(org, user, accountId);
+				System.out.println("AccountId : " + accountId);
+				System.out.println("ContactId : " + contactId);
+				String dealId = insertIfAbsent(moduleName, amount, moduleRecordId, org, accountId, contactId);
+				
+				return dealId;
+
 			} catch (Exception e) {
 				if (logFailedRequest) {
 					try {
@@ -72,22 +70,31 @@ public class DealsService {
 		return null;
 	}
 
+	private String insertIfAbsent(String moduleName, String amount, String moduleRecordId, Org org, String accountId,
+			String contactId) throws Exception {
+		// Fetch Deals
+		String dealsJsonResponse = crmHttpService.fetchRecord(DEAL_ENDPOINT, "Module_Record_Id", moduleRecordId);
+
+		String dealId = JsonUtils.getValueByPath(dealsJsonResponse, "data[0]", "id");
+		// Push deals record
+		if (dealId == null) {
+			dealId = pushDealsRecords(moduleName, amount, org.getName(), moduleRecordId, accountId, contactId);
+		}
+
+		return dealId;
+	}
+
 	public String updateRecord(String updateJson) throws Exception {
 		String dealsJsonResponse = crmHttpService.putToCrm(DEAL_ENDPOINT, updateJson);
 		return dealsJsonResponse;
 	}
 
-	private String pushDealsRecords(String dealName, String amount, String accountName, String moduleRecordId)
-			throws Exception {
-
-		String jsonResponse = crmHttpService.fetchRecord(CONTACT_ENDPOINT, "Account_Name", accountName);
-
-		String accountId = JsonUtils.getValueByPath(jsonResponse, "data[0].Account_Name", "id");
-		String contactId = JsonUtils.getValueByPath(jsonResponse, "data[0]", "id");
+	private String pushDealsRecords(String dealName, String amount, String accountName, String moduleRecordId,
+			String accountId, String contactId) throws Exception {
 
 		Map<DealsFields, Object> data = new HashMap<>();
 		data.put(DealsFields.FK_ACCOUNT_NAME, accountId);
-		data.put(DealsFields.FK_Contact_NAME, contactId);
+		data.put(DealsFields.FK_CONTACT_NAME, contactId);
 		data.put(DealsFields.MODULE_RECORD_ID, moduleRecordId);
 		data.put(DealsFields.AMOUNT, amount);
 		data.put(DealsFields.STAGE, "Needs Analysis");

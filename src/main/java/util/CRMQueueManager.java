@@ -42,21 +42,25 @@ public class CRMQueueManager {
 		CRMQueueManager.addToUpdateSet(payload);
 	}
 
-	public static void addToUpdateSet(Map<String, Object> payload) throws JsonProcessingException {
-		try {
-			String json = new ObjectMapper().writeValueAsString(payload);
-			addToUpdateSet(json);
-		} catch (JsonProcessingException e) {
-			logger.error("Failed to serialize payload to JSON: {}", e.getMessage(), e);
-		}
+	public static void addToInsertSet(Map<String, Object> payload) throws JsonProcessingException {
+		addToSortedSet("insertSet", payload);
 	}
 
-	public static void addToUpdateSet(String json) {
-		try (Jedis jedis = redisCache.getConnection()) {
-			jedis.zadd("updateSet", System.currentTimeMillis(), json);
-			logger.info("Successfully added payload to Redis updateSet: {}", json);
-		} catch (Exception e) {
-			logger.error("Failed to add payload to Redis updateSet: {}", e.getMessage(), e);
+	public static void addToUpdateSet(Map<String, Object> payload) throws JsonProcessingException {
+		addToSortedSet("updateSet", payload);
+	}
+
+	private static void addToSortedSet(String key, Map<String, Object> payload) throws JsonProcessingException {
+		try {
+			String json = new ObjectMapper().writeValueAsString(payload);
+			try (Jedis jedis = redisCache.getConnection()) {
+				jedis.zadd(key, System.currentTimeMillis(), json);
+				logger.info("Successfully added payload to Redis updateSet: {}", json);
+			} catch (Exception e) {
+				logger.error("Failed to add payload to Redis updateSet: {}", e.getMessage(), e);
+			}
+		} catch (JsonProcessingException e) {
+			logger.error("Failed to serialize payload to JSON: {}", e.getMessage(), e);
 		}
 	}
 

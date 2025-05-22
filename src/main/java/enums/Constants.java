@@ -372,14 +372,14 @@ public class Constants {
 		public static ModuleCode fromId(Integer id) {
 			return ID_TO_ENUM_MAP.get(id);
 		}
-		
+
 		public static ModuleCode fromName(String name) {
-		    for (ModuleCode code : values()) {
-		        if (code.name().equalsIgnoreCase(name)) {
-		            return code;
-		        }
-		    }
-		    return null;
+			for (ModuleCode code : values()) {
+				if (code.name().equalsIgnoreCase(name)) {
+					return code;
+				}
+			}
+			return null;
 		}
 
 	}
@@ -421,7 +421,7 @@ public class Constants {
 	public static enum ContactsFields implements SymbolProvider {
 		FK_USER_ID("FK_User_Id"), ID("id"), EMAIL("Email"), FIRST_NAME("First_Name"), LAST_NAME("Last_Name"),
 		PHONE("Phone"), DOB("Date_Of_Birth"), FK_ACCOUNT_NAME("FK_Account_Name"), IDENTIFIER("Identifier"),
-		EMAIL_STATUS("Email_Status");
+		EMAIL_STATUS("Email_Status"), COUNTRY_CODE("Country_Code"), USERNAME_STATUS("Username_Status");
 
 		private final String ApiName;
 
@@ -468,7 +468,7 @@ public class Constants {
 
 	public static enum DealsFields implements SymbolProvider {
 		USER_ID("id"), ID("id"), MODULE_RECORD_ID("Module_Record_Id"), AMOUNT("Amount"), STAGE("Stage"),
-		DEAL_NAME("Deal_Name"), TYPE("Type"), FK_ACCOUNT_NAME("FK_Account_Name"), FK_Contact_NAME("FK_Contact_Name");
+		DEAL_NAME("Deal_Name"), TYPE("Type"), FK_ACCOUNT_NAME("FK_Account_Name"), FK_CONTACT_NAME("FK_Contact_Name");
 
 		private final String ApiName;
 
