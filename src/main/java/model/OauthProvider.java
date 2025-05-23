@@ -6,6 +6,7 @@ public class OauthProvider extends MarkedClass {
 	private Long userId;
 	private String providerUserId;
 	private Long clientConfigId;
+	private String org;
 	private String accessToken;
 	private String refreshToken;
 	private Integer expiresIn;
@@ -66,7 +67,7 @@ public class OauthProvider extends MarkedClass {
 	public void setOauthClientId(Long oauthClientId) {
 		this.clientConfigId = oauthClientId;
 	}
-	
+
 	public String getProviderUserId() {
 		return providerUserId;
 	}
@@ -75,11 +76,19 @@ public class OauthProvider extends MarkedClass {
 		this.providerUserId = providerUserId;
 	}
 
+	public String getOrg() {
+		return org;
+	}
+
+	public void setOrg(String org) {
+		this.org = org;
+	}
+
 	@Override
 	public String toString() {
 		return "OauthProvider [id=" + id + ", userId=" + userId + ", providerUserId=" + providerUserId
-				+ ", clientConfigId=" + clientConfigId + ", accessToken=" + accessToken + ", refreshToken="
-				+ refreshToken + ", expiresIn=" + expiresIn + ", createdAt=" + createdAt + "]";
+				+ ", clientConfigId=" + clientConfigId + ", org=" + org + ", accessToken=" + accessToken
+				+ ", refreshToken=" + refreshToken + ", expiresIn=" + expiresIn + ", createdAt=" + createdAt + "]";
 	}
-	
+
 }

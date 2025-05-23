@@ -17,7 +17,7 @@ import util.JsonUtils;
 
 public class CRMHttpService {
 
-	private static final Logger logger = LogManager.getLogger(CRMHttpService.class);
+	private static final Logger LOGGER = LogManager.getLogger(CRMHttpService.class);
 	private static final Dotenv dotenv = Helper.loadDotEnv();
 
 	private static final String PROVIDER = "Zoho";
@@ -37,58 +37,70 @@ public class CRMHttpService {
 		return e.getMessage() != null && e.getMessage().contains("401");
 	}
 
-		public static boolean isForbidden(Exception e) {
-			return e.getMessage() != null && e.getMessage().contains("403");
-		}
-		
-		public static boolean isServerError(Exception e) {
-			return e.getMessage() != null && e.getMessage().contains("500");
-		}
+	public static boolean isForbidden(Exception e) {
+		return e.getMessage() != null && e.getMessage().contains("403");
+	}
 
-	private String sendWithRetry(HttpMethod method, String url, String jsonBody, OauthProvider provider)
+	public static boolean isServerError(Exception e) {
+		return e.getMessage() != null && e.getMessage().contains("500");
+	}
+	
+	private static OauthProvider getOauthProvider() throws Exception {
+		String org = (String) Helper.getThreadLocalValue("org");
+	
+		OauthProvider provider = Helper.fetchOauthProvider(PROVIDER, org);
+		return provider;
+	}
+
+	private String sendWithRetry(HttpMethod method, String url, String jsonBody)
 			throws Exception {
+		OauthProvider provider = getOauthProvider();
+		System.out.println("org for this one is : " + provider.getOrg());
 		try {
-			switch (method) {
-
-			case POST:
-				return HttpUtil.sendPostRequestProxy(url, jsonBody, provider.getAccessToken(), null, null);
-			case GET:
-				return HttpUtil.sendGetRequestProxy(url, provider.getAccessToken(), null, null);
-			case PUT:
-				return HttpUtil.sendPutRequestProxy(url, jsonBody, provider.getAccessToken(), null, null);
-			default:
-				logger.error("Unsupported HTTP method: {}", method);
-				return null;
-			}
+			String response = makeRequest(method, url, jsonBody, provider);
+			LOGGER.info("resposne: " + response);
+			return response;
 		} catch (IOException e) {
-			logger.error("Request failed: {}", e.getMessage());
+			LOGGER.error("Request failed: {}", e.getMessage());
 			if (isUnauthorized(e)) {
-				logger.info("Access token might be expired. Attempting to refresh...");
+				LOGGER.info("Access token might be expired. Attempting to refresh...");
 				OauthService.getInstance().refreshAccessToken();
+				return makeRequest(method, url, jsonBody, provider);
 			} else {
-				logger.error("Request to {} failed with error: {}", url, e.getMessage());
+				LOGGER.error("Request to {} failed with error: {}", url, e.getMessage());
+				throw e;
 			}
-
-			throw e;
 		}
 	}
 
+	private String makeRequest(HttpMethod method, String url, String jsonBody, OauthProvider provider)
+			throws Exception {
+		switch (method) {
+		case POST:
+			return HttpUtil.sendPostRequestProxy(url, jsonBody, provider.getAccessToken(), null, null);
+		case GET:
+			return HttpUtil.sendGetRequestProxy(url, provider.getAccessToken(), null, null);
+		case PUT:
+			return HttpUtil.sendPutRequestProxy(url, jsonBody, provider.getAccessToken(), null, null);
+		default:
+			LOGGER.error("Unsupported HTTP method: {}", method);
+		}
+		return null;
+	}
+
 	public String uploadFileToCrm(File zipFile, String uploadUrl) throws Exception {
-		OauthProvider provider = Helper.fetchOauthProvider(PROVIDER);
+		OauthProvider provider = getOauthProvider();
 		String response = HttpUtil.sendPostRequest(uploadUrl, zipFile, provider.getAccessToken(), "103791165");
 
 		return response;
 	}
 
 	public String fetchRecord(String endpoint, String criteriaKey, Object criteriaValue) throws Exception {
-		OauthProvider provider = Helper.fetchOauthProvider(PROVIDER);
-
 		String format = "%s%s/search?criteria=((%s:equals:%s))";
-		System.out.println(API_DOMAIN + ", " + endpoint + ", " + criteriaKey);
 		String url = String.format(format, API_DOMAIN, endpoint, criteriaKey, criteriaValue);
 
-		String jsonResponse = sendWithRetry(HttpMethod.GET, url, null, provider);
-
+		String jsonResponse = sendWithRetry(HttpMethod.GET, url, null);
+		LOGGER.info(jsonResponse);
 		return jsonResponse;
 	}
 
@@ -98,17 +110,15 @@ public class CRMHttpService {
 	}
 
 	public <K extends SymbolProvider> String postToCrm(String endpointKey, String jsonBody) throws Exception {
-		OauthProvider provider = Helper.fetchOauthProvider(PROVIDER);
 		String url = API_DOMAIN + endpointKey;
 
-		return sendWithRetry(HttpMethod.POST, url, jsonBody, provider);
+		return sendWithRetry(HttpMethod.POST, url, jsonBody);
 	}
 
 	public String putToCrm(String endpointKey, String updateJson) throws Exception {
-		OauthProvider provider = Helper.fetchOauthProvider(PROVIDER);
 		String url = API_DOMAIN + endpointKey;
 
-		return sendWithRetry(HttpMethod.PUT, url, updateJson, provider);
+		return sendWithRetry(HttpMethod.PUT, url, updateJson);
 	}
 
 }

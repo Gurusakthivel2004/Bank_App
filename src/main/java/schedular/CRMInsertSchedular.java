@@ -147,7 +147,7 @@ public class CRMInsertSchedular {
 			if (jsonStart != -1) {
 				jsonPart = fullMessage.substring(jsonStart);
 			}
-
+			e.printStackTrace();
 			LOGGER.error("CRM error JSON: {}", jsonPart);
 			handleFailedRequests(jsonPart, entry, useCase);
 		}
@@ -200,7 +200,7 @@ public class CRMInsertSchedular {
 			}
 
 			for (int i = 0; i < dataArray.size(); i++) {
-				
+
 				JsonNode item = dataArray.get(i);
 				String status = item.path("status").asText();
 

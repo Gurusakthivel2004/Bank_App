@@ -19,8 +19,7 @@ public class ContactsService {
 	public static final String CRM_MODULE_PK = "Email";
 	private static final String CONTACT_ENDPOINT = OAuthConfig.get("crm.contacts.endpoint");
 
-	private ContactsService() {
-	}
+	private ContactsService() {}
 
 	private static class SingletonHelper {
 		private static final ContactsService INSTANCE = new ContactsService();
@@ -50,8 +49,6 @@ public class ContactsService {
 		String username = user.getFullname() + user.getUsername();
 		Integer score = UsernameValidator.validateUsername(username);
 		String status = classifyUsernameScore(score);
-		
-		
 
 		Map<ContactsFields, Object> data = new HashMap<>();
 		data.put(ContactsFields.FK_ACCOUNT_NAME, accountId);

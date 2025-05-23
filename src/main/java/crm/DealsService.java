@@ -8,10 +8,12 @@ import org.apache.logging.log4j.Logger;
 
 import cache.CacheUtil;
 import enums.Constants.DealsFields;
+import enums.Constants.Module;
 import enums.Constants.TaskExecutor;
 import enums.Constants.UseCase;
 import model.Org;
 import model.User;
+import util.CustomException;
 import util.Helper;
 import util.JsonUtils;
 import util.OAuthConfig;
@@ -19,10 +21,11 @@ import util.OAuthConfig;
 public class DealsService {
 
 	private CRMHttpService crmHttpService = CRMHttpService.getInstance();
-	public static final String CRM_MODULE = "Deals";
-	public static final String CRM_MODULE_PK = "Module Record Id";
 	private static final String DEAL_ENDPOINT = OAuthConfig.get("crm.deals.endpoint");
 	private static final Logger LOGGER = LogManager.getLogger(DealsService.class);
+
+	public static final String CRM_MODULE = "Deals";
+	public static final String CRM_MODULE_PK = "Module Record Id";
 
 	private DealsService() {}
 
@@ -38,13 +41,12 @@ public class DealsService {
 			boolean logFailedRequest) throws Exception {
 		TaskExecutor.CRM.submitTask(() -> {
 			try {
+				setOrg(moduleName);
 				String accountId = AccountsService.getInstance().insertIfAbsent(org);
 
 				String contactId = ContactsService.getInstance().insertIfAbsent(org, user, accountId);
-				System.out.println("AccountId : " + accountId);
-				System.out.println("ContactId : " + contactId);
 				String dealId = insertIfAbsent(moduleName, amount, moduleRecordId, org, accountId, contactId);
-				
+
 				return dealId;
 
 			} catch (Exception e) {
@@ -64,6 +66,8 @@ public class DealsService {
 					}
 				}
 				LOGGER.error("CRM push failed: {}", e.getMessage(), e);
+			} finally {
+				Helper.getThreadLocal().remove("org");
 			}
 			return null;
 		});
@@ -106,6 +110,24 @@ public class DealsService {
 		CacheUtil.saveCRMRecordId(CRM_MODULE, moduleRecordId, recordId);
 
 		return recordId;
+	}
+
+	private void setOrg(String moduleName) throws CustomException {
+		Module module = Module.fromString(moduleName.replaceAll(" ", ""));
+		String org = null;
+
+		switch (module) {
+		case FixedDeposit:
+			org = OAuthConfig.get("fixedDeposit.org");
+			break;
+		case Loan:
+			org = OAuthConfig.get("loan.org");
+			break;
+		default:
+			LOGGER.error("Invalid module name.");
+			break;
+		}
+		Helper.getThreadLocal().put("org", org);
 	}
 
 }

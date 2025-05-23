@@ -23,10 +23,10 @@ public class OauthService {
 
 	private static Dotenv dotenv = Helper.loadDotEnv();
 	private static final String SCOPE = OAuthConfig.get("crm.scope");
-	private static final String SOID = "ZohoCrm." + OAuthConfig.get("crm.orgId");
+	private static final String DEFAULT_ORG = "CDP-PT";
 	public static final String PROVIDER = "Zoho";
 	private static final String ACCOUNT_URL = dotenv.get("ZOHO_ACCOUNTS_URL");
-	
+
 	private OauthService() {}
 
 	private static class SingletonHelper {
@@ -38,11 +38,18 @@ public class OauthService {
 	}
 
 	public void refreshAccessToken() throws Exception {
+
 		OauthClientConfig clientConfig = Helper.getClientConfig(PROVIDER);
 		DAO<OauthProvider> oauthProviderDao = DaoFactory.getDAO(OauthProvider.class);
 
+		String org = (String) Helper.getThreadLocalValue("org");
+		String soid = "ZohoCrm." + OAuthConfig.get("crm." + DEFAULT_ORG + ".orgId");
+		if (org != null) {
+			soid = "ZohoCrm." + OAuthConfig.get("crm." + org + ".orgId");
+		}
+
 		String url = ACCOUNT_URL + OAuthConfig.get("oauth.token.url") + "?" + "grant_type=client_credentials&scope="
-				+ SCOPE + "&soid=" + SOID;
+				+ SCOPE + "&soid=" + soid;
 
 		String tokenResponse = HttpUtil.sendPostRequestProxy(url, Helper.toJson(new HashMap<String, Object>()), null,
 				clientConfig.getClientId(), clientConfig.getClientSecret());
@@ -60,7 +67,11 @@ public class OauthService {
 		Map<String, Object> providerMap = new HashMap<>();
 		providerMap.put("clientConfigId", clientConfig.getId());
 
+		if (org != null) {
+			providerMap.put("org", org);
+		}
+
 		oauthProviderDao.update(columnCriteria, providerMap);
 	}
-	
+
 }

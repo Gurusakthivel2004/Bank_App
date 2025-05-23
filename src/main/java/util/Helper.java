@@ -411,12 +411,15 @@ public class Helper {
 		return oauthClientConfigs.get(0);
 	}
 
-	public static OauthProvider fetchOauthProvider(String provider) throws Exception {
+	public static OauthProvider fetchOauthProvider(String provider, String org) throws Exception {
 		DAO<OauthProvider> oauthProviderDao = DaoFactory.getDAO(OauthProvider.class);
 		OauthClientConfig config = Helper.getClientConfig(provider);
 		Map<String, Object> query = new HashMap<>();
 
 		query.put("clientConfigId", config.getId());
+		if(org != null) {
+			query.put("org", org);
+		}
 		return oauthProviderDao.get(query).get(0);
 	}
 

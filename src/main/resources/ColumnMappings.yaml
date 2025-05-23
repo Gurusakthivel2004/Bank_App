@@ -210,6 +210,8 @@ classes:
          columnName: "refresh_token"
        expiresIn:
          columnName: "expires_in"
+       org:
+         columnName: "org"
        createdAt:
          columnName: "created_at"
 

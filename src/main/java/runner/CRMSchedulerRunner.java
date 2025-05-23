@@ -28,10 +28,10 @@ public class CRMSchedulerRunner {
 //			updateContactRecord();
 //			updateAccountRecord();	
 //			insertOrg();
-//			insertDeal();
+			insertDeal();
 
 			CRMInsertSchedular schedular1 = new CRMInsertSchedular();
-//			schedular1.processInsertSet();
+			schedular1.processInsertSet();
 
 			CRMUpdateSchedular schedular2 = new CRMUpdateSchedular();
 //			schedular2.processUpdateSet();

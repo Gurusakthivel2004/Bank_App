@@ -39,6 +39,7 @@ public class OauthProviderDAO implements DAO<OauthProvider> {
 	public List<OauthProvider> get(Map<String, Object> oauthMap) throws Exception {
 		Criteria criteria = DAOHelper.initializeCriteria(OauthProvider.class);
 		DAOHelper.applyOauthProviderFilters(criteria, oauthMap);
+		System.out.println(criteria);
 		return SQLHelper.get(criteria, OauthProvider.class);
 	}
 
